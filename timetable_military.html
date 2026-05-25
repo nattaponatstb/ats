@@ -1116,6 +1116,10 @@ async function doLogin() {
     const data = await api('POST', '/auth/login', { username, password });
     _token = data.token;
     _currentUser = data.user;
+    // รีเซต public mode เสมอเมื่อ login สำเร็จ
+    _publicMode = false;
+    document.querySelector('.app-shell').classList.remove('public-mode');
+    document.getElementById('publicBadge').style.display = 'none';
     writeLog('LOGIN_OK', `เข้าสู่ระบบสำเร็จ`);
     document.getElementById('topbarUser').textContent = data.user.full_name || data.user.username;
     document.getElementById('loginScreen').classList.add('hidden');
