@@ -184,6 +184,8 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 .print-header .course-line  { font-size: 16pt; font-weight: bold; }
 /* ตาราง: collapse เพื่อเส้นบางเสมอกัน */
 .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+/* บังคับให้ thead ซ้ำทุกหน้าที่ตารางล้น */
+.print-table thead { display: table-header-group; }
 .print-table th {
   border: 1px solid black;
   padding: 2px 4px; vertical-align: middle; text-align: center;
@@ -3103,20 +3105,9 @@ function printTimetable() {
       });
 
       // วันสุดท้าย + ตรวจถูกต้อง อยู่ใน tbody เดียวกัน
-      // ถ้าพื้นที่ไม่พอ → browser เลื่อนทั้ง tbody ขึ้นหน้าใหม่
-      // 3 แถวหัว (ตารางสอน / โรงเรียน / หลักสูตร) ฝังไว้ด้านบนของ tbody
-      // จึงขึ้นหน้าใหม่พร้อมกันแน่นอน
-      const HFb = "font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;font-weight:bold;text-align:center;background:white;border:none;padding:1px 0;";
+      // break-inside:avoid → browser เลื่อนทั้งก้อนขึ้นหน้าใหม่ถ้าพื้นที่ไม่พอ
+      // <thead> (3 แถวหัว + แถวคอลัมน์) ซ้ำอัตโนมัติทุกหน้า รวมถึงหน้าที่กลุ่มนี้ขึ้นไปด้วย
       bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">
-        <tr><td colspan="10" style="${HFb}padding-top:4mm">ตารางสอนประจำสัปดาห์</td></tr>
-        <tr><td colspan="10" style="${HFb}">${esc(state.schoolName)}</td></tr>
-        <tr><td colspan="10" style="${HFb}padding-bottom:3px">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')} &nbsp; ประจำสัปดาห์ที่ ${toThai(w)} &nbsp; วันที่ ${dateRange}</td></tr>
-        <tr>
-          <th>วัน , เดือน , ปี</th><th>เวลา</th><th>วิชา</th>
-          <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th><th>ผู้สอน</th>
-          <th>วิธีสอน</th><th>สถานที่</th><th>หลักฐาน</th>
-          <th>การแต่งกาย</th><th>หมายเหตุ</th>
-        </tr>
         ${buildDayBody(byDate[lastDate], lastDate)}
         <tr><td colspan="10" style="border:none;height:1.6em;padding:0"></td></tr>
         <tr><td colspan="10" style="border:none;padding:0">${signerBlock}</td></tr>
