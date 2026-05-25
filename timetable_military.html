@@ -1081,7 +1081,12 @@ function localApi(method, path, body) {
 }
 
 async function api(method, path, body) {
-  return localApi(method, path, body);
+  const result = localApi(method, path, body);
+  // หลังจากแก้ไขข้อมูล (ไม่ใช่ GET และไม่ใช่ auth) → push ขึ้น Firebase ทันที
+  if (method !== 'GET' && !path.startsWith('/auth')) {
+    pushToFirebase(); // fire-and-forget (background)
+  }
+  return result;
 }
 
 let _token = lsRead(LS.session)?.token || '';
@@ -1180,8 +1185,12 @@ function mapEntryRow(r) {
 
 async function initApp() {
   try {
-    // ถ้า localStorage ว่าง → ลองโหลดจาก GitHub
-    if (!(lsRead(LS.courses) || []).length) {
+    // โหลดข้อมูลล่าสุดจาก Firebase ก่อนเสมอ (ทุกเครื่อง ทุก login)
+    const fbOk = await pullFromFirebase();
+    if (fbOk) {
+      showToast('📥 โหลดข้อมูลล่าสุดจากระบบแล้ว');
+    } else if (!(lsRead(LS.courses) || []).length) {
+      // fallback: ถ้า Firebase ไม่มีข้อมูลและ localStorage ว่าง → ลอง GitHub
       const ghData = await loadFromGitHub();
       if (ghData && ghData.version) {
         if (ghData.settings) lsWrite(LS.settings, ghData.settings);
@@ -3228,6 +3237,58 @@ async function syncToGitHub() {
     if (btn) btn.disabled = false;
     if (icon) icon.textContent = '☁️';
   }
+}
+
+// ═══════════════════════════════════════════════
+//  FIREBASE REALTIME DATABASE  (multi-device sync)
+// ═══════════════════════════════════════════════
+const FB_DB = 'https://timetable-ats-default-rtdb.firebaseio.com';
+
+async function fbGet(p) {
+  try {
+    const r = await fetch(`${FB_DB}${p}.json`, { cache: 'no-store' });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
+async function fbSet(p, d) {
+  try {
+    await fetch(`${FB_DB}${p}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(d),
+    });
+  } catch {}
+}
+
+async function pullFromFirebase() {
+  try {
+    const fb = await fbGet('/data');
+    if (!fb) return false;
+    const courses = fb.courses ? Object.values(fb.courses) : [];
+    if (!courses.length) return false;
+    const entries  = fb.entries  ? Object.values(fb.entries)  : [];
+    const settings = fb.settings || {};
+    lsWrite(LS.settings, settings);
+    lsWrite(LS.courses,  courses);
+    lsWrite(LS.entries,  entries);
+    return true;
+  } catch { return false; }
+}
+
+async function pushToFirebase() {
+  try {
+    const courses  = lsRead(LS.courses)  || [];
+    const entries  = lsRead(LS.entries)  || [];
+    const settings = lsRead(LS.settings) || {};
+    const fbData = {
+      settings,
+      courses:  Object.fromEntries(courses.map(c => [c.id, c])),
+      entries:  Object.fromEntries(entries.map(e => [e.id, e])),
+      syncedAt: new Date().toISOString(),
+    };
+    await fbSet('/data', fbData);
+  } catch {}
 }
 
 async function loadFromGitHub() {
