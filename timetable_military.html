@@ -164,12 +164,14 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 
 /* ===== PRINT STYLES ===== */
 @media print {
-  @page { size: A4 landscape; margin: 4mm 8mm 0 8mm; }
+  @page { size: A4 landscape; margin: 8mm 8mm 10mm 8mm; }
   body { background: white; font-size: 9pt; }
   .app-shell, .topbar, .sidebar, .content-area, .modal-backdrop { display: none !important; }
   #printArea { display: block !important; }
   .print-page { page-break-after: always; }
   .print-page:last-child { page-break-after: avoid; }
+  /* ซ่อน browser native header/footer */
+  head, header, footer { display: none !important; }
 }
 #printArea { display: none; }
 
@@ -2944,188 +2946,179 @@ function printTimetable() {
   const course = findCourse(state.currentCourseId);
   if (!course) { showToast('เลือกหลักสูตรก่อน'); return; }
 
-  const entries = [...(course.entries||[])].sort((a,b)=>{
-    if (a.date!==b.date) return a.date.localeCompare(b.date);
+  const entries = [...(course.entries||[])].sort((a,b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
     return (a.startTime||'').localeCompare(b.startTime||'');
   });
 
-  const weeks = [...new Set(entries.map(e=>e.week||1))].sort((a,b)=>a-b);
+  const weeks = [...new Set(entries.map(e => e.week||1))].sort((a,b) => a-b);
 
+  // ── colgroup ─────────────────────────────────────────────────────────────
+  const colgroup = `<colgroup>
+    <col style="width:14%"><!-- วัน เดือน ปี -->
+    <col style="width:9%"> <!-- เวลา -->
+    <col style="width:17%"><!-- วิชา -->
+    <col style="width:6%"> <!-- หมดไป/ชม.ทั้งหมด -->
+    <col style="width:16%"><!-- ผู้สอน -->
+    <col style="width:5%"> <!-- วิธีสอน -->
+    <col style="width:8%"> <!-- สถานที่ -->
+    <col style="width:7%"> <!-- หลักฐาน -->
+    <col style="width:7%"> <!-- การแต่งกาย -->
+    <col style="width:11%"><!-- หมายเหตุ -->
+  </colgroup>`;
+
+  // ── <thead>: แถว column headers เท่านั้น (ไม่มีหัวกระดาษ) ───────────────
+  const thead = `<thead><tr>
+    <th>วัน , เดือน , ปี</th>
+    <th>เวลา</th>
+    <th>วิชา</th>
+    <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
+    <th>ผู้สอน</th>
+    <th>วิธีสอน</th>
+    <th>สถานที่</th>
+    <th>หลักฐาน</th>
+    <th>การแต่งกาย</th>
+    <th>หมายเหตุ</th>
+  </tr></thead>`;
+
+  // ── ส่วนตรวจถูกต้อง ───────────────────────────────────────────────────────
+  // ชื่อเต็ม (ยศ + ชื่อ-สกุล) ใช้คำนวณ offset
+  const _fullName = [course.signerRank||'', course.signerName||''].filter(Boolean).join(' ');
+  const nL  = _fullName.length;
+  const p1L = (course.signerPos1||'').length;
+  const p2L = (course.signerPos2||'').length;
+  // offset จากขอบซ้ายของ container ที่เริ่มที่ 50%
+  const pos1Off = Math.max(0, 15 + nL/2 - p1L/2).toFixed(2);
+  const pos2Off = Math.max(0, 15 + nL/2 - p2L/2).toFixed(2);
+  const dateOff = (14 + nL/2).toFixed(2);
+  const SF = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;line-height:1.9;`;
+
+  const signerBlock = _fullName ? `
+    <div style="${SF}">
+      <div style="margin-left:50%">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
+      <div style="margin-left:calc(50% + 14ch)">${esc(_fullName)}</div>
+      ${course.signerPos1 ? `<div style="margin-left:calc(50% + ${pos1Off}ch)">${esc(course.signerPos1)}</div>` : ''}
+      ${course.signerPos2 ? `<div style="margin-left:calc(50% + ${pos2Off}ch)">${esc(course.signerPos2)}</div>` : ''}
+      ${course.signerDate ? `<div style="margin-left:calc(50% + ${dateOff}ch)">${esc(course.signerDate)}</div>` : ''}
+    </div>` : '';
+
+  // ── helper: สร้าง tbody html ของ 1 วัน ──────────────────────────────────
+  function buildDayBody(dayEntries, date) {
+    // วันหยุด
+    if (dayEntries.length === 1 && dayEntries[0].type === 'holiday') {
+      const h = dayEntries[0];
+      const RRED = 'background:#e53935;color:black;font-weight:bold;border:1px solid black;';
+      return `<tr>
+        <td style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:14pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
+        <td colspan="9" style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:14pt;padding:6px 4px;text-align:center">หยุด ${esc(h.label)}</td>
+      </tr>`;
+    }
+    const daySpan = dayEntries.length;
+    const uInfo = dayEntries.map((e, i) => {
+      if (i === 0 || e.uniform !== dayEntries[i-1].uniform) {
+        let span = 1;
+        for (let j = i+1; j < dayEntries.length; j++) {
+          if (dayEntries[j].uniform === e.uniform) span++; else break;
+        }
+        return { show:true, span };
+      }
+      return { show:false, span:0 };
+    });
+    let rows = '';
+    dayEntries.forEach((e, idx) => {
+      const isFirst = idx === 0;
+      const isLast  = idx === dayEntries.length - 1;
+      const topCls  = isFirst ? '' : 'notop';
+      const botCls  = isLast  ? '' : 'nobot';
+      const cls     = [topCls, botCls].filter(Boolean).join(' ');
+      const teacherHtml = getTeacherText(e).split(/\s*\/\s*/).map(t=>esc(t.trim())).filter(Boolean).join('<br>');
+      const cumStr  = e.cumHours ? `${thaiNum(e.cumHours)}/${thaiNum(e.totalHours||'')}` : '';
+      const dateCell = isFirst ? `<td rowspan="${daySpan}" class="left" style="white-space:nowrap;vertical-align:top">${formatDatePrint(date)}</td>` : '';
+      const u = uInfo[idx];
+      let uniformCell = '';
+      if (u.show) {
+        const uIsLastInDay = (idx + u.span - 1) === dayEntries.length - 1;
+        const uCls = [topCls, uIsLastInDay ? '' : 'nobot'].filter(Boolean).join(' ');
+        uniformCell = `<td rowspan="${u.span}" class="${uCls||''}" style="vertical-align:top">${esc(e.uniform||'')}</td>`;
+      }
+      rows += `<tr>
+        ${dateCell}
+        <td class="${cls}" style="white-space:nowrap;vertical-align:top">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
+        <td class="left ${cls}">${esc(e.subject)}</td>
+        <td class="${cls}">${cumStr}</td>
+        <td class="left ${cls}">${teacherHtml}</td>
+        <td class="f12 ${cls}">${esc(e.method||'')}</td>
+        <td class="f12 ${cls}">${esc(e.location||'')}</td>
+        <td class="${cls}">${esc(e.evidence||'')}</td>
+        ${uniformCell}
+        <td class="left ${cls}">${esc(e.notes||'')}</td>
+      </tr>`;
+    });
+    return rows;
+  }
+
+  // ── สร้างแต่ละสัปดาห์ ────────────────────────────────────────────────────
   let pages = '';
-  weeks.forEach(w => {
-    const wEntries = entries.filter(e=>(e.week||1)==w);
-    // dateRange: คิดเฉพาะรายการสอน (ไม่รวมวันหยุด)
-    const teachDates = wEntries.filter(e=>e.type!=='holiday').map(e=>e.date).filter(Boolean).sort();
-    const allDates   = wEntries.map(e=>e.date).filter(Boolean).sort();
-    const drDates    = teachDates.length ? teachDates : allDates;
-    const dateRange = drDates.length
-      ? `${formatDate(drDates[0])}${drDates.length>1 ? ' – '+formatDate(drDates[drDates.length-1]) : ''}`
-      : '';
-
-    // จัดกลุ่มตามวันที่ (รักษาลำดับ)
-    const dateOrder = [...new Set(wEntries.map(e=>e.date))];
-    const byDate = {};
+  weeks.forEach((w, wIdx) => {
+    const isLastWeek = (wIdx === weeks.length - 1);
+    const wEntries   = entries.filter(e => (e.week||1) === w);
+    const dateOrder  = [...new Set(wEntries.map(e => e.date))];
+    const byDate     = {};
     wEntries.forEach(e => { (byDate[e.date] = byDate[e.date]||[]).push(e); });
 
-    // ─── สร้าง <tbody> ต่อ 1 วัน (break-inside:avoid = ปัดทั้งวัน) ───
-    const HF = "font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;font-weight:bold;text-align:center;background:white;border:none;padding:1px 0;";
-    let tBodyArr = [];
-    dateOrder.forEach(date => {
-      const dayEntries = byDate[date];
-
-      // ── วันหยุด: แถวสีแดงทั้งแถว ──
-      if (dayEntries.length === 1 && dayEntries[0].type === 'holiday') {
-        const h = dayEntries[0];
-        const RRED = 'background:#e53935;color:black;font-weight:bold;text-align:center;border:1px solid black;';
-        tBodyArr.push(`<tbody style="break-inside:avoid;page-break-inside:avoid">
-          <tr>
-            <td style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:14pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
-            <td colspan="9" style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:14pt;padding:6px 4px">หยุด ${esc(h.label)}</td>
-          </tr>
-        </tbody>`);
-        return;
-      }
-
-      const daySpan = dayEntries.length;
-
-      // rowspan การแต่งกาย
-      const uInfo = dayEntries.map((e, i) => {
-        if (i === 0 || e.uniform !== dayEntries[i-1].uniform) {
-          let span = 1;
-          for (let j = i+1; j < dayEntries.length; j++) {
-            if (dayEntries[j].uniform === e.uniform) span++; else break;
-          }
-          return { show: true, span };
-        }
-        return { show: false, span: 0 };
-      });
-
-      let rows = '';
-      dayEntries.forEach((e, idx) => {
-        const isFirst = idx === 0;
-        const isLast  = idx === dayEntries.length - 1;
-
-        // border-collapse:collapse → กำหนดเส้นบน/ล่างด้วย class
-        // แถวแรกของวัน: มีเส้นบน  | แถวสุดท้ายของวัน: มีเส้นล่าง
-        // แถวกลาง: ไม่มีเส้นบน+ล่าง → เซลทั้งคู่ none → เส้นหายไป
-        const topCls = isFirst ? '' : 'notop';
-        const botCls = isLast  ? '' : 'nobot';
-        const cls    = [topCls, botCls].filter(Boolean).join(' ');
-
-        // ผู้สอน: 1 คน / บรรทัด
-        const teacherHtml = getTeacherText(e)
-          .split(/\s*\/\s*/).map(t=>esc(t.trim())).filter(Boolean).join('<br>');
-        const cumStr = e.cumHours ? `${thaiNum(e.cumHours)}/${thaiNum(e.totalHours||'')}` : '';
-
-        // วันที่: rowspan ทั้งวัน, ชิดซ้าย
-        const dateCell = isFirst
-          ? `<td rowspan="${daySpan}" class="left" style="white-space:nowrap;vertical-align:top">${formatDatePrint(date)}</td>`
-          : '';
-
-        // การแต่งกาย: rowspan, ถ้าหมดก่อนแถวสุดท้ายของวัน → nobot ด้วย
-        const u = uInfo[idx];
-        let uniformCell = '';
-        if (u.show) {
-          const uIsLastInDay = (idx + u.span - 1) === dayEntries.length - 1;
-          const uCls = [topCls, uIsLastInDay ? '' : 'nobot'].filter(Boolean).join(' ');
-          uniformCell = `<td rowspan="${u.span}" class="${uCls||''}" style="vertical-align:top">${esc(e.uniform||'')}</td>`;
-        }
-
-        rows += `<tr>
-          ${dateCell}
-          <td class="${cls}" style="white-space:nowrap;vertical-align:top">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
-          <td class="left ${cls}">${esc(e.subject)}</td>
-          <td class="${cls}">${cumStr}</td>
-          <td class="left ${cls}">${teacherHtml}</td>
-          <td class="f12 ${cls}">${esc(e.method||'')}</td>
-          <td class="f12 ${cls}">${esc(e.location||'')}</td>
-          <td class="${cls}">${esc(e.evidence||'')}</td>
-          ${uniformCell}
-          <td class="left ${cls}">${esc(e.notes||'')}</td>
-        </tr>`;
-      });
-      tBodyArr.push(`<tbody style="break-inside:avoid;page-break-inside:avoid">${rows}</tbody>`);
-    });
-
-    // ─── <thead> ซ้ำทุกหน้าที่ล้น ───
-    const thead = `<thead>
-      <tr><td colspan="10" style="${HF}padding-top:8mm">ตารางสอนประจำสัปดาห์</td></tr>
-      <tr><td colspan="10" style="${HF}">${esc(state.schoolName)}</td></tr>
-      <tr><td colspan="10" style="${HF}padding-bottom:3px">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')} &nbsp; ประจำสัปดาห์ที่ ${toThai(w)} &nbsp; วันที่ ${dateRange}</td></tr>
-      <tr>
-        <th>วัน , เดือน , ปี</th>
-        <th>เวลา</th>
-        <th>วิชา</th>
-        <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
-        <th>ผู้สอน</th>
-        <th>วิธีสอน</th>
-        <th>สถานที่</th>
-        <th>หลักฐาน</th>
-        <th>การแต่งกาย</th>
-        <th>หมายเหตุ</th>
-      </tr>
-    </thead>`;
-
-    // ผู้รับรอง: แสดงเฉพาะสัปดาห์สุดท้าย
-    const isLastWeek = (w === weeks[weeks.length - 1]);
-    const SF = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;line-height:1.3;`;
-    // กึ่งกลางหน้า = margin-left:50%
-    // ยศ   : เยื้อง 10ch จากกึ่งกลาง
-    // ชื่อ : เยื้อง 14ch จากกึ่งกลาง
-    // จุดกึ่งกลางตำแหน่ง = 14ch + (name.length / 2) ch จากกึ่งกลางหน้า
-    // ตำแหน่ง: centered บนจุดนั้น (translateX -50%)
-    // วันที่:  เริ่มจากจุดนั้น (ไม่ translate)
-    // ทุกบรรทัดคำนวณ margin-left จากขอบซ้ายของ outer-div (ซึ่งเริ่มที่ 50%)
-    // ชื่อ   : 14ch
-    // pos1   : 14 + name/2 - pos1/2  ch
-    // pos2   : 14 + name/2 - pos2/2  ch
-    // วันที่ : 14 + name/2           ch
-    const _nL  = (course.signerName||'').length;
-    const _p1L = (course.signerPos1||'').length;
-    const _p2L = (course.signerPos2||'').length;
-    const _nameML = 14;
-    const _pos1ML = (15 + _nL/2 - _p1L/2).toFixed(3);
-    const _pos2ML = (15 + _nL/2 - _p2L/2).toFixed(3);
-    const _dateML = (12 + _nL/2).toFixed(3);
-    // break-before:avoid → ให้ browser พยายามไม่ขึ้นหน้าใหม่ก่อน footer
-    // ถ้ามีพื้นที่พอ footer จะอยู่หน้าเดียวกับวันสุดท้ายโดยไม่ต้องสร้างตารางใหม่
-    const footerHtml = '';
-
-    const colgroup = `<colgroup>
-          <col style="width:14%"><!-- วัน เดือน ปี -->
-          <col style="width:9%"> <!-- เวลา -->
-          <col style="width:17%"><!-- วิชา -->
-          <col style="width:6%"> <!-- หมดไป/ชม.ทั้งหมด -->
-          <col style="width:16%"><!-- ผู้สอน -->
-          <col style="width:5%"> <!-- วิธีสอน -->
-          <col style="width:8%"> <!-- สถานที่ -->
-          <col style="width:7%"> <!-- หลักฐาน -->
-          <col style="width:7%"> <!-- การแต่งกาย -->
-          <col style="width:11%"><!-- หมายเหตุ -->
-        </colgroup>`;
     const emptyBody = `<tbody><tr><td colspan="10" style="text-align:center;padding:20px">(ไม่มีข้อมูล)</td></tr></tbody>`;
-    const allBodies = tBodyArr.join('') || emptyBody;
 
-    // ตารางเดียวตลอด — footer ใช้ break-before:avoid ติดวันสุดท้ายเองโดยไม่ขึ้น thead ใหม่
-    pages += `
-    <div class="print-page">
+    if (!dateOrder.length) {
+      pages += `<div class="print-page"><table class="print-table">${colgroup}${thead}${emptyBody}</table></div>`;
+      return;
+    }
+
+    let bodiesHtml = '';
+
+    if (!isLastWeek || !signerBlock) {
+      // ── สัปดาห์ปกติ: แต่ละวันเป็น tbody ─────────────────────────────────
+      dateOrder.forEach(date => {
+        bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">${buildDayBody(byDate[date], date)}</tbody>`;
+      });
+    } else {
+      // ── สัปดาห์สุดท้าย: วันสุดท้าย + ตรวจถูกต้อง ติดกัน ─────────────────
+      const lastDate  = dateOrder[dateOrder.length - 1];
+      const otherDates = dateOrder.slice(0, -1);
+
+      // วันอื่นๆ (ยกเว้นวันสุดท้าย)
+      otherDates.forEach(date => {
+        bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">${buildDayBody(byDate[date], date)}</tbody>`;
+      });
+
+      // วันสุดท้าย: break-after:avoid เพื่อติดกับ tbody ถัดไป (ตรวจถูกต้อง)
+      bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid;break-after:avoid;page-break-after:avoid">
+        ${buildDayBody(byDate[lastDate], lastDate)}
+      </tbody>`;
+
+      // ตรวจถูกต้อง: break-before:avoid → ติดกับวันสุดท้าย
+      // ถ้าพื้นที่ไม่พอ browser จะเลื่อนทั้งก้อนขึ้นหน้าใหม่
+      // thead จะซ้ำอัตโนมัติ (column headers) → วันสุดท้าย → เว้น 1 บรรทัด → ตรวจถูกต้อง
+      bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid;break-before:avoid;page-break-before:avoid">
+        <tr><td colspan="10" style="border:none;height:1.6em;padding:0"></td></tr>
+        <tr><td colspan="10" style="border:none;padding:0">${signerBlock}</td></tr>
+      </tbody>`;
+    }
+
+    pages += `<div class="print-page">
       <table class="print-table">
         ${colgroup}
         ${thead}
-        ${allBodies}
+        ${bodiesHtml}
       </table>
-      ${footerHtml}
     </div>`;
   });
 
   if (!weeks.length) {
     pages = `<div class="print-page">
-      <div class="print-header">
-        <div class="print-title">ตารางสอนประจำสัปดาห์</div>
-        <div class="school-name">${esc(state.schoolName)}</div>
-        <div class="course-line">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')}</div>
-      </div>
-      <p style="text-align:center;padding:20px">(ไม่มีข้อมูล)</p></div>`;
+      <table class="print-table">${colgroup}${thead}
+        <tbody><tr><td colspan="10" style="text-align:center;padding:30px">(ไม่มีข้อมูล)</td></tr></tbody>
+      </table>
+    </div>`;
   }
 
   document.getElementById('printArea').innerHTML = pages;
