@@ -533,6 +533,10 @@ textarea.form-control { resize: vertical; min-height: 60px; }
           <label>ตำแหน่ง บรรทัดที่ ๒</label>
           <input class="form-control" id="c_signer_pos2" placeholder="เช่น หน.ผตก.รร.ขส.ขส.ทบ">
         </div>
+        <div class="form-group">
+          <label>ตำแหน่ง บรรทัดที่ ๓</label>
+          <input class="form-control" id="c_signer_pos3" placeholder="ตำแหน่งบรรทัดที่ ๓">
+        </div>
         <div class="form-row">
           <div class="form-group" style="max-width:160px">
             <label>เดือน ปี พ.ศ.</label>
@@ -1142,6 +1146,7 @@ async function initApp() {
       signerName:  c.signer_name,
       signerPos1:  c.signer_pos1,
       signerPos2:  c.signer_pos2,
+      signerPos3:  c.signer_pos3,
       signerDate:  c.signer_date,
       isPublic:    !!c.is_public,
       entries:     null,
@@ -2423,6 +2428,7 @@ function openCourseModal(id) {
   document.getElementById('c_signer_name').value  = c?.signerName ||(c?.signer ? c.signer.split(' ').slice(1).join(' ') : '');
   document.getElementById('c_signer_pos1').value  = c?.signerPos1 ||c?.signerPos||'';
   document.getElementById('c_signer_pos2').value  = c?.signerPos2 ||'';
+  document.getElementById('c_signer_pos3').value  = c?.signerPos3 ||'';
   document.getElementById('c_signer_date').value  = c?.signerDate ||'';
   openModal('courseModal');
 }
@@ -2443,6 +2449,7 @@ async function saveCourse() {
     signer_name:  document.getElementById('c_signer_name').value.trim(),
     signer_pos1:  document.getElementById('c_signer_pos1').value.trim(),
     signer_pos2:  document.getElementById('c_signer_pos2').value.trim(),
+    signer_pos3:  document.getElementById('c_signer_pos3').value.trim(),
     signer_date:  document.getElementById('c_signer_date').value.trim(),
   };
   try {
@@ -2453,14 +2460,14 @@ async function saveCourse() {
       Object.assign(c, { name, runNumber:run, year:yearVal, courseType:ct,
         startDate:body.start_date||'', endDate:body.end_date||'',
         signerLabel:body.signer_label, signerRank:body.signer_rank, signerName:body.signer_name,
-        signerPos1:body.signer_pos1, signerPos2:body.signer_pos2, signerDate:body.signer_date });
+        signerPos1:body.signer_pos1, signerPos2:body.signer_pos2, signerPos3:body.signer_pos3, signerDate:body.signer_date });
     } else {
       const newId = uid();
       await api('POST', '/courses', { id: newId, ...body });
       state.courses.push({ id:newId, name, runNumber:run, year:yearVal, courseType:body.course_type||'',
         startDate:body.start_date||'', endDate:body.end_date||'',
         signerLabel:body.signer_label, signerRank:body.signer_rank, signerName:body.signer_name,
-        signerPos1:body.signer_pos1, signerPos2:body.signer_pos2, signerDate:body.signer_date,
+        signerPos1:body.signer_pos1, signerPos2:body.signer_pos2, signerPos3:body.signer_pos3, signerDate:body.signer_date,
         isPublic:false, entries:[] });
     }
     // เรียงลำดับใหม่หลังบันทึก
@@ -2526,6 +2533,7 @@ async function cloneCourse(id) {
       signer_name:  src.signerName,
       signer_pos1:  src.signerPos1,
       signer_pos2:  src.signerPos2,
+      signer_pos3:  src.signerPos3,
       signer_date:  src.signerDate,
     });
 
@@ -3096,6 +3104,7 @@ async function printTimetable() {
     ${_name?`<div style="${C70}">(${esc(_name)})</div>`:''}
     ${course.signerPos1?`<div style="${C70}">${esc(course.signerPos1)}</div>`:''}
     ${course.signerPos2?`<div style="${C70}">${esc(course.signerPos2)}</div>`:''}
+    ${course.signerPos3?`<div style="${C70}">${esc(course.signerPos3)}</div>`:''}
     ${course.signerDate?`<div style="${C70}">${esc(course.signerDate)}</div>`:''}
   </div>` : '';
 
@@ -3558,6 +3567,7 @@ async function loadSampleData() {
       signer_name:  course.signerName,
       signer_pos1:  course.signerPos1,
       signer_pos2:  course.signerPos2,
+      signer_pos3:  course.signerPos3,
       signer_date:  course.signerDate,
     };
     if (exists) {
