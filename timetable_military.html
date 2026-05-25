@@ -185,41 +185,43 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 }
 .sidebar-overlay.open { display: block; }
 
-/* CSS media query (fallback) + JS class .is-mobile */
-@media (max-width: 900px) { body { --is-mobile: 1; } }
+/* Mobile layout ควบคุมด้วย JS class .is-mobile บน <body> */
+.is-mobile .topbar        { flex-wrap: nowrap; overflow: visible; }
+.is-mobile #sidebarToggle { display: flex !important; flex-shrink: 0; align-items: center; }
+.is-mobile .topbar-brand  { flex-shrink: 0; padding: 8px 10px; border-right: none; min-width: 0; }
+.is-mobile .topbar-brand h1   { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+.is-mobile .topbar-brand .sub { display: none; }
+.is-mobile .topbar-nav    { display: none !important; }
+.is-mobile .topbar-actions { flex-shrink: 0; padding: 0 6px; gap: 4px; margin-left: auto; }
 
-body.is-mobile .topbar-brand,
-@media (max-width: 900px) { .topbar-brand } { flex-shrink: 0 !important; padding: 8px 10px !important; border-right: none !important; }
+/* ซ่อนปุ่มที่ไม่จำเป็นบน topbar มือถือ */
+.is-mobile .topbar-actions .btn-outline { display: none !important; }
+.is-mobile .topbar-actions .user-badge  { display: none !important; }
+/* ปุ่ม print ให้แสดงใน sidebar แทน ซ่อนใน topbar บนมือถือ */
+.is-mobile .topbar-actions .public-badge { display: flex !important; }
+.is-mobile .topbar-actions .public-badge .badge-label { display: none; }
 
-.is-mobile .topbar-brand h1 { font-size: 0.85rem !important; }
-.is-mobile .topbar-brand .sub { display: none !important; }
-.is-mobile .topbar-nav { display: none !important; }
-.is-mobile #sidebarToggle { display: flex !important; flex-shrink: 0 !important; }
-.is-mobile .topbar-actions { flex-shrink: 0 !important; padding: 0 6px !important; gap: 4px !important; }
-.is-mobile .topbar-actions .btn-outline:not([onclick*="print"]) { display: none !important; }
-.is-mobile .topbar-actions .user-badge { display: none !important; }
-.is-mobile .sidebar-mobile-nav { display: flex !important; }
-
+/* Sidebar เป็น drawer */
 .is-mobile .sidebar {
   position: fixed !important;
-  left: 0 !important; top: 0 !important; bottom: 0 !important;
-  z-index: 100 !important; width: 280px !important;
-  transform: translateX(-100%) !important;
-  transition: transform 0.25s ease !important;
-  box-shadow: 4px 0 20px rgba(0,0,0,0.25) !important;
+  left: 0; top: 0; bottom: 0;
+  z-index: 100; width: 280px !important;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.25);
 }
-.is-mobile .sidebar.open { transform: translateX(0) !important; }
-.is-mobile .content-area { padding: 10px !important; overflow-x: auto !important; }
-.is-mobile .form-row { flex-direction: column !important; gap: 8px !important; }
-.is-mobile .modal-backdrop { padding: 0 !important; align-items: flex-end !important; }
-.is-mobile .modal {
-  border-radius: 16px 16px 0 0 !important; max-height: 92vh !important;
-  display: flex !important; flex-direction: column !important;
-}
-.is-mobile .modal-body { max-height: 62vh !important; flex: 1 !important; }
-.is-mobile .data-table { font-size: 0.75rem !important; }
-.is-mobile .data-table th, .is-mobile .data-table td { padding: 5px 6px !important; }
-.is-mobile .card-header { flex-wrap: wrap !important; gap: 8px !important; }
+.is-mobile .sidebar.open { transform: translateX(0); }
+.is-mobile .sidebar-mobile-nav { display: flex !important; }
+
+/* Content */
+.is-mobile .content-area { padding: 10px; overflow-x: auto; }
+.is-mobile .form-row { flex-direction: column; gap: 8px; }
+.is-mobile .modal-backdrop { padding: 0; align-items: flex-end; }
+.is-mobile .modal { border-radius: 16px 16px 0 0; max-height: 92vh; display: flex; flex-direction: column; }
+.is-mobile .modal-body { max-height: 62vh; flex: 1; }
+.is-mobile .data-table { font-size: 0.75rem; }
+.is-mobile .data-table th, .is-mobile .data-table td { padding: 5px 6px; }
+.is-mobile .card-header { flex-wrap: wrap; gap: 8px; }
 
 /* ===== PRINT STYLES ===== */
 @media print {
