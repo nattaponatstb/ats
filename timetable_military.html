@@ -1018,6 +1018,23 @@ function lsWrite(k,v) { localStorage.setItem(k, JSON.stringify(v)); }
 function _defaultUsers() {
   return [{ id:'admin1', username:'admin1', password:'admin1234', role:'superadmin', full_name:'ผู้ดูแลระบบ' }];
 }
+
+// ── Migration: อัพเกรด role ของ users เดิมใน localStorage ──────────────────
+(function migrateUserRoles() {
+  const users = lsRead(LS.users);
+  if (!users || !users.length) return; // ยังไม่มีข้อมูล → ใช้ _defaultUsers() อัตโนมัติ
+  let changed = false;
+  // 1. ทุก user ที่ยังไม่มี role → ตั้งเป็น 'admin'
+  users.forEach(u => { if (!u.role) { u.role = 'admin'; changed = true; } });
+  // 2. ถ้ายังไม่มี superadmin เลย → ยกระดับ admin1 หรือ user แรก
+  const hasSA = users.some(u => u.role === 'superadmin');
+  if (!hasSA) {
+    const target = users.find(u => u.username === 'admin1') || users[0];
+    if (target) { target.role = 'superadmin'; changed = true; }
+  }
+  if (changed) lsWrite(LS.users, users);
+})();
+
 function writeLog(action, detail) {
   const logs = lsRead(LS.logs) || [];
   logs.unshift({ id: uid(), action, detail: detail||'',
