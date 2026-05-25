@@ -2295,17 +2295,9 @@ function openPrintWindow(bodyHtml, landscape = true) {
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:white;width:${vpWidth}px;font-size:9pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     @media print{
-      body{width:auto;margin:0;padding:0;}
-      body::before,body::after{
-        content:'';display:block;position:fixed;
-        left:-5mm;right:-5mm;background:white;z-index:99999;
-        -webkit-print-color-adjust:exact;print-color-adjust:exact;
-      }
-      body::before{top:-3mm;height:15mm;}
-      body::after{bottom:-3mm;height:16mm;}
-      .print-page{padding:14mm 8mm 15mm;page-break-after:always;}
+      body{width:auto;padding:8mm 8mm 10mm 8mm;}
+      .print-page{page-break-after:always;}
       .print-page:last-child{page-break-after:avoid;}
-      .ps-wrap{margin:14mm 12mm 15mm!important;}
       head,header,footer{display:none!important;}
     }
     /* ── timetable ── */
