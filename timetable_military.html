@@ -1278,19 +1278,27 @@ function mapEntryRow(r) {
 
 async function initApp() {
   try {
-    // โหลดข้อมูลล่าสุดจาก Firebase ก่อนเสมอ (ทุกเครื่อง ทุก login)
-    const fbOk = await pullFromFirebase();
-    if (fbOk) {
-      showToast('📥 โหลดข้อมูลล่าสุดจากระบบแล้ว');
-    } else if (!(lsRead(LS.courses) || []).length) {
-      // fallback: ถ้า Firebase ไม่มีข้อมูลและ localStorage ว่าง → ลอง GitHub
-      const ghData = await loadFromGitHub();
-      if (ghData && ghData.version) {
-        if (ghData.settings) lsWrite(LS.settings, ghData.settings);
-        if (ghData.courses)  lsWrite(LS.courses,  ghData.courses);
-        if (ghData.entries)  lsWrite(LS.entries,  ghData.entries);
-        showToast('📥 โหลดข้อมูลจากเว็บไซท์สำเร็จ');
+    const hasLocalData = (lsRead(LS.courses) || []).length > 0;
+
+    if (!hasLocalData) {
+      // ครั้งแรก / localStorage ว่าง → ต้องรอ network
+      const fbOk = await pullFromFirebase();
+      if (fbOk) {
+        showToast('📥 โหลดข้อมูลล่าสุดจากระบบแล้ว');
+      } else {
+        const ghData = await loadFromGitHub();
+        if (ghData && ghData.version) {
+          if (ghData.settings) lsWrite(LS.settings, ghData.settings);
+          if (ghData.courses)  lsWrite(LS.courses,  ghData.courses);
+          if (ghData.entries)  lsWrite(LS.entries,  ghData.entries);
+          showToast('📥 โหลดข้อมูลจากเว็บไซท์สำเร็จ');
+        }
       }
+    } else {
+      // มีข้อมูลใน localStorage → แสดง UI ทันที แล้ว sync Firebase เบื้องหลัง
+      pullFromFirebase().then(fbOk => {
+        if (fbOk) showToast('🔄 ซิงค์ข้อมูลเรียบร้อย');
+      });
     }
 
     // โหลด settings + หลักสูตรพร้อมกัน
