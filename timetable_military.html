@@ -205,6 +205,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 /* ซ่อนปุ่มที่ไม่จำเป็นบน topbar มือถือ */
 .is-mobile .topbar-actions .btn-outline { display: none !important; }
 .is-mobile .topbar-actions .user-badge  { display: none !important; }
+.is-mobile #syncBtn { display: none !important; }
 /* ปุ่ม print ให้แสดงใน sidebar แทน ซ่อนใน topbar บนมือถือ */
 .is-mobile .topbar-actions .public-badge { display: flex !important; }
 .is-mobile .topbar-actions .public-badge .badge-label { display: none; }
@@ -385,6 +386,10 @@ textarea.form-control { resize: vertical; min-height: 60px; }
     <div class="topbar-actions">
       <button class="btn btn-outline btn-sm hide-public" onclick="loadSampleData()">🗂️ โหลดตัวอย่าง</button>
       <button class="btn btn-outline btn-sm" onclick="printTimetable()">🖨️ พิมพ์ตาราง</button>
+      <button class="btn btn-sm hide-public" id="syncBtn" onclick="syncToGitHub()"
+        style="background:#2e7d32;color:white;border:none;display:flex;align-items:center;gap:5px;font-weight:600">
+        <span id="syncBtnIcon">☁️</span> บันทึกการแก้ไข
+      </button>
       <!-- user mode -->
       <div class="user-badge hide-public">
         <span>👤 <span class="uname" id="topbarUser">—</span></span>
@@ -413,6 +418,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
         <button onclick="showView('summary');closeSidebar()"  class="smn-btn" id="smn-summary">📊 สรุป</button>
         <button onclick="showView('adminmgr');closeSidebar()" class="smn-btn hide-public" id="smn-adminmgr">👑 แอดมิน</button>
         <button onclick="printTimetable();closeSidebar()"     class="smn-btn">🖨️ พิมพ์ตาราง</button>
+        <button onclick="syncToGitHub();closeSidebar()" class="smn-btn hide-public" style="color:#80ff80;font-weight:700">☁️ บันทึกการแก้ไข</button>
         <div class="smn-divider"></div>
         <button onclick="doLogout()" class="smn-btn smn-logout hide-public">🔓 ออกจากระบบ</button>
         <button onclick="exitPublicMode();closeSidebar()" class="smn-btn smn-login show-public-only">🔐 เข้าสู่ระบบ</button>
@@ -1174,6 +1180,17 @@ function mapEntryRow(r) {
 
 async function initApp() {
   try {
+    // ถ้า localStorage ว่าง → ลองโหลดจาก GitHub
+    if (!(lsRead(LS.courses) || []).length) {
+      const ghData = await loadFromGitHub();
+      if (ghData && ghData.version) {
+        if (ghData.settings) lsWrite(LS.settings, ghData.settings);
+        if (ghData.courses)  lsWrite(LS.courses,  ghData.courses);
+        if (ghData.entries)  lsWrite(LS.entries,  ghData.entries);
+        showToast('📥 โหลดข้อมูลจากเว็บไซท์สำเร็จ');
+      }
+    }
+
     // โหลด settings + หลักสูตรพร้อมกัน
     const [settings, courses] = await Promise.all([
       api('GET', '/settings'),
@@ -2362,6 +2379,31 @@ function renderSettingsView() {
     </div>
   </div>
   <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><h3 style="font-size:1rem;margin:0">☁️ ซิงค์ข้อมูลขึ้นเว็บไซท์ (GitHub)</h3></div>
+    <div class="card-body">
+      <div class="form-group" style="margin-bottom:10px">
+        <label>GitHub Personal Access Token <small style="color:#888">(เก็บไว้ในเครื่องนี้เท่านั้น ไม่ส่งออกไปที่ใด)</small></label>
+        <div style="display:flex;gap:8px">
+          <input class="form-control" type="password" id="cfg_github_token"
+            value="${esc(lsRead('ttm_github_token')||'')}"
+            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="flex:1;font-family:monospace">
+          <button class="btn btn-primary btn-sm" onclick="saveGithubToken()">💾 บันทึก Token</button>
+        </div>
+        <div style="font-size:0.78rem;color:#888;margin-top:4px">
+          สร้าง Token ได้ที่ GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
+          <br>ให้สิทธิ์: <strong>Contents: Read and write</strong> เฉพาะ repo <strong>nattaponatstb/ats</strong>
+        </div>
+      </div>
+      <div id="syncStatus" style="margin-bottom:10px;font-size:0.82rem;color:#555">
+        ${lsRead('ttm_last_sync') ? `<span style="color:#2e7d32">✅ ซิงค์ล่าสุด: ${esc(lsRead('ttm_last_sync'))}</span>` : '<span style="color:#888">ยังไม่เคยซิงค์</span>'}
+      </div>
+      <button class="btn btn-sm" onclick="syncToGitHub()"
+        style="background:#2e7d32;color:white;border:none;font-weight:700;padding:8px 18px">
+        ☁️ บันทึกการแก้ไขขึ้นเว็บไซท์
+      </button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
     <div class="card-header"><h3 style="font-size:1rem;margin:0">💾 สำรอง / กู้คืนข้อมูล</h3></div>
     <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="exportAllData()">📤 ส่งออกข้อมูล (JSON)</button>
@@ -3075,6 +3117,94 @@ async function saveSettings() {
     writeLog('SAVE_SETTINGS', `บันทึกการตั้งค่า: ${state.schoolName}`);
     showToast('บันทึกการตั้งค่าแล้ว');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+// ═══════════════════════════════════════════════
+//  GITHUB SYNC
+// ═══════════════════════════════════════════════
+function saveGithubToken() {
+  const token = document.getElementById('cfg_github_token').value.trim();
+  lsWrite('ttm_github_token', token);
+  showToast(token ? '✅ บันทึก Token แล้ว' : 'ล้าง Token แล้ว');
+}
+
+async function syncToGitHub() {
+  const token = lsRead('ttm_github_token') || '';
+  if (!token) {
+    showToast('❌ กรุณาตั้งค่า GitHub Token ในหน้าตั้งค่าก่อน');
+    showView('settings');
+    return;
+  }
+  const btn = document.getElementById('syncBtn');
+  const icon = document.getElementById('syncBtnIcon');
+  if (btn) { btn.disabled = true; }
+  if (icon) icon.textContent = '⏳';
+  const statusEl = document.getElementById('syncStatus');
+  if (statusEl) statusEl.textContent = '⏳ กำลังอัพเดทเว็บไซท์…';
+
+  const data = {
+    version: 2,
+    syncedAt: new Date().toISOString(),
+    syncedBy: _currentUser?.username || '—',
+    settings: lsRead(LS.settings),
+    courses:  lsRead(LS.courses),
+    entries:  lsRead(LS.entries),
+  };
+
+  const owner = 'nattaponatstb', repo = 'ats', filePath = 'data.json';
+  const headers = {
+    'Authorization': `token ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  };
+
+  try {
+    // หา SHA ของไฟล์ปัจจุบัน (ถ้ามี)
+    let sha = null;
+    try {
+      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, { headers });
+      if (r.ok) sha = (await r.json()).sha;
+    } catch {}
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+    const body = {
+      message: `อัพเดทข้อมูลตารางสอน ${new Date().toLocaleString('th-TH')}`,
+      content,
+      ...(sha ? { sha } : {}),
+    };
+
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
+      method: 'PUT', headers, body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      const dtStr = new Date().toLocaleString('th-TH');
+      lsWrite('ttm_last_sync', dtStr);
+      if (statusEl) statusEl.innerHTML = `<span style="color:#2e7d32">✅ อัพเดทสำเร็จเมื่อ ${dtStr}</span><br><small style="color:#888">GitHub Pages จะแสดงข้อมูลใหม่ภายใน 1-3 นาที</small>`;
+      showToast('✅ บันทึกการแก้ไขขึ้นเว็บไซท์สำเร็จ!');
+      writeLog('SYNC_GITHUB', `ซิงค์ข้อมูลขึ้น GitHub สำเร็จ`);
+    } else {
+      const err = await res.json();
+      throw new Error(err.message || res.status);
+    }
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#c62828">❌ ไม่สำเร็จ: ${esc(e.message)}</span>`;
+    showToast('❌ อัพเดทไม่สำเร็จ: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (icon) icon.textContent = '☁️';
+  }
+}
+
+async function loadFromGitHub() {
+  try {
+    const res = await fetch(
+      'https://raw.githubusercontent.com/nattaponatstb/ats/master/data.json?t=' + Date.now(),
+      { cache: 'no-store' }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
 }
 
 function exportAllData() {
