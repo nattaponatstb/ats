@@ -290,6 +290,36 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 /* ===== MISC ===== */
 .empty-state { text-align: center; padding: 40px; color: #aaa; }
 .empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+/* ===== LINE BROWSER WARNING ===== */
+#lineBrowserBanner {
+  display: none;
+  position: fixed; inset: 0; z-index: 99999;
+  background: rgba(0,0,0,0.7);
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+#lineBrowserBanner.show { display: flex; }
+.line-warn-box {
+  background: white; border-radius: 16px; padding: 28px 24px;
+  max-width: 360px; width: 100%; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.line-warn-box .line-icon { font-size: 3rem; margin-bottom: 12px; }
+.line-warn-box h3 { font-size: 1.1rem; font-weight: 700; color: #c62828; margin-bottom: 8px; }
+.line-warn-box p  { font-size: 0.9rem; color: #555; line-height: 1.6; margin-bottom: 18px; }
+.line-warn-box .btn-open-browser {
+  display: block; width: 100%; padding: 13px;
+  background: #06C755; color: white; border: none; border-radius: 10px;
+  font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer;
+  margin-bottom: 10px;
+}
+.line-warn-box .btn-open-browser:hover { background: #05a348; }
+.line-warn-box .btn-dismiss {
+  display: block; width: 100%; padding: 10px;
+  background: none; border: 1px solid #ddd; border-radius: 10px;
+  font-family: inherit; font-size: 0.88rem; color: #888; cursor: pointer;
+}
 .tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
 .tag-course { background: #e3f2fd; color: #0d47a1; }
 #toast { position: fixed; bottom: 24px; right: 24px; background: #323232; color: white; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 500; }
@@ -339,6 +369,27 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     LINE BROWSER WARNING BANNER
+════════════════════════════════════════════ -->
+<div id="lineBrowserBanner">
+  <div class="line-warn-box">
+    <div class="line-icon">⚠️</div>
+    <h3>ไม่รองรับบราวเซอร์ใน LINE</h3>
+    <p>
+      ขณะนี้คุณเปิดระบบผ่าน <strong>บราวเซอร์ในแอป LINE</strong><br>
+      ซึ่งอาจทำให้ระบบทำงานได้ <strong style="color:#c62828">ไม่เต็มประสิทธิภาพ</strong><br>
+      เช่น การพิมพ์ / บันทึก PDF / บันทึกข้อมูล อาจไม่ทำงาน
+    </p>
+    <button class="btn-open-browser" onclick="openInExternalBrowser()">
+      🌐 เปิดใน Browser ของเครื่อง
+    </button>
+    <button class="btn-dismiss" onclick="dismissLineBanner()">
+      ใช้งานต่อใน LINE (บางฟีเจอร์อาจไม่ทำงาน)
+    </button>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════
      LOGIN SCREEN
@@ -4166,6 +4217,55 @@ async function doResetPassword() {
 
 // ข้อมูลที่แสดงก่อน login: ซ่อนหน้าจอหลัก ไม่ต้อง render ล่วงหน้า
 // initApp() จะถูกเรียกหลัง login สำเร็จ หรือหลัง auto-login ผ่าน token
+
+// ═══════════════════════════════════════════════
+//  LINE BROWSER DETECTION
+// ═══════════════════════════════════════════════
+(function detectLineBrowser() {
+  const ua = navigator.userAgent || '';
+  const isLine = /Line\//i.test(ua);
+  if (!isLine) return;
+
+  // แสดง banner ทันที
+  const banner = document.getElementById('lineBrowserBanner');
+  if (banner) banner.classList.add('show');
+
+  // ลอง auto-redirect ก่อน (ใช้ LINE's openExternalBrowser param)
+  const url = location.href;
+  if (url.indexOf('openExternalBrowser') === -1) {
+    const sep = url.indexOf('?') >= 0 ? '&' : '?';
+    const newUrl = url + sep + 'openExternalBrowser=1';
+    try { location.replace(newUrl); } catch(e) {}
+  }
+})();
+
+function openInExternalBrowser() {
+  const url = location.href.replace(/[?&]openExternalBrowser=\d/g, '');
+  const sep = url.indexOf('?') >= 0 ? '&' : '?';
+  const newUrl = url + sep + 'openExternalBrowser=1';
+
+  // วิธีที่ 1: LINE official redirect param
+  location.href = newUrl;
+
+  // วิธีที่ 2 (iOS fallback): แนะนำ copy URL
+  setTimeout(() => {
+    const box = document.querySelector('.line-warn-box');
+    if (box) box.innerHTML = `
+      <div class="line-icon">📋</div>
+      <h3>คัดลอก URL แล้วเปิดใน Safari / Chrome</h3>
+      <p style="word-break:break-all;font-size:0.78rem;background:#f5f5f5;padding:8px;border-radius:6px;margin-bottom:14px">${location.origin + location.pathname}</p>
+      <button class="btn-open-browser" onclick="navigator.clipboard&&navigator.clipboard.writeText('${location.origin+location.pathname}').then(()=>alert('คัดลอกแล้ว!'))">
+        📋 คัดลอก URL
+      </button>
+      <button class="btn-dismiss" onclick="dismissLineBanner()">ปิด</button>
+    `;
+  }, 1500);
+}
+
+function dismissLineBanner() {
+  const banner = document.getElementById('lineBrowserBanner');
+  if (banner) banner.classList.remove('show');
+}
 
 // ═══════════════════════════════════════════════
 //  BE CALENDAR PICKER
