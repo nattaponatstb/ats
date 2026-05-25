@@ -937,11 +937,20 @@ const LS = {
   entries:  'ttm_entries',
   users:    'ttm_users',
   session:  'ttm_session',
+  logs:     'ttm_logs',
 };
 function lsRead(k)    { try { return JSON.parse(localStorage.getItem(k)||'null'); } catch { return null; } }
 function lsWrite(k,v) { localStorage.setItem(k, JSON.stringify(v)); }
 function _defaultUsers() {
   return [{ id:'admin1', username:'admin1', password:'admin1234', role:'admin', full_name:'ผู้ดูแลระบบ' }];
+}
+function writeLog(action, detail) {
+  const logs = lsRead(LS.logs) || [];
+  logs.unshift({ id: uid(), action, detail: detail||'',
+    username: _currentUser?.username || '—',
+    created_at: new Date().toISOString() });
+  if (logs.length > 500) logs.length = 500;
+  lsWrite(LS.logs, logs);
 }
 
 function localApi(method, path, body) {
@@ -1016,6 +1025,52 @@ function localApi(method, path, body) {
     if (!sess) throw new Error('ไม่ได้เข้าสู่ระบบ');
     return { user: sess.user };
   }
+  // ── /auth/users ────────────────────────────────
+  if (path === '/auth/users' && method === 'GET') {
+    return lsRead(LS.users) || _defaultUsers();
+  }
+  if (path === '/auth/users' && method === 'POST') {
+    const users = lsRead(LS.users) || _defaultUsers();
+    if (users.find(u => u.username === body.username)) throw new Error('username นี้มีอยู่แล้ว');
+    const newUser = { ...body, id: Date.now(), created_at: new Date().toISOString() };
+    users.push(newUser); lsWrite(LS.users, users);
+    return { id: newUser.id };
+  }
+  const uim = path.match(/^\/auth\/users\/([^\/]+)\/reset-password$/);
+  if (uim && method === 'PUT') {
+    const users = lsRead(LS.users) || _defaultUsers();
+    const i = users.findIndex(u => String(u.id) === String(uim[1]));
+    if (i >= 0) { users[i].password = body.newPassword; lsWrite(LS.users, users); }
+    return { ok:true, message: 'รีเซตรหัสผ่านสำเร็จ' };
+  }
+  const uem = path.match(/^\/auth\/users\/([^\/]+)$/);
+  if (uem) {
+    const users = lsRead(LS.users) || _defaultUsers();
+    const i = users.findIndex(u => String(u.id) === String(uem[1]));
+    if (method === 'PUT') {
+      if (i >= 0) { users[i] = { ...users[i], ...body }; lsWrite(LS.users, users); }
+      return { ok:true };
+    }
+    if (method === 'DELETE') {
+      lsWrite(LS.users, users.filter(u => String(u.id) !== String(uem[1])));
+      return { ok:true };
+    }
+  }
+  // ── /auth/password ─────────────────────────────
+  if (path === '/auth/password' && method === 'PUT') {
+    const users = lsRead(LS.users) || _defaultUsers();
+    const u = users.find(x => x.username === (_currentUser?.username));
+    if (!u) throw new Error('ไม่พบผู้ใช้');
+    if (u.password !== body.oldPassword) throw new Error('รหัสผ่านเดิมไม่ถูกต้อง');
+    u.password = body.newPassword; lsWrite(LS.users, users);
+    return { ok:true };
+  }
+  // ── /auth/logs ─────────────────────────────────
+  if (path.startsWith('/auth/logs') && method === 'GET') {
+    const qs = path.includes('?') ? path.split('?')[1] : '';
+    const limit = parseInt(new URLSearchParams(qs).get('limit') || '200');
+    return (lsRead(LS.logs) || []).slice(0, limit);
+  }
   return {};
 }
 
@@ -1042,6 +1097,7 @@ async function doLogin() {
     const data = await api('POST', '/auth/login', { username, password });
     _token = data.token;
     _currentUser = data.user;
+    writeLog('LOGIN_OK', `เข้าสู่ระบบสำเร็จ`);
     document.getElementById('topbarUser').textContent = data.user.full_name || data.user.username;
     document.getElementById('loginScreen').classList.add('hidden');
     await initApp();
@@ -2461,6 +2517,7 @@ async function saveCourse() {
         startDate:body.start_date||'', endDate:body.end_date||'',
         signerLabel:body.signer_label, signerRank:body.signer_rank, signerName:body.signer_name,
         signerPos1:body.signer_pos1, signerPos2:body.signer_pos2, signerPos3:body.signer_pos3, signerDate:body.signer_date });
+      writeLog('EDIT_COURSE', `แก้ไขหลักสูตร: ${name} รุ่นที่ ${run}`);
     } else {
       const newId = uid();
       await api('POST', '/courses', { id: newId, ...body });
@@ -2469,6 +2526,7 @@ async function saveCourse() {
         signerLabel:body.signer_label, signerRank:body.signer_rank, signerName:body.signer_name,
         signerPos1:body.signer_pos1, signerPos2:body.signer_pos2, signerPos3:body.signer_pos3, signerDate:body.signer_date,
         isPublic:false, entries:[] });
+      writeLog('CREATE_COURSE', `สร้างหลักสูตร: ${name} รุ่นที่ ${run}`);
     }
     // เรียงลำดับใหม่หลังบันทึก
     state.courses.sort((a, b) => {
@@ -2490,9 +2548,9 @@ async function toggleCoursePublic(id) {
     const res = await api('PATCH', `/courses/${id}/visibility`);
     c.isPublic = !!res.is_public;
     renderCoursesView();
-    showToast(c.isPublic
-      ? `✅ "${c.name}" เปิดให้ดูสาธารณะแล้ว`
-      : `🔒 "${c.name}" ปิดการดูสาธารณะแล้ว`);
+    const msg = c.isPublic ? `✅ "${c.name}" เปิดให้ดูสาธารณะแล้ว` : `🔒 "${c.name}" ปิดการดูสาธารณะแล้ว`;
+    showToast(msg);
+    writeLog('TOGGLE_VISIBILITY', msg.replace(/✅|🔒/g,'').trim());
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
 
@@ -2501,6 +2559,7 @@ async function deleteCourse(id) {
   if (!confirm(`ลบหลักสูตร "${c?.name}" และรายการทั้งหมด?`)) return;
   try {
     await api('DELETE', `/courses/${id}`);
+    writeLog('DELETE_COURSE', `ลบหลักสูตร: ${c?.name} รุ่นที่ ${c?.runNumber}`);
     state.courses = state.courses.filter(x=>x.id!==id);
     if (state.currentCourseId===id) state.currentCourseId=null;
     renderSidebar(); renderContent(); showToast('ลบหลักสูตรแล้ว');
@@ -2555,6 +2614,7 @@ async function cloneCourse(id) {
 
     renderSidebar(); renderContent();
     showToast(`คัดลอกสำเร็จ: "${newName}" (${srcEntries.length} รายการ)`);
+    writeLog('COPY_COURSE', `คัดลอกหลักสูตร: ${src.name} → ${newName}`);
 
     // เปิด modal แก้ไขหลักสูตรใหม่ทันที
     editCourse(newId);
@@ -2797,9 +2857,11 @@ async function saveEntry() {
       await api('PUT', `/entries/${state.editingEntryId}`, body);
       const idx = course.entries.findIndex(x=>x.id===state.editingEntryId);
       if (idx>=0) course.entries[idx] = entry;
+      writeLog('EDIT_ENTRY', `แก้ไขรายการ: ${entry.subject} วันที่ ${entry.date} [${course.name}]`);
     } else {
       await api('POST', '/entries', body);
       course.entries.push(entry);
+      writeLog('CREATE_ENTRY', `เพิ่มรายการ: ${entry.subject} วันที่ ${entry.date} [${course.name}]`);
     }
     closeModal('entryModal'); renderSidebar(); renderScheduleView();
     showToast(state.editingEntryId ? 'แก้ไขรายการแล้ว' : 'เพิ่มรายการแล้ว');
@@ -2808,8 +2870,10 @@ async function saveEntry() {
 async function deleteEntry(id) {
   const course = findCourse(state.currentCourseId);
   if (!course || !confirm('ลบรายการนี้?')) return;
+  const entry = (course.entries||[]).find(x=>x.id===id);
   try {
     await api('DELETE', `/entries/${id}`);
+    writeLog('DELETE_ENTRY', `ลบรายการ: ${entry?.subject||id} วันที่ ${entry?.date||''} [${course.name}]`);
     course.entries = course.entries.filter(x=>x.id!==id);
     renderSidebar(); renderScheduleView(); showToast('ลบรายการแล้ว');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
@@ -2920,14 +2984,18 @@ async function saveTeacher() {
   }
   try {
     await syncMasterData();
+    writeLog(state.editingTeacherId ? 'EDIT_TEACHER' : 'CREATE_TEACHER',
+      `${state.editingTeacherId?'แก้ไข':'เพิ่ม'}ครูอาจารย์: ${obj.rank} ${obj.name}`);
     closeModal('teacherModal'); renderContent(); showToast('บันทึกครูอาจารย์แล้ว');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
 async function deleteTeacher(id) {
+  const t = state.teachers.find(x=>x.id===id);
   if (!confirm('ลบครูอาจารย์นี้?')) return;
   state.teachers = state.teachers.filter(x=>x.id!==id);
   try {
     await syncMasterData();
+    writeLog('DELETE_TEACHER', `ลบครูอาจารย์: ${t?.rank||''} ${t?.name||id}`);
     renderContent(); showToast('ลบแล้ว');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
@@ -2977,14 +3045,18 @@ async function saveSubject() {
   }
   try {
     await syncMasterData();
+    writeLog(state.editingSubjectId ? 'EDIT_SUBJECT' : 'CREATE_SUBJECT',
+      `${state.editingSubjectId?'แก้ไข':'เพิ่ม'}วิชา: ${obj.name}`);
     closeModal('subjectModal'); renderContent(); showToast('บันทึกวิชาแล้ว');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
 async function deleteSubject(id) {
+  const s = state.subjects.find(x=>x.id===id);
   if (!confirm('ลบวิชานี้?')) return;
   state.subjects = state.subjects.filter(x=>x.id!==id);
   try {
     await syncMasterData();
+    writeLog('DELETE_SUBJECT', `ลบวิชา: ${s?.name||id}`);
     renderContent(); showToast('ลบแล้ว');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
@@ -3000,6 +3072,7 @@ async function saveSettings() {
       schoolName:  state.schoolName,
       schoolShort: state.schoolShort,
     });
+    writeLog('SAVE_SETTINGS', `บันทึกการตั้งค่า: ${state.schoolName}`);
     showToast('บันทึกการตั้งค่าแล้ว');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
@@ -3649,10 +3722,26 @@ async function renderAdminView() {
   try {
     const users = await api('GET', '/auth/users');
 
-    const actionLabel = { LOGIN_OK:'เข้าสู่ระบบ', LOGIN_FAIL:'login ผิด', CHANGE_PASSWORD:'เปลี่ยน pw ตัวเอง',
-      CREATE_USER:'สร้าง user', EDIT_USER:'แก้ไข user', DELETE_USER:'ลบ user', RESET_PASSWORD:'รีเซต pw' };
-    const actionColor = { LOGIN_OK:'#2e7d32', LOGIN_FAIL:'#c62828', CHANGE_PASSWORD:'#1565c0',
-      CREATE_USER:'#00695c', EDIT_USER:'#e65100', DELETE_USER:'#b71c1c', RESET_PASSWORD:'#6a1b9a' };
+    const actionLabel = {
+      LOGIN_OK:'เข้าสู่ระบบ', LOGIN_FAIL:'login ผิด', CHANGE_PASSWORD:'เปลี่ยน pw ตัวเอง',
+      CREATE_USER:'สร้าง user', EDIT_USER:'แก้ไข user', DELETE_USER:'ลบ user', RESET_PASSWORD:'รีเซต pw',
+      CREATE_COURSE:'สร้างหลักสูตร', EDIT_COURSE:'แก้ไขหลักสูตร', DELETE_COURSE:'ลบหลักสูตร',
+      COPY_COURSE:'คัดลอกหลักสูตร', TOGGLE_VISIBILITY:'เปลี่ยนสถานะสาธารณะ',
+      CREATE_ENTRY:'เพิ่มรายการ', EDIT_ENTRY:'แก้ไขรายการ', DELETE_ENTRY:'ลบรายการ',
+      CREATE_TEACHER:'เพิ่มครูอาจารย์', EDIT_TEACHER:'แก้ไขครูอาจารย์', DELETE_TEACHER:'ลบครูอาจารย์',
+      CREATE_SUBJECT:'เพิ่มวิชา', EDIT_SUBJECT:'แก้ไขวิชา', DELETE_SUBJECT:'ลบวิชา',
+      SAVE_SETTINGS:'บันทึกการตั้งค่า',
+    };
+    const actionColor = {
+      LOGIN_OK:'#2e7d32', LOGIN_FAIL:'#c62828', CHANGE_PASSWORD:'#1565c0',
+      CREATE_USER:'#00695c', EDIT_USER:'#e65100', DELETE_USER:'#b71c1c', RESET_PASSWORD:'#6a1b9a',
+      CREATE_COURSE:'#1565c0', EDIT_COURSE:'#0277bd', DELETE_COURSE:'#b71c1c',
+      COPY_COURSE:'#6a1b9a', TOGGLE_VISIBILITY:'#e65100',
+      CREATE_ENTRY:'#2e7d32', EDIT_ENTRY:'#558b2f', DELETE_ENTRY:'#c62828',
+      CREATE_TEACHER:'#00695c', EDIT_TEACHER:'#00838f', DELETE_TEACHER:'#ad1457',
+      CREATE_SUBJECT:'#4527a0', EDIT_SUBJECT:'#6200ea', DELETE_SUBJECT:'#880e4f',
+      SAVE_SETTINGS:'#37474f',
+    };
 
     const isSA = isSuperAdmin();
     const userRows = users.map(u => `
@@ -3765,6 +3854,7 @@ async function saveUser() {
     // แก้ไขชื่อ
     try {
       await api('PUT', `/auth/users/${_editingUserId}`, { full_name: fullName });
+      writeLog('EDIT_USER', `แก้ไขชื่อผู้ใช้ id:${_editingUserId} → ${fullName}`);
       closeModal('userModal'); renderAdminView(); showToast('แก้ไขข้อมูลสำเร็จ');
     } catch (e) { showToast('ผิดพลาด: ' + e.message); }
   } else {
@@ -3774,6 +3864,7 @@ async function saveUser() {
     if (password !== password2) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
     try {
       await api('POST', '/auth/users', { username, password, role:'admin', full_name: fullName||null });
+      writeLog('CREATE_USER', `สร้างแอดมิน: ${username} (${fullName||'—'})`);
       closeModal('userModal'); renderAdminView(); showToast(`✅ สร้างแอดมิน "${username}" สำเร็จ`);
     } catch (e) { showToast('ผิดพลาด: ' + e.message); }
   }
@@ -3782,6 +3873,7 @@ async function deleteUser(id, username) {
   if (!confirm(`ลบแอดมิน "${username}"?\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
   try {
     await api('DELETE', `/auth/users/${id}`);
+    writeLog('DELETE_USER', `ลบแอดมิน: ${username}`);
     renderAdminView(); showToast(`ลบ "${username}" สำเร็จ`);
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
@@ -3802,6 +3894,7 @@ async function changeMyPassword() {
   if (newPassword !== newPassword2) { showToast('รหัสผ่านใหม่ไม่ตรงกัน'); return; }
   try {
     await api('PUT', '/auth/password', { oldPassword, newPassword });
+    writeLog('CHANGE_PASSWORD', `เปลี่ยนรหัสผ่านของตัวเอง`);
     closeModal('pwModal'); showToast('✅ เปลี่ยนรหัสผ่านสำเร็จ');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
@@ -3824,6 +3917,7 @@ async function doResetPassword() {
   if (newPassword !== newPassword2) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
   try {
     const res = await api('PUT', `/auth/users/${id}/reset-password`, { newPassword });
+    writeLog('RESET_PASSWORD', `รีเซตรหัสผ่าน user id:${id}`);
     closeModal('resetPwModal'); renderAdminView(); showToast('✅ ' + res.message);
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
