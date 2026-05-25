@@ -240,8 +240,14 @@ textarea.form-control { resize: vertical; min-height: 60px; }
   #printArea { display: block !important; }
   .print-page { page-break-after: always; }
   .print-page:last-child { page-break-after: avoid; }
-  /* ซ่อน browser native header/footer */
   head, header, footer { display: none !important; }
+  /* summary print */
+  .ps-wrap { font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif; font-size:16pt; color:#000; }
+  .ps-wrap h2 { text-align:center; font-size:18pt; margin-bottom:2px; }
+  .ps-wrap .sub { text-align:center; font-size:14pt; margin-bottom:10px; }
+  .ps-wrap table { border-collapse:collapse; width:100%; font-size:16pt; color:#000; }
+  .ps-wrap th,.ps-wrap td { border:1px solid #000; padding:3px 5px; vertical-align:middle; color:#000; }
+  .ps-wrap th { background:#fff; text-align:center; font-weight:bold; }
 }
 #printArea { display: none; }
 
@@ -386,6 +392,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
     <div class="topbar-actions">
       <button class="btn btn-outline btn-sm hide-public" onclick="loadSampleData()">🗂️ โหลดตัวอย่าง</button>
       <button class="btn btn-outline btn-sm" onclick="printTimetable()">🖨️ พิมพ์ตาราง</button>
+      <button class="btn btn-outline btn-sm" onclick="savePDFTimetable()" style="color:#ff7043;border-color:rgba(255,112,67,0.6)">💾 PDF ตาราง</button>
       <button class="btn btn-sm hide-public" id="syncBtn" onclick="syncToGitHub()"
         style="background:#2e7d32;color:white;border:none;display:flex;align-items:center;gap:5px;font-weight:600">
         <span id="syncBtnIcon">☁️</span> บันทึกการแก้ไข
@@ -418,6 +425,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
         <button onclick="showView('summary');closeSidebar()"  class="smn-btn" id="smn-summary">📊 สรุป</button>
         <button onclick="showView('adminmgr');closeSidebar()" class="smn-btn hide-public" id="smn-adminmgr">👑 แอดมิน</button>
         <button onclick="printTimetable();closeSidebar()"     class="smn-btn">🖨️ พิมพ์ตาราง</button>
+        <button onclick="savePDFTimetable();closeSidebar()"   class="smn-btn" style="color:#ff7043">💾 PDF ตาราง</button>
         <button onclick="syncToGitHub();closeSidebar()" class="smn-btn hide-public" style="color:#80ff80;font-weight:700">☁️ บันทึกการแก้ไข</button>
         <div class="smn-divider"></div>
         <button onclick="doLogout()" class="smn-btn smn-logout hide-public">🔓 ออกจากระบบ</button>
@@ -1960,8 +1968,9 @@ function renderSummaryView() {
           ${filtered.length ? `${toThai(filtered.length)} รายการ &nbsp;|&nbsp; รวม ${thaiNum(totalHours)} ชม.` : ''}
         </span>
         ${filtered.length ? `
-          <div style="display:flex;gap:6px;margin-left:auto">
+          <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap">
             <button class="btn btn-outline-dark btn-sm" onclick="printSummary('subject')">🖨️ พิมพ์</button>
+            <button class="btn btn-sm" onclick="savePDFSummary('subject')" style="background:#e64a19;color:white">💾 PDF</button>
             <button class="btn btn-success btn-sm"  onclick="exportSummaryExcel('subject')">📥 Excel</button>
           </div>` : ''}
       </div>
@@ -2025,8 +2034,9 @@ function renderSummaryView() {
           ${filtered.length ? `${toThai(filtered.length)} รายการ &nbsp;|&nbsp; รวม ${thaiNum(totalHours)} ชม.` : ''}
         </span>
         ${filtered.length ? `
-          <div style="display:flex;gap:6px;margin-left:auto">
+          <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap">
             <button class="btn btn-outline-dark btn-sm" onclick="printSummary('teacher')">🖨️ พิมพ์</button>
+            <button class="btn btn-sm" onclick="savePDFSummary('teacher')" style="background:#e64a19;color:white">💾 PDF</button>
             <button class="btn btn-success btn-sm"  onclick="exportSummaryExcel('teacher')">📥 Excel</button>
           </div>` : ''}
       </div>
@@ -2174,31 +2184,30 @@ function printSummary(type) {
 
   const courseLine = `${course.name}  รุ่นที่ ${toThai(course.runNumber||'')}  —  ${state.schoolName}`;
 
-  const w = window.open('','_blank','width=1100,height=750');
-  w.document.write(`<!DOCTYPE html><html><head>
-    <meta charset="utf-8">
-    <title>${esc(title)}</title>
-    <style>
-      @font-face { font-family:'TH SarabunIT๙'; src:local('TH SarabunIT๙'); }
-      * { box-sizing:border-box; margin:0; padding:0; }
-      body { font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif; font-size:16pt; margin:12mm 14mm; color:#000; }
-      h2  { text-align:center; font-size:18pt; margin-bottom:2px; color:#000; }
-      .sub { text-align:center; font-size:14pt; margin-bottom:10px; color:#000; }
-      table { border-collapse:collapse; width:100%; font-size:16pt; color:#000; }
-      th, td { border:1px solid #000; padding:3px 5px; vertical-align:middle; color:#000; }
-      th { background:#fff; text-align:center; font-size:15pt; font-weight:bold; }
-      @media print {
-        body { margin:8mm 10mm; }
-        @page { size:A4 landscape; margin:8mm 8mm 0 8mm; }
-      }
-    </style>
-  </head><body>
-    <h2>${esc(title)}</h2>
-    <div class="sub">${esc(courseLine)}</div>
-    ${tableHtml}
-    <script>window.onload=()=>{ window.print(); }<\/script>
-  </body></html>`);
-  w.document.close();
+  // เขียนลง #printArea แล้ว window.print() → ใช้ได้ทั้งเดสก์ท็อปและมือถือ
+  document.getElementById('printArea').innerHTML = `
+    <div class="ps-wrap" style="margin:10mm 12mm;font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;color:#000">
+      <h2 style="text-align:center;font-size:18pt;margin-bottom:2px">${esc(title)}</h2>
+      <div class="sub" style="text-align:center;font-size:14pt;margin-bottom:10px">${esc(courseLine)}</div>
+      ${tableHtml}
+    </div>`;
+  const _oldTitle = document.title;
+  document.title = '';
+  window.print();
+  setTimeout(() => {
+    document.title = _oldTitle;
+    document.getElementById('printArea').innerHTML = '';
+  }, 1500);
+}
+
+// ─── PDF SAVE ───
+async function savePDFTimetable() {
+  showToast('💾 เปิดหน้าต่างพิมพ์ — เลือก "บันทึกเป็น PDF" หรือ "Save as PDF"');
+  await printTimetable();
+}
+function savePDFSummary(type) {
+  showToast('💾 เปิดหน้าต่างพิมพ์ — เลือก "บันทึกเป็น PDF" หรือ "Save as PDF"');
+  printSummary(type);
 }
 
 // ─── EXPORT EXCEL ───
