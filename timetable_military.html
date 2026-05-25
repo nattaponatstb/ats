@@ -162,6 +162,18 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 .inner-tab { padding: 8px 18px; border: none; background: none; cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 600; color: #888; border-bottom: 2px solid transparent; margin-bottom: -2px; }
 .inner-tab.active { color: #1976d2; border-bottom-color: #1976d2; }
 
+/* ===== SIDEBAR MOBILE NAV ===== */
+.sidebar-mobile-nav { display: none; flex-direction: column; border-bottom: 1px solid #eee; background: #1a2f4e; }
+.smn-btn {
+  width: 100%; padding: 13px 18px; text-align: left; border: none;
+  background: none; color: white; font-family: inherit; font-size: 0.95rem;
+  font-weight: 600; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08);
+  transition: background 0.15s;
+}
+.smn-btn:hover, .smn-btn.active { background: rgba(255,255,255,0.15); }
+.smn-logout { color: #ff8a80 !important; }
+.smn-divider { height: 1px; background: rgba(255,255,255,0.15); margin: 4px 0; }
+
 /* ===== RESPONSIVE MOBILE ===== */
 #sidebarToggle { display: none; }
 .sidebar-overlay {
@@ -184,6 +196,11 @@ textarea.form-control { resize: vertical; min-height: 60px; }
   .topbar-actions { flex-shrink: 0 !important; padding: 0 6px !important; gap: 4px !important; }
   .topbar-actions .btn { font-size: 0.72rem !important; padding: 5px 7px !important; }
   #sidebarToggle { display: flex !important; flex-shrink: 0 !important; }
+  .topbar-nav { display: none !important; }
+  .topbar-actions .btn-outline:not([onclick*="print"]) { display: none !important; }
+  .topbar-actions .user-badge { display: none !important; }
+  .topbar-actions .public-badge .btn-exit-public { font-size: 0.72rem !important; }
+  .sidebar-mobile-nav { display: flex !important; }
 
   /* Sidebar drawer */
   .sidebar {
@@ -392,6 +409,19 @@ textarea.form-control { resize: vertical; min-height: 60px; }
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
+      <!-- Mobile nav (แสดงเฉพาะมือถือ) -->
+      <div id="sidebarMobileNav" class="sidebar-mobile-nav hide-public">
+        <button onclick="showView('schedule');closeSidebar()" class="smn-btn" id="smn-schedule">📋 ตารางสอน</button>
+        <button onclick="showView('courses');closeSidebar()"  class="smn-btn hide-public" id="smn-courses">🎓 หลักสูตร</button>
+        <button onclick="showView('teachers');closeSidebar()" class="smn-btn hide-public" id="smn-teachers">👤 ครูอาจารย์</button>
+        <button onclick="showView('subjects');closeSidebar()" class="smn-btn hide-public" id="smn-subjects">📚 วิชา</button>
+        <button onclick="showView('settings');closeSidebar()" class="smn-btn hide-public" id="smn-settings">⚙️ ตั้งค่า</button>
+        <button onclick="showView('summary');closeSidebar()"  class="smn-btn" id="smn-summary">📊 สรุป</button>
+        <button onclick="showView('adminmgr');closeSidebar()" class="smn-btn hide-public" id="smn-adminmgr">👑 แอดมิน</button>
+        <button onclick="printTimetable();closeSidebar()"     class="smn-btn">🖨️ พิมพ์ตาราง</button>
+        <div class="smn-divider"></div>
+        <button onclick="doLogout()" class="smn-btn smn-logout">🔓 ออกจากระบบ</button>
+      </div>
       <div style="padding:12px 14px;border-bottom:1px solid #eee;background:#f8f9fa">
         <div style="font-size:0.72rem;color:#888;font-weight:700;margin-bottom:6px">หลักสูตรที่เลือก</div>
         <select class="form-control" id="courseSelector" onchange="selectCourse(this.value)" style="font-size:0.82rem">
@@ -1402,6 +1432,8 @@ function showView(view) {
   state.currentView = view;
   ['schedule','courses','teachers','subjects','settings','summary','adminmgr'].forEach(v => {
     document.getElementById('tab-'+v)?.classList.toggle('active', v === view);
+    const smn = document.getElementById('smn-'+v);
+    if (smn) smn.classList.toggle('active', v === view);
   });
   renderContent();
 }
