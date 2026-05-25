@@ -2987,7 +2987,7 @@ async function printTimetable() {
   // ชื่อ-สกุล / ตำแหน่ง / เดือนปี : กึ่งกลางข้อความอยู่ที่ 70% (translateX -50%)
   const SF  = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;line-height:1.9;`;
   // margin-left:40% + text-align:center → กึ่งกลางข้อความที่ 40%+30% = 70%
-  const C70 = `margin-left:40%;text-align:center`;
+  const C70 = `margin-left:40%;text-align:center;line-height:1.4`;
   const signerBlock = _fullName ? `<div style="${SF}">
     <div style="margin-left:50%;text-align:left">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
     ${_rank?`<div style="margin-left:0">${esc(_rank)}</div>`:''}
