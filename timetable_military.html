@@ -2330,13 +2330,17 @@ function openPrintWindow(bodyHtml, landscape = true) {
   <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});<\/script>
 </body></html>`;
 
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const w    = window.open(url, '_blank');
-
-  if (!w) {
-    // popup blocked → fallback iframe
-    const fr = document.createElement('iframe');
+  // เปิดหน้าว่างแล้ว write HTML เข้าไป → Chrome ไม่มี URL จริงให้แสดงใน header/footer
+  const w = window.open('about:blank', '_blank');
+  if (w) {
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  } else {
+    // popup blocked → fallback blob + iframe
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const fr   = document.createElement('iframe');
     fr.style.cssText = 'position:fixed;left:-9999px;top:0;border:none;width:1px;height:1px';
     document.body.appendChild(fr);
     fr.onload = function() {
@@ -2347,8 +2351,6 @@ function openPrintWindow(bodyHtml, landscape = true) {
       }, 4000);
     };
     fr.src = url;
-  } else {
-    setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
   }
 }
 
