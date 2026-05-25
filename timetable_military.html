@@ -172,7 +172,10 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 }
 .smn-btn:hover, .smn-btn.active { background: rgba(255,255,255,0.15); }
 .smn-logout { color: #ff8a80 !important; }
+.smn-login  { color: #80d8ff !important; }
 .smn-divider { height: 1px; background: rgba(255,255,255,0.15); margin: 4px 0; }
+.show-public-only { display: none; }
+.public-mode .show-public-only { display: block !important; }
 
 /* ===== RESPONSIVE MOBILE ===== */
 #sidebarToggle { display: none; }
@@ -410,7 +413,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
       <!-- Mobile nav (แสดงเฉพาะมือถือ) -->
-      <div id="sidebarMobileNav" class="sidebar-mobile-nav hide-public">
+      <div id="sidebarMobileNav" class="sidebar-mobile-nav">
         <button onclick="showView('schedule');closeSidebar()" class="smn-btn" id="smn-schedule">📋 ตารางสอน</button>
         <button onclick="showView('courses');closeSidebar()"  class="smn-btn hide-public" id="smn-courses">🎓 หลักสูตร</button>
         <button onclick="showView('teachers');closeSidebar()" class="smn-btn hide-public" id="smn-teachers">👤 ครูอาจารย์</button>
@@ -420,7 +423,8 @@ textarea.form-control { resize: vertical; min-height: 60px; }
         <button onclick="showView('adminmgr');closeSidebar()" class="smn-btn hide-public" id="smn-adminmgr">👑 แอดมิน</button>
         <button onclick="printTimetable();closeSidebar()"     class="smn-btn">🖨️ พิมพ์ตาราง</button>
         <div class="smn-divider"></div>
-        <button onclick="doLogout()" class="smn-btn smn-logout">🔓 ออกจากระบบ</button>
+        <button onclick="doLogout()" class="smn-btn smn-logout hide-public">🔓 ออกจากระบบ</button>
+        <button onclick="exitPublicMode();closeSidebar()" class="smn-btn smn-login show-public-only">🔐 เข้าสู่ระบบ</button>
       </div>
       <div style="padding:12px 14px;border-bottom:1px solid #eee;background:#f8f9fa">
         <div style="font-size:0.72rem;color:#888;font-weight:700;margin-bottom:6px">หลักสูตรที่เลือก</div>
