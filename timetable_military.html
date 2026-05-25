@@ -1,0 +1,3692 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบตารางสอน รร.ขส.ขส.ทบ.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== BASE ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; background: #f0f4f8; color: #222; font-size: 15px; }
+
+/* ===== LAYOUT ===== */
+.app-shell { display: flex; flex-direction: column; height: 100vh; }
+.topbar {
+  background: linear-gradient(135deg, #1a2f4e, #2d5a8e);
+  color: white; padding: 0; display: flex; align-items: stretch; flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25); z-index: 50;
+}
+.topbar-brand { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-right: 1px solid rgba(255,255,255,0.15); }
+.topbar-brand h1 { font-size: 1rem; font-weight: 700; line-height: 1.3; }
+.topbar-brand .sub { font-size: 0.72rem; opacity: 0.75; }
+.topbar-nav { display: flex; flex: 1; }
+.tab-btn {
+  padding: 0 20px; border: none; background: none; color: rgba(255,255,255,0.75);
+  cursor: pointer; font-family: inherit; font-size: 0.88rem; font-weight: 600;
+  border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap;
+}
+.tab-btn:hover { color: white; background: rgba(255,255,255,0.08); }
+.tab-btn.active { color: white; border-bottom-color: #4fc3f7; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+
+/* ===== BUTTONS ===== */
+.btn { padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.83rem; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; }
+.btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary { background: #1976d2; color: white; }
+.btn-success { background: #388e3c; color: white; }
+.btn-warning { background: #f57c00; color: white; }
+.btn-danger  { background: #c62828; color: white; }
+.btn-outline { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.35); }
+.btn-outline-dark { background: white; color: #333; border: 1px solid #bbb; }
+.btn-outline-dark:hover { background: #f4f4f4; border-color: #999; }
+
+/* ===== BE CALENDAR PICKER ===== */
+.be-cal-overlay { position: fixed; inset: 0; z-index: 900; }
+.be-cal-popup {
+  position: fixed; z-index: 901; background: white; border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28); width: 280px; overflow: hidden;
+  font-family: inherit;
+}
+.be-cal-header {
+  background: #1976d2; color: white; padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.be-cal-header span { font-weight: 700; font-size: 0.95rem; }
+.be-cal-nav {
+  background: none; border: none; color: white; cursor: pointer;
+  font-size: 1.2rem; padding: 2px 8px; border-radius: 4px; line-height: 1;
+}
+.be-cal-nav:hover { background: rgba(255,255,255,0.22); }
+.be-cal-grid { padding: 8px 10px 10px; }
+.be-cal-daynames { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 4px; }
+.be-cal-dayname { text-align: center; font-size: 0.72rem; font-weight: 700; color: #888; padding: 4px 0; }
+.be-cal-dayname.sun { color: #c62828; }
+.be-cal-dayname.sat { color: #1565c0; }
+.be-cal-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.be-cal-day {
+  text-align: center; padding: 6px 0; border-radius: 6px; cursor: pointer;
+  font-size: 0.82rem; border: none; background: none; font-family: inherit;
+  width: 100%;
+}
+.be-cal-day:hover:not(:disabled) { background: #e3f2fd; }
+.be-cal-day:disabled { cursor: default; }
+.be-cal-day.sun { color: #c62828; }
+.be-cal-day.sat { color: #1565c0; }
+.be-cal-day.today { font-weight: 700; text-decoration: underline dotted #1976d2; }
+.be-cal-day.selected { background: #1976d2 !important; color: white !important; font-weight: 700; border-radius: 6px; }
+.btn-gray    { background: #e0e0e0; color: #444; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+.btn-icon { padding: 5px 8px; }
+
+/* ===== MAIN CONTENT ===== */
+.main-content { flex: 1; overflow: hidden; display: flex; }
+.sidebar {
+  width: 300px; flex-shrink: 0; background: white; border-right: 1px solid #e0e0e0;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-section { border-bottom: 1px solid #eee; }
+.sidebar-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: #f8f9fa; cursor: pointer;
+  font-size: 0.82rem; font-weight: 700; color: #444; user-select: none;
+}
+.sidebar-section-header:hover { background: #eef2f7; }
+.sidebar-section-body { overflow-y: auto; }
+.sidebar-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; cursor: pointer; border-left: 3px solid transparent;
+  transition: all 0.15s; font-size: 0.85rem;
+}
+.sidebar-item:hover { background: #f0f4f8; }
+.sidebar-item.active { background: #e3f2fd; border-left-color: #1976d2; color: #1565c0; font-weight: 700; }
+.sidebar-item .item-meta { font-size: 0.72rem; color: #888; margin-top: 1px; }
+
+.content-area { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* ===== CARDS ===== */
+.card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; overflow: hidden; }
+.card-header { padding: 14px 18px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+.card-header h2 { font-size: 1rem; color: #1a2f4e; font-weight: 700; }
+.card-body { padding: 16px 18px; }
+
+/* ===== FORM ===== */
+.form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+.form-row.single { display: block; }
+.form-group { flex: 1; }
+.form-group label { display: block; font-size: 0.78rem; font-weight: 700; color: #555; margin-bottom: 4px; }
+.form-group label .req { color: #c62828; }
+.form-control {
+  width: 100%; padding: 8px 10px; border: 1.5px solid #ccc; border-radius: 6px;
+  font-family: inherit; font-size: 0.88rem; transition: border-color 0.2s;
+}
+.form-control:focus { outline: none; border-color: #1976d2; background: #fafcff; }
+select.form-control { cursor: pointer; }
+textarea.form-control { resize: vertical; min-height: 60px; }
+.form-group.w-auto { flex: 0 0 auto; }
+
+/* ===== TABLE ===== */
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.data-table th {
+  background: #1a2f4e; color: white; padding: 9px 10px;
+  text-align: center; font-weight: 600; font-size: 0.8rem; white-space: nowrap;
+  position: sticky; top: 0; z-index: 5;
+}
+.data-table td { border: 1px solid #e0e0e0; padding: 7px 10px; vertical-align: top; }
+.data-table tr:hover td { background: #f5f9ff; }
+.data-table tr:nth-child(even) td { background: #fafafa; }
+.data-table tr:nth-child(even):hover td { background: #f0f6ff; }
+.week-separator td { background: #e8f0fe !important; font-weight: 700; color: #1a237e; font-size: 0.8rem; padding: 6px 10px; }
+
+/* ===== BADGES ===== */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; }
+.badge-method { background: #e3f2fd; color: #1565c0; }
+.badge-loc    { background: #e8f5e9; color: #2e7d32; }
+.badge-hours  { background: #fff3e0; color: #e65100; }
+
+/* ===== MODAL ===== */
+.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+.modal-backdrop.open { display: flex; }
+.modal { background: white; border-radius: 12px; width: 100%; max-width: 820px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); animation: slideIn 0.2s ease; }
+@keyframes slideIn { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; background: #1a2f4e; border-radius: 12px 12px 0 0; color: white; }
+.modal-header h3 { font-size: 1rem; }
+.modal-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+.modal-body { padding: 20px; max-height: 70vh; overflow-y: auto; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid #eee; display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ===== TABS (inner) ===== */
+.inner-tabs { display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 16px; }
+.inner-tab { padding: 8px 18px; border: none; background: none; cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 600; color: #888; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.inner-tab.active { color: #1976d2; border-bottom-color: #1976d2; }
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  @page { size: A4 landscape; margin: 4mm 8mm 0 8mm; }
+  body { background: white; font-size: 9pt; }
+  .app-shell, .topbar, .sidebar, .content-area, .modal-backdrop { display: none !important; }
+  #printArea { display: block !important; }
+  .print-page { page-break-after: always; }
+  .print-page:last-child { page-break-after: avoid; }
+}
+#printArea { display: none; }
+
+/* ===== PRINT PAGE CONTENT ===== */
+.print-page { font-family: 'TH SarabunIT๙','TH Sarabun New','Sarabun',serif; color: black; }
+/* หัวกระดาษ (เฉพาะหน้าแรก) */
+.print-header { text-align: center; margin-bottom: 4px; line-height: 1.3; }
+.print-header .print-title  { font-size: 16pt; font-weight: bold; }
+.print-header .school-name  { font-size: 16pt; font-weight: bold; }
+.print-header .course-line  { font-size: 16pt; font-weight: bold; }
+/* ตาราง: collapse เพื่อเส้นบางเสมอกัน */
+.print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.print-table th {
+  border: 1px solid black;
+  padding: 2px 4px; vertical-align: middle; text-align: center;
+  background: #d0d0d0; font-weight: bold; font-size: 14pt;
+  font-family: 'TH SarabunIT๙','TH Sarabun New','Sarabun',serif; line-height: 1.2;
+  white-space: nowrap;
+}
+.print-table td {
+  border: 1px solid black;
+  padding: 2px 4px; vertical-align: top; text-align: center;
+  font-size: 14pt; font-family: 'TH SarabunIT๙','TH Sarabun New','Sarabun',serif; line-height: 1.2;
+}
+.print-table td.left  { text-align: left; }
+.print-table td.f12   { font-size: 12pt; }
+.print-table td.nobot { border-bottom: none; }  /* เส้นล่าง: ภายในวันเดียวกัน */
+.print-table td.notop { border-top:    none; }  /* เส้นบน:   ภายในวันเดียวกัน */
+.print-footer { margin-top: 6px; }
+
+/* ===== CHIPS (dropdown + tag display) ===== */
+.chips-box { display:flex; flex-wrap:wrap; gap:5px; min-height:32px; padding:5px 6px; border:1px solid #ddd; border-radius:6px; background:#f8f9fa; margin-top:5px; }
+.chip { display:inline-flex; align-items:center; gap:4px; background:#1565c0; color:white; padding:2px 10px 2px 10px; border-radius:20px; font-size:0.82rem; }
+.chip-del { background:none; border:none; color:rgba(255,255,255,0.85); cursor:pointer; font-size:1rem; line-height:1; padding:0 0 0 2px; }
+.chip-del:hover { color:white; }
+.chips-empty { color:#bbb; font-size:0.82rem; line-height:2; }
+
+/* ===== MISC ===== */
+.empty-state { text-align: center; padding: 40px; color: #aaa; }
+.empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+.tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+.tag-course { background: #e3f2fd; color: #0d47a1; }
+#toast { position: fixed; bottom: 24px; right: 24px; background: #323232; color: white; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 500; }
+#toast.show { opacity: 1; }
+.highlight { background: #fff9c4; }
+
+/* ===== LOGIN SCREEN ===== */
+#loginScreen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(135deg, #0d1f35, #1a3a5c);
+  display: flex; align-items: center; justify-content: center;
+}
+#loginScreen.hidden { display: none; }
+.login-box {
+  background: white; border-radius: 16px; padding: 40px 36px;
+  width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  text-align: center;
+}
+.login-box .login-logo { font-size: 2.5rem; margin-bottom: 8px; }
+.login-box h2 { font-size: 1.15rem; color: #1a2f4e; margin-bottom: 4px; font-weight: 700; }
+.login-box .login-sub { font-size: 0.82rem; color: #888; margin-bottom: 24px; }
+.login-box .form-group { text-align: left; margin-bottom: 14px; }
+.login-box label { font-size: 0.82rem; font-weight: 600; color: #555; display: block; margin-bottom: 4px; }
+.login-box input { width: 100%; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+.login-box input:focus { border-color: #1976d2; }
+.login-box .btn-login { width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px; margin-top: 6px; justify-content: center; }
+.login-box .login-err { color: #c62828; font-size: 0.82rem; margin-top: 8px; min-height: 1.2em; }
+.login-loading { opacity: 0.6; pointer-events: none; }
+
+/* ===== USER BADGE ===== */
+.user-badge { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.85); font-size: 0.82rem; }
+.user-badge .uname { font-weight: 700; }
+.btn-logout { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-family: inherit; }
+.btn-logout:hover { background: rgba(255,255,255,0.22); }
+
+/* ===== SPINNER ===== */
+.api-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 4px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+/* ── Public (read-only) mode ── */
+.public-mode .hide-public { display:none !important; }
+.public-badge { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.12); border-radius:8px; padding:4px 12px; font-size:0.82rem; color:rgba(255,255,255,0.9); }
+.public-badge .badge-label { font-weight:700; letter-spacing:0.03em; }
+.btn-exit-public { background:rgba(255,255,255,0.18); color:white; border:1px solid rgba(255,255,255,0.35); border-radius:6px; padding:5px 12px; cursor:pointer; font-size:0.82rem; font-family:inherit; font-weight:600; }
+.btn-exit-public:hover { background:rgba(255,255,255,0.28); }
+</style>
+<!-- SheetJS — สร้าง Excel ฝั่ง client -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">⚔️</div>
+    <h2>ระบบตารางสอน</h2>
+    <div class="login-sub">รร.ขส.ขส.ทบ. — กรุณาเข้าสู่ระบบ</div>
+    <div class="form-group">
+      <label>ชื่อผู้ใช้</label>
+      <input id="l_user" type="text" placeholder="username" autocomplete="username"
+             onkeydown="if(event.key==='Enter')document.getElementById('l_pass').focus()">
+    </div>
+    <div class="form-group">
+      <label>รหัสผ่าน</label>
+      <input id="l_pass" type="password" placeholder="password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary btn-login" onclick="doLogin()" id="loginBtn">เข้าสู่ระบบ</button>
+    <div class="login-err" id="loginErr" style="text-align:center"></div>
+    <div style="margin-top:16px;border-top:1px solid #e0e0e0;padding-top:14px">
+      <div style="font-size:0.78rem;color:#999;margin-bottom:8px;text-align:center">หรือ</div>
+      <button class="btn btn-outline-dark btn-login" onclick="enterPublicMode()" style="background:#f5f7fa;color:#1a2f4e;border:1px solid #ccd3dc">
+        👁️ ดูตารางสอน
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="app-shell">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div>
+        <h1>⚔️ ระบบตารางสอน</h1>
+        <div class="sub">รร.ขส.ขส.ทบ.</div>
+      </div>
+    </div>
+    <nav class="topbar-nav">
+      <button class="tab-btn active" onclick="showView('schedule')"   id="tab-schedule">📋 ตารางสอน</button>
+      <button class="tab-btn hide-public" onclick="showView('courses')"    id="tab-courses">🎓 หลักสูตร</button>
+      <button class="tab-btn hide-public" onclick="showView('teachers')"   id="tab-teachers">👤 ครูอาจารย์</button>
+      <button class="tab-btn hide-public" onclick="showView('subjects')"   id="tab-subjects">📚 วิชา</button>
+      <button class="tab-btn hide-public" onclick="showView('settings')"   id="tab-settings">⚙️ ตั้งค่า</button>
+      <button class="tab-btn"             onclick="showView('summary')"    id="tab-summary">📊 สรุป</button>
+      <button class="tab-btn hide-public" onclick="showView('adminmgr')"   id="tab-adminmgr">👑 แอดมิน</button>
+    </nav>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm hide-public" onclick="loadSampleData()">🗂️ โหลดตัวอย่าง</button>
+      <button class="btn btn-outline btn-sm" onclick="printTimetable()">🖨️ พิมพ์ตาราง</button>
+      <!-- user mode -->
+      <div class="user-badge hide-public">
+        <span>👤 <span class="uname" id="topbarUser">—</span></span>
+        <button class="btn-logout" onclick="doLogout()">ออกจากระบบ</button>
+      </div>
+      <!-- public mode badge -->
+      <div class="public-badge" id="publicBadge" style="display:none">
+        <span class="badge-label">👁️ ดูอย่างเดียว</span>
+        <button class="btn-exit-public" onclick="exitPublicMode()">🔐 เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div style="padding:12px 14px;border-bottom:1px solid #eee;background:#f8f9fa">
+        <div style="font-size:0.72rem;color:#888;font-weight:700;margin-bottom:6px">หลักสูตรที่เลือก</div>
+        <select class="form-control" id="courseSelector" onchange="selectCourse(this.value)" style="font-size:0.82rem">
+          <option value="">— เลือกหลักสูตร —</option>
+        </select>
+        <button class="btn btn-success btn-sm hide-public" style="margin-top:8px;width:100%" onclick="openCourseModal()">+ สร้างหลักสูตรใหม่</button>
+      </div>
+      <div id="sidebarContent" style="flex:1;overflow-y:auto;padding:10px 14px">
+        <div class="empty-state" style="padding:20px">
+          <div>เลือกหลักสูตรเพื่อดูข้อมูล</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content-area" id="contentArea">
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <div style="font-size:1rem;font-weight:700;margin-bottom:6px">ยังไม่ได้เลือกหลักสูตร</div>
+        <div>เลือกหลักสูตรจากแผงซ้าย หรือสร้างหลักสูตรใหม่</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PRINT AREA ========== -->
+<div id="printArea"></div>
+
+<!-- ========== MODALS ========== -->
+
+<!-- Course Modal -->
+<div class="modal-backdrop" id="courseModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3 id="courseModalTitle">สร้างหลักสูตรใหม่</h3>
+      <button class="modal-close" onclick="closeModal('courseModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>ชื่อหลักสูตร <span class="req">*</span></label>
+          <input class="form-control" id="c_name" placeholder="เช่น หลักสูตร ชั้นนายพัน เหล่า ขส.">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>รุ่นที่ <span class="req">*</span></label>
+          <input class="form-control" id="c_run" placeholder="เช่น 56"
+            type="number" min="1" max="999" step="1"
+            inputmode="numeric" pattern="[0-9]*"
+            style="max-width:100px">
+        </div>
+        <div class="form-group">
+          <label>ปีงบประมาณ</label>
+          <select class="form-control" id="c_year" style="max-width:130px">
+            <option value="">— เลือก —</option>
+          </select>
+        </div>
+        <div class="form-group" style="max-width:160px">
+          <label>ประเภทหลักสูตร</label>
+          <select class="form-control" id="c_courseType">
+            <option value="">— ไม่ระบุ —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>วันเปิดการศึกษา</label>
+          <div style="display:flex;gap:4px;align-items:center">
+            <input class="form-control" type="text" id="c_start" placeholder="วว/ดด/ปปปป" readonly
+              style="cursor:pointer;background:#fafcff;flex:1"
+              onclick="openBECal('c_start_iso','c_start',this)">
+            <button type="button" class="btn btn-outline-dark btn-sm btn-icon"
+              onclick="openBECal('c_start_iso','c_start',this)" title="เลือกวันที่">📅</button>
+          </div>
+          <input type="hidden" id="c_start_iso">
+        </div>
+        <div class="form-group">
+          <label>วันปิดการศึกษา</label>
+          <div style="display:flex;gap:4px;align-items:center">
+            <input class="form-control" type="text" id="c_end" placeholder="วว/ดด/ปปปป" readonly
+              style="cursor:pointer;background:#fafcff;flex:1"
+              onclick="openBECal('c_end_iso','c_end',this)">
+            <button type="button" class="btn btn-outline-dark btn-sm btn-icon"
+              onclick="openBECal('c_end_iso','c_end',this)" title="เลือกวันที่">📅</button>
+          </div>
+          <input type="hidden" id="c_end_iso">
+        </div>
+      </div>
+      <!-- ── ผู้รับรองตาราง ── -->
+      <div style="border-top:1px solid #e0e0e0;margin-top:6px;padding-top:10px">
+        <div style="font-size:0.82rem;font-weight:700;color:#555;margin-bottom:6px">ผู้รับรองตาราง</div>
+        <div class="form-row">
+          <div class="form-group" style="max-width:180px">
+            <label>ข้อความด้านบน</label>
+            <input class="form-control" id="c_signer_label" placeholder="ตรวจถูกต้อง">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="max-width:110px">
+            <label>ยศ</label>
+            <input class="form-control" id="c_signer_rank" placeholder="เช่น พ.อ.">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ-สกุล</label>
+            <input class="form-control" id="c_signer_name" placeholder="เช่น ชัยวัฒน์ ภู่ระหงษ์">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>ตำแหน่ง บรรทัดที่ ๑</label>
+          <input class="form-control" id="c_signer_pos1" placeholder="เช่น หน.ผปมส.รร.ขส.ขส.ทบ. รักษาราชการแทน">
+        </div>
+        <div class="form-group">
+          <label>ตำแหน่ง บรรทัดที่ ๒</label>
+          <input class="form-control" id="c_signer_pos2" placeholder="เช่น หน.ผตก.รร.ขส.ขส.ทบ">
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="max-width:160px">
+            <label>เดือน ปี พ.ศ.</label>
+            <input class="form-control" id="c_signer_date" placeholder="เช่น มี.ค. ๖๙">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('courseModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveCourse()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Modal (Add admin) -->
+<div class="modal-backdrop" id="userModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3 id="userModalTitle">เพิ่มแอดมิน</h3>
+      <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>ชื่อผู้ใช้ (username) <span class="req">*</span></label>
+          <input class="form-control" id="u_username" placeholder="ตัวอักษรและตัวเลข" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>ชื่อ-นามสกุล</label>
+          <input class="form-control" id="u_fullname" placeholder="ชื่อแสดงในระบบ">
+        </div>
+      </div>
+      <div class="form-row" id="u_pass_row">
+        <div class="form-group">
+          <label>รหัสผ่าน <span class="req">*</span></label>
+          <input class="form-control" id="u_password" type="text" onfocus="this.type='password'" autocomplete="off" placeholder="อย่างน้อย 6 ตัวอักษร">
+        </div>
+        <div class="form-group">
+          <label>ยืนยันรหัสผ่าน <span class="req">*</span></label>
+          <input class="form-control" id="u_password2" type="text" onfocus="this.type='password'" autocomplete="off" placeholder="กรอกซ้ำ">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('userModal')">ยกเลิก</button>
+      <button class="btn btn-primary" id="u_save_btn" onclick="saveUser()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-backdrop" id="pwModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h3>🔑 เปลี่ยนรหัสผ่านของฉัน</h3>
+      <button class="modal-close" onclick="closeModal('pwModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:10px">
+        <label>รหัสผ่านเก่า <span class="req">*</span></label>
+        <input class="form-control" id="pw_old" type="text" onfocus="this.type='password'" autocomplete="off">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>รหัสผ่านใหม่ <span class="req">*</span></label>
+        <input class="form-control" id="pw_new" type="text" onfocus="this.type='password'" autocomplete="off" placeholder="อย่างน้อย 6 ตัวอักษร">
+      </div>
+      <div class="form-group">
+        <label>ยืนยันรหัสผ่านใหม่ <span class="req">*</span></label>
+        <input class="form-control" id="pw_new2" type="text" onfocus="this.type='password'" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('pwModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="changeMyPassword()">เปลี่ยนรหัสผ่าน</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password Modal (admin1 only) -->
+<div class="modal-backdrop" id="resetPwModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <h3>🔐 รีเซตรหัสผ่าน</h3>
+      <button class="modal-close" onclick="closeModal('resetPwModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:0.85rem;color:#555;margin-bottom:12px">
+        รีเซตรหัสผ่านของ: <strong id="resetPwTarget"></strong>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>รหัสผ่านใหม่ <span class="req">*</span></label>
+        <input class="form-control" id="resetPwNew" type="text" onfocus="this.type='password'" autocomplete="off" placeholder="อย่างน้อย 6 ตัวอักษร">
+      </div>
+      <div class="form-group">
+        <label>ยืนยันรหัสผ่านใหม่ <span class="req">*</span></label>
+        <input class="form-control" id="resetPwNew2" type="text" onfocus="this.type='password'" autocomplete="off">
+      </div>
+      <input type="hidden" id="resetPwUserId">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('resetPwModal')">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="doResetPassword()">รีเซตรหัสผ่าน</button>
+    </div>
+  </div>
+</div>
+
+<!-- Entry Modal (Add/Edit timetable row) -->
+<div class="modal-backdrop" id="entryModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="entryModalTitle">เพิ่มรายการตารางสอน</h3>
+      <button class="modal-close" onclick="closeModal('entryModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Row 1: date & time -->
+      <div class="form-row">
+        <div class="form-group" style="max-width:170px">
+          <label>วันที่ <span class="req">*</span></label>
+          <div style="display:flex;gap:4px;align-items:center">
+            <input class="form-control" type="text" id="e_date" placeholder="วว/ดด/ปปปป" readonly
+              style="cursor:pointer;background:#fafcff;flex:1"
+              onclick="openBECal('e_date_iso','e_date',this)">
+            <button type="button" class="btn btn-outline-dark btn-sm btn-icon"
+              onclick="openBECal('e_date_iso','e_date',this)" title="เลือกวันที่">📅</button>
+          </div>
+          <input type="hidden" id="e_date_iso">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label>เวลาเริ่ม <span class="req">*</span></label>
+          <input class="form-control" type="time" id="e_start" step="1800">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label>เวลาสิ้นสุด <span class="req">*</span></label>
+          <input class="form-control" type="time" id="e_end" step="1800">
+        </div>
+        <div class="form-group" style="max-width:90px">
+          <label>สัปดาห์ที่</label>
+          <input class="form-control" type="number" id="e_week" min="1" placeholder="1">
+        </div>
+      </div>
+      <!-- Row 2: subject -->
+      <div class="form-row">
+        <div class="form-group" style="max-width:220px">
+          <label>เลือกวิชา</label>
+          <select class="form-control" id="e_subjectId" onchange="onSubjectSelect(this.value)">
+            <option value="">— พิมพ์เองด้านล่าง —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ชื่อวิชา <span class="req">*</span></label>
+          <input class="form-control" id="e_subject" placeholder="เช่น วิชา การเคลื่อนย้าย">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label>ชม.ที่ใช้หมดไป</label>
+          <input class="form-control" type="number" id="e_cumHours" min="0" step="1" placeholder="0">
+        </div>
+        <div class="form-group" style="max-width:110px">
+          <label>ชม.ทั้งหมด</label>
+          <input class="form-control" type="number" id="e_totalHours" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+      <!-- Row 3: teacher -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>ผู้สอน <span class="req">*</span></label>
+          <select class="form-control" id="e_teacher_pick" onchange="addEntryTeacher(this.value)" style="font-size:0.88rem">
+            <option value="">— เลือกผู้สอนเพื่อเพิ่ม —</option>
+          </select>
+          <div id="e_teachers_chips" class="chips-box"><span class="chips-empty">ยังไม่ได้เลือกผู้สอน</span></div>
+        </div>
+        <div class="form-group" style="max-width:160px">
+          <label>วิธีสอน</label>
+          <select class="form-control" id="e_method">
+            <option value="บ.">บ. (บรรยาย)</option>
+            <option value="ป.">ป. (ปฏิบัติ)</option>
+            <option value="ด.">ด. (ดูงาน)</option>
+            <option value="อภ.">อภ. (อภิปราย)</option>
+            <option value="สช.">สช. (สาธิต)</option>
+            <option value="สอ.">สอ. (สอบ)</option>
+            <option value="ฝ.">ฝ. (ฝึก)</option>
+            <option value="บ./ป.">บ./ป. (บรรยาย+ปฏิบัติ)</option>
+          </select>
+        </div>
+      </div>
+      <!-- Row 4: location / evidence / uniform -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>สถานที่</label>
+          <input class="form-control" id="e_location" list="locations-list" placeholder="เช่น ห้องเรียน ๑">
+          <datalist id="locations-list"></datalist>
+        </div>
+        <div class="form-group">
+          <label>หลักฐาน</label>
+          <input class="form-control" id="e_evidence" list="evidence-list" placeholder="เช่น แผนการสอน">
+          <datalist id="evidence-list"></datalist>
+        </div>
+        <div class="form-group">
+          <label>การแต่งกาย</label>
+          <input class="form-control" id="e_uniform" list="uniform-list" placeholder="เช่น ชุดปกติแขนยาว">
+          <datalist id="uniform-list">
+            <option value="ชุดปกติแขนยาว"></option><option value="ชุดพละ"></option>
+            <option value="ชุดสนาม"></option><option value="ชุดปกติกากี"></option>
+            <option value="ชุดปกติแขนสั้น"></option>
+          </datalist>
+        </div>
+      </div>
+      <!-- Row 5: notes -->
+      <div class="form-row single">
+        <div class="form-group">
+          <label>หมายเหตุ</label>
+          <textarea class="form-control" id="e_notes" rows="2" placeholder="หมายเหตุเพิ่มเติม..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('entryModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveEntry()">บันทึกรายการ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Teacher Modal -->
+<div class="modal-backdrop" id="teacherModal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h3 id="teacherModalTitle">เพิ่มครูอาจารย์</h3>
+      <button class="modal-close" onclick="closeModal('teacherModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group" style="max-width:130px">
+          <label>ยศ <span class="req">*</span></label>
+          <input class="form-control" id="t_rank" list="rank-list" placeholder="เช่น พ.ท.">
+          <datalist id="rank-list">
+            <option value="พล.อ."></option><option value="พล.ท."></option><option value="พล.ต."></option>
+            <option value="พ.อ."></option><option value="พ.อ.หญิง"></option>
+            <option value="พ.ท."></option><option value="พ.ท.หญิง"></option>
+            <option value="พ.ต."></option><option value="พ.ต.หญิง"></option>
+            <option value="ร.อ."></option><option value="ร.อ.หญิง"></option>
+            <option value="ร.ท."></option><option value="ร.ท.หญิง"></option>
+            <option value="ร.ต."></option><option value="ร.ต.หญิง"></option>
+            <option value="จ.ส.อ."></option><option value="ส.อ."></option>
+            <option value="น.ท."></option><option value="น.ต."></option>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>ชื่อ-นามสกุล <span class="req">*</span></label>
+          <input class="form-control" id="t_name" placeholder="เช่น มนตรี สร้อยทอง">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>ตำแหน่ง</label>
+          <input class="form-control" id="t_position" placeholder="เช่น ครูฝึก">
+        </div>
+        <div class="form-group">
+          <label>หน่วย/สังกัด</label>
+          <input class="form-control" id="t_unit" placeholder="เช่น กวก.ขส.ทบ.">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>วิชาที่สอน</label>
+          <select class="form-control" id="t_subject_pick" onchange="addTeacherSubject(this.value)" style="font-size:0.88rem">
+            <option value="">— เลือกวิชาเพื่อเพิ่ม —</option>
+          </select>
+          <div id="t_subjects_chips" class="chips-box"><span class="chips-empty">ยังไม่มีวิชา</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('teacherModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveTeacher()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Subject Modal -->
+<div class="modal-backdrop" id="subjectModal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h3 id="subjectModalTitle">เพิ่มวิชา</h3>
+      <button class="modal-close" onclick="closeModal('subjectModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>ชื่อวิชา <span class="req">*</span></label>
+          <input class="form-control" id="s_name" placeholder="เช่น วิชา การเคลื่อนย้าย">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label>ชม.รวม</label>
+          <input class="form-control" type="number" id="s_hours" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>หมวดวิชา</label>
+          <input class="form-control" id="s_group" list="group-list" placeholder="เช่น วิชาเหล่า ขส.">
+          <datalist id="group-list">
+            <option value="วิชาเหล่า ขส."></option>
+            <option value="วิชาฝ่ายอำนวยการ"></option>
+            <option value="วิชาทั่วไป"></option>
+            <option value="วิชาภาษาอังกฤษ"></option>
+            <option value="วิชาคอมพิวเตอร์"></option>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>หลักฐาน <span style="font-size:0.72rem;color:#888">(ค่าเริ่มต้น)</span></label>
+          <input class="form-control" id="s_evidence" list="s_evidence-list" placeholder="เช่น แผนการสอน">
+          <datalist id="s_evidence-list"></datalist>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>ใช้สอนในหลักสูตร <span style="font-size:0.72rem;color:#888">(เว้นว่าง = แสดงทุกหลักสูตร)</span></label>
+        <div id="s_ctypes_box" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border:1.5px solid #ccc;border-radius:6px;min-height:38px;cursor:default"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('subjectModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveSubject()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ HOLIDAY MODAL ══════ -->
+<div class="modal-backdrop" id="holidayModal" onclick="if(event.target===this)closeModal('holidayModal')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3 id="holidayModalTitle">เพิ่มวันหยุด</h3>
+      <button class="modal-close" onclick="closeModal('holidayModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:170px">
+          <label>วันที่ <span class="req">*</span></label>
+          <div style="display:flex;gap:4px;align-items:center">
+            <input class="form-control" type="text" id="h_date" placeholder="วว/ดด/ปปปป" readonly
+              style="cursor:pointer;background:#fafcff;flex:1"
+              onclick="openBECal('h_date_iso','h_date',this)">
+            <button type="button" class="btn btn-outline-dark btn-sm btn-icon"
+              onclick="openBECal('h_date_iso','h_date',this)" title="เลือกวันที่">📅</button>
+          </div>
+          <input type="hidden" id="h_date_iso">
+        </div>
+        <div class="form-group" style="max-width:90px">
+          <label>สัปดาห์ที่</label>
+          <input class="form-control" type="number" id="h_week" min="1" step="1" placeholder="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>ชื่อวันหยุด <span class="req">*</span></label>
+        <input class="form-control" type="text" id="h_label" placeholder="เช่น วันฉัตรมงคล" style="font-size:1rem">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('holidayModal')">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="saveHoliday()">💾 บันทึกวันหยุด</button>
+    </div>
+  </div>
+</div>
+
+<!-- BE Calendar Picker -->
+<div class="be-cal-overlay" id="beCalOverlay" style="display:none" onclick="closeBECal()"></div>
+<div class="be-cal-popup" id="beCalPopup" style="display:none">
+  <div class="be-cal-header">
+    <button class="be-cal-nav" onclick="beCalNav(-1)">&#8249;</button>
+    <span id="beCalTitle"></span>
+    <button class="be-cal-nav" onclick="beCalNav(1)">&#8250;</button>
+  </div>
+  <div class="be-cal-grid">
+    <div class="be-cal-daynames">
+      <div class="be-cal-dayname sun">อา.</div>
+      <div class="be-cal-dayname">จ.</div>
+      <div class="be-cal-dayname">อ.</div>
+      <div class="be-cal-dayname">พ.</div>
+      <div class="be-cal-dayname">พฤ.</div>
+      <div class="be-cal-dayname">ศ.</div>
+      <div class="be-cal-dayname sat">ส.</div>
+    </div>
+    <div class="be-cal-days" id="beCalDays"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+//  API LAYER
+// ═══════════════════════════════════════════════
+const API_BASE = 'http://localhost:3000/api';
+let _token = sessionStorage.getItem('ttm_token') || '';
+let _publicMode = false;
+let _currentUser = null;   // { id, username, role, full_name }
+function isSuperAdmin() { return _currentUser?.username?.toLowerCase() === 'admin1'; }
+
+async function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  // ใน public mode GET ไม่ต้องส่ง token
+  if (_token && !(method === 'GET' && _publicMode)) {
+    headers['Authorization'] = 'Bearer ' + _token;
+  }
+  const opts = { method, headers };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(API_BASE + path, opts);
+  if (res.status === 401 && !_publicMode) { doLogout(); throw new Error('กรุณาเข้าสู่ระบบใหม่'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+  return data;
+}
+
+// ── Login / Logout ──────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('l_user').value.trim();
+  const password = document.getElementById('l_pass').value;
+  const errEl    = document.getElementById('loginErr');
+  const btn      = document.getElementById('loginBtn');
+  if (!username || !password) { errEl.textContent = 'กรุณากรอก username และ password'; return; }
+  btn.innerHTML  = '<span class="api-spinner"></span>กำลังเข้าสู่ระบบ…';
+  btn.disabled   = true;
+  errEl.textContent = '';
+  try {
+    const res = await fetch(API_BASE + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ');
+    _token = data.token;
+    _currentUser = data.user;
+    sessionStorage.setItem('ttm_token', _token);
+    document.getElementById('topbarUser').textContent = data.user.full_name || data.user.username;
+    document.getElementById('loginScreen').classList.add('hidden');
+    await initApp();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.innerHTML = 'เข้าสู่ระบบ';
+    btn.disabled  = false;
+  }
+}
+
+function doLogout() {
+  _token = '';
+  sessionStorage.removeItem('ttm_token');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('l_pass').value  = '';
+  document.getElementById('loginErr').textContent = '';
+  // ล้าง state
+  state.courses = []; state.teachers = []; state.subjects = [];
+  state.currentCourseId = null;
+  renderSidebar(); renderContent();
+}
+
+// ── Public (read-only) mode ────────────────────
+async function enterPublicMode() {
+  _publicMode = true;
+  state.currentView = 'schedule';   // บังคับเปิดหน้าตารางสอนเสมอ
+  document.querySelector('.app-shell').classList.add('public-mode');
+  document.getElementById('publicBadge').style.display = 'flex';
+  document.getElementById('loginScreen').classList.add('hidden');
+  showToast('โหมดดูอย่างเดียว — ไม่สามารถแก้ไขข้อมูลได้');
+  try {
+    await initApp();
+  } catch (e) {
+    showToast('ไม่สามารถโหลดข้อมูลได้: ' + e.message);
+  }
+}
+
+function exitPublicMode() {
+  _publicMode = false;
+  document.querySelector('.app-shell').classList.remove('public-mode');
+  document.getElementById('publicBadge').style.display = 'none';
+  document.getElementById('loginScreen').classList.remove('hidden');
+  state.courses = []; state.teachers = []; state.subjects = [];
+  state.currentCourseId = null;
+  renderSidebar(); renderContent();
+}
+
+// ── Load all data on startup ────────────────────
+// ── helper: แปลง row จาก API → entry object ──────────────
+function mapEntryRow(r) {
+  return {
+    id:         r.id,
+    type:       r.type || 'lesson',
+    date:       r.entry_date ? r.entry_date.split('T')[0] : '',
+    week:       r.week,
+    startTime:  r.start_time,
+    endTime:    r.end_time,
+    subject:    r.subject,
+    teacher:    [r.rank1, r.teacher1].filter(Boolean).join(' ') +
+                (r.teacher2 ? ' / ' + [r.rank2, r.teacher2].filter(Boolean).join(' ') : '') +
+                (r.teacher3 ? ' / ' + [r.rank3, r.teacher3].filter(Boolean).join(' ') : ''),
+    teacherIds: [],
+    method:     r.method,
+    location:   r.location,
+    evidence:   r.evidence,
+    uniform:    r.uniform,
+    notes:      r.notes,
+    cumHours:   r.cum_hours,
+    totalHours: r.total_hours,
+    label:      r.label,
+  };
+}
+
+async function initApp() {
+  try {
+    // โหลด settings + หลักสูตรพร้อมกัน
+    const [settings, courses] = await Promise.all([
+      api('GET', '/settings'),
+      api('GET', '/courses'),
+    ]);
+
+    state.schoolName     = settings.schoolName  || state.schoolName;
+    state.schoolShort    = settings.schoolShort || state.schoolShort;
+    state.teachers       = JSON.parse(settings.teachers       || '[]');
+    state.subjects       = JSON.parse(settings.subjects       || '[]');
+    state.courseTypeList = JSON.parse(settings.courseTypeList || 'null') || [...DEFAULT_COURSE_TYPES];
+    state.locationList   = JSON.parse(settings.locationList   || 'null') || [...DEFAULT_LOCATIONS];
+    state.evidenceList   = JSON.parse(settings.evidenceList   || 'null') || [...DEFAULT_EVIDENCES];
+
+    state.courses = courses.map(c => ({
+      id:          c.id,
+      name:        c.name,
+      runNumber:   c.run_number,
+      year:        c.year || null,
+      startDate:   c.start_date ? c.start_date.split('T')[0] : '',
+      endDate:     c.end_date   ? c.end_date.split('T')[0]   : '',
+      totalHours:  c.total_hours,
+      courseType:  c.course_type || '',
+      signerLabel: c.signer_label,
+      signerRank:  c.signer_rank,
+      signerName:  c.signer_name,
+      signerPos1:  c.signer_pos1,
+      signerPos2:  c.signer_pos2,
+      signerDate:  c.signer_date,
+      isPublic:    !!c.is_public,
+      entries:     null,
+    }));
+
+    // เรียงลำดับ: ปีงบประมาณ → วันเปิด → ใหม่สุดก่อน
+    state.courses.sort((a, b) => {
+      const yr = (b.year || 0) - (a.year || 0);
+      if (yr !== 0) return yr;
+      if (a.startDate && b.startDate) return b.startDate.localeCompare(a.startDate);
+      if (a.startDate) return -1;
+      if (b.startDate) return 1;
+      return 0;
+    });
+
+    // render เบื้องต้นก่อน (แสดง UI ทันที)
+    renderSidebar(); renderContent();
+
+    // โหลด entries ทุกหลักสูตรพร้อมกัน (parallel)
+    await Promise.all(state.courses.map(async course => {
+      try {
+        const rows = await api('GET', `/entries?course_id=${encodeURIComponent(course.id)}`);
+        course.entries = rows.map(mapEntryRow);
+      } catch {
+        course.entries = [];  // กรณี error ให้เป็น array ว่าง
+      }
+    }));
+
+    // render ใหม่พร้อมข้อมูลครบ
+    renderSidebar(); renderContent();
+
+  } catch (e) {
+    showToast('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// โหลด entries ของหลักสูตรที่เลือก (ใช้เมื่อสร้าง/แก้ไข entry ใหม่)
+async function loadEntriesForCourse(courseId) {
+  if (!courseId) return;
+  const course = findCourse(courseId);
+  if (!course || course.entries !== null) return;  // โหลดแล้ว
+  try {
+    const rows = await api('GET', `/entries?course_id=${encodeURIComponent(courseId)}`);
+    course.entries = rows.map(mapEntryRow);
+    renderScheduleView();
+  } catch (e) {
+    showToast('โหลดรายการสอนไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// แปลง entry object → API body
+function entryToBody(entry, courseId) {
+  const t = entry.teacherIds?.map(id => findTeacher(id)).filter(Boolean) || [];
+  // แยก teacher string เป็น rank + name
+  const splitTeacher = str => {
+    if (!str) return ['', ''];
+    const parts = str.trim().split(/\s+/);
+    return parts.length > 1 ? [parts[0], parts.slice(1).join(' ')] : ['', str];
+  };
+  const teachers = entry.teacher?.split(/\s*\/\s*/).map(splitTeacher) || [];
+  return {
+    id:          entry.id,
+    course_id:   courseId,
+    type:        entry.type || 'lesson',
+    entry_date:  entry.date || null,
+    week:        entry.week || null,
+    start_time:  entry.startTime || null,
+    end_time:    entry.endTime   || null,
+    subject:     entry.subject   || null,
+    teacher1:    t[0]?.name || teachers[0]?.[1] || null,
+    rank1:       t[0]?.rank || teachers[0]?.[0] || null,
+    teacher2:    t[1]?.name || teachers[1]?.[1] || null,
+    rank2:       t[1]?.rank || teachers[1]?.[0] || null,
+    teacher3:    t[2]?.name || teachers[2]?.[1] || null,
+    rank3:       t[2]?.rank || teachers[2]?.[0] || null,
+    method:      entry.method   || null,
+    location:    entry.location || null,
+    evidence:    entry.evidence || null,
+    uniform:     entry.uniform  || null,
+    notes:       entry.notes    || null,
+    cum_hours:   entry.cumHours    || null,
+    total_hours: entry.totalHours  || null,
+    label:       entry.label || null,
+  };
+}
+
+// บันทึก teachers + subjects กลับไป settings
+async function syncMasterData() {
+  // ดึง subjects ล่าสุดจาก server ก่อน เพื่อป้องกันเขียนทับวิชาที่ seed จากภายนอก
+  try {
+    const latest  = await api('GET', '/settings');
+    const srvSubs = JSON.parse(latest.subjects || '[]');
+    const stateIds = new Set(state.subjects.map(s => s.id));
+    const extra    = srvSubs.filter(s => !stateIds.has(s.id));
+    if (extra.length > 0) {
+      state.subjects = [...state.subjects, ...extra];
+    }
+  } catch { /* ถ้า fetch ไม่ได้ ใช้ state เดิม */ }
+
+  await api('PUT', '/settings', {
+    teachers:       JSON.stringify(state.teachers),
+    subjects:       JSON.stringify(state.subjects),
+    courseTypeList: JSON.stringify(state.courseTypeList),
+    locationList:   JSON.stringify(state.locationList),
+    evidenceList:   JSON.stringify(state.evidenceList),
+  });
+}
+
+// ─── auto-check token on load ───────────────────
+(async () => {
+  if (!_token) return;  // ยังไม่ login
+  try {
+    const me = await api('GET', '/auth/me');
+    _currentUser = me.user;
+    document.getElementById('topbarUser').textContent = me.user?.full_name || me.user?.username || '—';
+    document.getElementById('loginScreen').classList.add('hidden');
+    await initApp();
+  } catch { _token = ''; sessionStorage.removeItem('ttm_token'); }
+})();
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+const DEFAULT_COURSE_TYPES = ['นนส.','นนร.','ช.ต้น','ช.ต้นE','อาวุโส','อาวุโสE','ช.ร้อย','ช.พัน','ช่างซ่อมฯทั่วไป','ช่างซ่อม น.'];
+const DEFAULT_LOCATIONS  = ['ห้องเรียน ๑','ห้องเรียน ๒','ห้องเรียน ๓','ห้องคอมพิวเตอร์','ห้องประชุม','สนามฝึก','โรงเรียน ขส.ฯ','นอกสถานที่'];
+const DEFAULT_EVIDENCES  = ['แผนการสอน','ข้อสอบ','รายงาน','ใบความรู้','สไลด์ PowerPoint'];
+
+let state = {
+  schoolName: 'โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก',
+  schoolShort: 'รร.ขส.ขส.ทบ.',
+  courses:         [],
+  teachers:        [],
+  subjects:        [],
+  courseTypeList:  [...DEFAULT_COURSE_TYPES],
+  locationList:    [...DEFAULT_LOCATIONS],
+  evidenceList:    [...DEFAULT_EVIDENCES],
+  currentCourseId: null,
+  currentView:     'schedule',
+  editingCourseId:   null,
+  editingTeacherId:  null,
+  editingSubjectId:  null,
+  editingEntryId:    null,
+  editingHolidayId:  null,
+};
+
+// ═══════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const findCourse  = id => state.courses.find(c => c.id === id);
+const findTeacher = id => state.teachers.find(t => t.id === id);
+const findSubject = id => state.subjects.find(s => s.id === id);
+// ─── Summary view state ──────────────────────────────────────
+let _summaryTab      = 'subject';  // 'subject' | 'teacher'
+let _summarySubject  = '';         // selected subject name
+let _summaryTeacher  = '';         // selected teacher full-text key
+// ─── Chip state (per-modal session) ─────────────────────────
+let _teacherSubjects = [];   // subject IDs เลือกไว้ในครูอาจารย์ modal
+let _entryTeachers   = [];   // teacher IDs เลือกไว้ใน entry modal
+
+// ── Teacher-subject chips ──
+function addTeacherSubject(id) {
+  if (!id || _teacherSubjects.includes(id)) { document.getElementById('t_subject_pick').value=''; return; }
+  _teacherSubjects.push(id);
+  renderTeacherSubjectChips();
+  document.getElementById('t_subject_pick').value = '';
+}
+function removeTeacherSubject(id) {
+  _teacherSubjects = _teacherSubjects.filter(x=>x!==id);
+  renderTeacherSubjectChips();
+}
+function renderTeacherSubjectChips() {
+  const box = document.getElementById('t_subjects_chips');
+  if (!_teacherSubjects.length) { box.innerHTML='<span class="chips-empty">ยังไม่มีวิชา</span>'; return; }
+  box.innerHTML = _teacherSubjects.map(id => {
+    const s = findSubject(id);
+    return s ? `<span class="chip">${esc(s.name)}<button class="chip-del" onclick="removeTeacherSubject('${id}')">×</button></span>` : '';
+  }).join('');
+}
+
+// ── Entry-teacher chips ──
+function addEntryTeacher(id) {
+  if (!id || _entryTeachers.includes(id)) { document.getElementById('e_teacher_pick').value=''; return; }
+  _entryTeachers.push(id);
+  renderEntryTeacherChips();
+  document.getElementById('e_teacher_pick').value = '';
+}
+function removeEntryTeacher(id) {
+  _entryTeachers = _entryTeachers.filter(x=>x!==id);
+  renderEntryTeacherChips();
+}
+function renderEntryTeacherChips() {
+  const box = document.getElementById('e_teachers_chips');
+  if (!_entryTeachers.length) { box.innerHTML='<span class="chips-empty">ยังไม่ได้เลือกผู้สอน</span>'; return; }
+  box.innerHTML = _entryTeachers.map(id => {
+    const t = findTeacher(id);
+    return t ? `<span class="chip">${esc(t.rank)} ${esc(t.name)}<button class="chip-del" onclick="removeEntryTeacher('${id}')">×</button></span>` : '';
+  }).join('');
+}
+
+// ดึงข้อความผู้สอนจาก entry (รองรับทั้ง teacherIds[] และ teacher string เก่า)
+function getTeacherText(e) {
+  if (e.teacherIds && e.teacherIds.length > 0) {
+    return e.teacherIds.map(id => {
+      const t = findTeacher(id);
+      return t ? `${t.rank} ${t.name}` : '';
+    }).filter(Boolean).join(' / ');
+  }
+  if (e.teacherId) {
+    const t = findTeacher(e.teacherId);
+    if (t) return `${t.rank} ${t.name}`;
+  }
+  return e.teacher || '';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── ตัวเลขไทย ──────────────────────────────────
+const THAI_DIGITS = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
+function toThai(n) {
+  return String(n).replace(/[0-9]/g, d => THAI_DIGITS[d]);
+}
+function thaiNum(n) { // แปลงตัวเลข (รวม ทศนิยม)
+  if (n === '' || n === null || n === undefined) return '';
+  return toThai(n);
+}
+
+function formatDate(isoDate) {
+  if (!isoDate) return '';
+  const d = new Date(isoDate + 'T00:00:00');
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${toThai(d.getDate())} ${months[d.getMonth()]} ${toThai(d.getFullYear()+543)}`;
+}
+// แปลง ISO (2025-01-15) → วว/ดด/ปปปป พ.ศ. (15/01/2568) สำหรับ input
+function formatBEDate(isoDate) {
+  if (!isoDate) return '';
+  const parts = isoDate.split('T')[0].split('-');
+  if (parts.length < 3) return '';
+  const [y, m, d] = parts;
+  return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${parseInt(y)+543}`;
+}
+// แปลง วว/ดด/ปปปป พ.ศ. (15/01/2568) → ISO (2025-01-15) สำหรับส่ง API
+function parseBEDate(str) {
+  if (!str) return null;
+  const m = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const d = parseInt(m[1]), mo = parseInt(m[2]), y = parseInt(m[3]);
+  if (!d || !mo || !y || y < 2400 || y > 2700) return null;
+  const ce = y - 543;
+  return `${ce}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function formatTime(t) {
+  if (!t) return '';
+  return toThai(t.replace(':',''));
+}
+function dayName(isoDate) {
+  if (!isoDate) return '';
+  const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  return days[new Date(isoDate + 'T00:00:00').getDay()];
+}
+function formatDatePrint(isoDate) {
+  if (!isoDate) return '';
+  const d = new Date(isoDate + 'T00:00:00');
+  const dayNames = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const yy = toThai(String(d.getFullYear() + 543).slice(-2));
+  return `วัน${dayNames[d.getDay()]}ที่ ${toThai(d.getDate())} ${months[d.getMonth()]} ${yy}`;
+}
+function autoHours(start, end) {
+  if (!start || !end) return '';
+  const [sh,sm] = start.split(':').map(Number);
+  const [eh,em] = end.split(':').map(Number);
+  const diff = (eh*60+em) - (sh*60+sm);
+  return diff > 0 ? (diff/60).toFixed(1).replace('.0','') : '';
+}
+
+// ═══════════════════════════════════════════════
+//  VIEWS
+// ═══════════════════════════════════════════════
+// views ที่ public mode เข้าไม่ได้
+const _adminViews = ['courses','teachers','subjects','settings','adminmgr'];
+
+function showView(view) {
+  // ถ้าอยู่ใน public mode และพยายามเข้า view ของ admin → redirect ไป schedule
+  if (_publicMode && _adminViews.includes(view)) view = 'schedule';
+  state.currentView = view;
+  ['schedule','courses','teachers','subjects','settings','summary','adminmgr'].forEach(v => {
+    document.getElementById('tab-'+v)?.classList.toggle('active', v === view);
+  });
+  renderContent();
+}
+
+function renderContent() {
+  const v = state.currentView;
+  if (v === 'schedule')  renderScheduleView();
+  else if (v === 'courses')  renderCoursesView();
+  else if (v === 'teachers') renderTeachersView();
+  else if (v === 'subjects') renderSubjectsView();
+  else if (v === 'settings') renderSettingsView();
+  else if (v === 'summary')  renderSummaryView();
+  else if (v === 'adminmgr') renderAdminView();
+}
+
+// ─── SCHEDULE VIEW ───
+function renderScheduleView() {
+  const course = findCourse(state.currentCourseId);
+  const ca = document.getElementById('contentArea');
+
+  if (!course) {
+    ca.innerHTML = `<div class="empty-state"><div class="icon">📋</div>
+      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">ยังไม่ได้เลือกหลักสูตร</div>
+      <div>เลือกหลักสูตรจากแผงซ้าย หรือสร้างหลักสูตรใหม่</div></div>`;
+    return;
+  }
+
+  const entries = [...(course.entries||[])].sort((a,b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return (a.startTime||'').localeCompare(b.startTime||'');
+  });
+
+  // ── สแกน conflict ทุกหลักสูตร ──────────────────────────────
+  const conflictIds = buildConflictSet();
+
+  let rows = '';
+  let lastWeek = null;
+  entries.forEach(e => {
+    if (e.week && e.week !== lastWeek) {
+      lastWeek = e.week;
+      const wEntries = entries.filter(x => x.week == e.week);
+      const dates = wEntries.map(x => x.date).filter(Boolean).sort();
+      const dateRange = dates.length ? `${formatDate(dates[0])}${dates.length>1 ? ' – '+formatDate(dates[dates.length-1]) : ''}` : '';
+      rows += `<tr class="week-separator"><td colspan="11">📅 สัปดาห์ที่ ${toThai(e.week)}  ${dateRange ? `(${dateRange})` : ''}</td></tr>`;
+    }
+    // ── วันหยุด ──
+    if (e.type === 'holiday') {
+      rows += `<tr>
+        <td style="white-space:nowrap;font-size:0.8rem;vertical-align:middle">${dayName(e.date)}<br>${formatDate(e.date)}</td>
+        <td colspan="10" style="background:#e53935;color:white;text-align:center;font-weight:700;font-size:1rem;letter-spacing:0.03em">
+          หยุด ${esc(e.label)}
+        </td>
+        <td style="white-space:nowrap" class="hide-public">
+          <button class="btn btn-gray btn-sm btn-icon" title="แก้ไข" onclick="editHoliday('${e.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" title="ลบ" onclick="deleteHoliday('${e.id}')">🗑️</button>
+        </td>
+      </tr>`;
+      return;
+    }
+    // ── ตรวจ conflict ──
+    const hasConflict = conflictIds.has(e.id);
+    const rowStyle    = hasConflict
+      ? 'background:#fff3e0;border-left:4px solid #e53935;'
+      : '';
+    const warnIcon    = hasConflict
+      ? `<span title="ครูสอนซ้ำวัน/เวลากับหลักสูตรอื่น" style="color:#c62828;font-size:0.9rem;cursor:help">⚠️</span> `
+      : '';
+
+    const teacherText = getTeacherText(e);
+    const cumStr = (e.cumHours||e.cumulativeHours) ? `${thaiNum(e.cumHours||e.cumulativeHours)}/${thaiNum(e.totalHours||'')}` : '';
+    rows += `<tr style="${rowStyle}">
+      <td style="white-space:nowrap;font-size:0.8rem">${warnIcon}${dayName(e.date)}<br>${formatDate(e.date)}</td>
+      <td style="white-space:nowrap;font-size:0.8rem">${formatTime(e.startTime)}<br>– ${formatTime(e.endTime)}</td>
+      <td class="left">${esc(e.subject)}</td>
+      <td class="text-center" style="font-size:0.78rem">${cumStr}</td>
+      <td style="font-size:0.8rem;white-space:nowrap">${esc(teacherText)}</td>
+      <td class="text-center"><span class="badge badge-method">${esc(e.method||'')}</span></td>
+      <td style="font-size:0.78rem">${esc(e.location||'')}</td>
+      <td style="font-size:0.78rem">${esc(e.evidence||'')}</td>
+      <td style="font-size:0.78rem">${esc(e.uniform||'')}</td>
+      <td style="font-size:0.78rem">${esc(e.notes||'')}</td>
+      <td style="white-space:nowrap" class="hide-public">
+        <button class="btn btn-gray btn-sm btn-icon" title="แก้ไข" onclick="editEntry('${e.id}')">✏️</button>
+        <button class="btn btn-primary btn-sm btn-icon" title="คัดลอก" onclick="duplicateEntry('${e.id}')">📋</button>
+        <button class="btn btn-danger btn-sm btn-icon" title="ลบ" onclick="deleteEntry('${e.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  });
+
+  if (!entries.length) {
+    rows = `<tr><td colspan="11" class="empty-state" style="padding:30px">
+      <div class="icon">📄</div><div>ยังไม่มีรายการ — กด "+ เพิ่มรายการ"</div></td></tr>`;
+  }
+
+  ca.innerHTML = `
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')}</h2>
+        <div style="font-size:0.78rem;color:#888;margin-top:2px">
+          ${course.startDate?`${formatDate(course.startDate)} – ${formatDate(course.endDate)}`:''}
+          &nbsp;|&nbsp; ${toThai(entries.length)} รายการ
+        </div>
+      </div>
+      <div style="display:flex;gap:8px" class="hide-public">
+        <button class="btn btn-warning btn-sm" onclick="editCourse('${course.id}')">✏️ แก้ไขหลักสูตร</button>
+        <button class="btn btn-danger btn-sm" onclick="openHolidayModal()">🚩 วันหยุด</button>
+        <button class="btn btn-primary" onclick="openEntryModal()">+ เพิ่มรายการ</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>วัน เดือน ปี</th><th>เวลา</th><th>วิชา</th>
+          <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
+          <th>ผู้สอน</th><th>วิธีสอน</th><th>สถานที่</th>
+          <th>หลักฐาน</th><th>การแต่งกาย</th><th>หมายเหตุ</th>
+          <th class="hide-public">จัดการ</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ─── COURSES VIEW ───
+function renderCoursesView() {
+  const ca = document.getElementById('contentArea');
+  const rows = state.courses.map(c => {
+    const pubBtn = c.isPublic
+      ? `<button class="btn btn-success btn-sm"
+           onclick="toggleCoursePublic('${c.id}')" title="คลิกเพื่อปิดการดูสาธารณะ">🌐 สาธารณะ</button>`
+      : `<button class="btn btn-sm" style="background:#f0f0f0;color:#888;border:1px solid #ccc"
+           onclick="toggleCoursePublic('${c.id}')" title="คลิกเพื่อเปิดให้ดูสาธารณะ">🔒 ปิดอยู่</button>`;
+    return `
+    <tr>
+      <td>${esc(c.name)}</td>
+      <td class="text-center">${toThai(c.runNumber||'')}</td>
+      <td class="text-center">${toThai(c.year||'')}</td>
+      <td>${formatDate(c.startDate)}</td>
+      <td>${formatDate(c.endDate)}</td>
+      <td class="text-center">${toThai((c.entries||[]).length)}</td>
+      <td class="text-center">${pubBtn}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-gray btn-sm" onclick="selectCourseAndGo('${c.id}')">📋 ดูตาราง</button>
+        <button class="btn btn-gray btn-sm" onclick="editCourse('${c.id}')">✏️</button>
+        <button class="btn btn-warning btn-sm" onclick="cloneCourse('${c.id}')" title="คัดลอกเป็นหลักสูตรใหม่">📋 คัดลอก</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8" class="empty-state">ยังไม่มีหลักสูตร</td></tr>`;
+
+  ca.innerHTML = `<div class="card">
+    <div class="card-header">
+      <h2>🎓 จัดการหลักสูตร</h2>
+      <button class="btn btn-primary" onclick="openCourseModal()">+ สร้างหลักสูตรใหม่</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table"><thead><tr>
+        <th>ชื่อหลักสูตร</th><th>รุ่นที่</th><th>ปีงบ</th>
+        <th>วันเปิด</th><th>วันปิด</th><th>รายการ</th>
+        <th>การมองเห็น</th><th>จัดการ</th>
+      </tr></thead><tbody>${rows}</tbody></table>
+    </div>
+    <div style="padding:10px 16px;font-size:0.78rem;color:#888;border-top:1px solid #eee">
+      🌐 <strong>สาธารณะ</strong> = ผู้ดูจากหน้าล็อกอินสามารถเลือกดูหลักสูตรนี้ได้
+      &nbsp;&nbsp; 🔒 <strong>ปิดอยู่</strong> = มองเห็นเฉพาะผู้ดูแลระบบ
+    </div>
+  </div>`;
+}
+
+// ─── TEACHERS VIEW ───
+function renderTeachersView() {
+  const ca = document.getElementById('contentArea');
+  const rows = state.teachers.map(t => `
+    <tr>
+      <td>${esc(t.rank)}</td><td>${esc(t.name)}</td>
+      <td>${esc(t.position||'')}</td><td>${esc(t.unit||'')}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-gray btn-sm" onclick="editTeacher('${t.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}')">🗑️</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="5" class="empty-state">ยังไม่มีครูอาจารย์</td></tr>`;
+
+  ca.innerHTML = `<div class="card">
+    <div class="card-header">
+      <h2>👤 จัดการครูอาจารย์</h2>
+      <button class="btn btn-primary" onclick="openTeacherModal()">+ เพิ่มครูอาจารย์</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table"><thead><tr>
+        <th>ยศ</th><th>ชื่อ-นามสกุล</th><th>ตำแหน่ง</th><th>หน่วย</th><th>จัดการ</th>
+      </tr></thead><tbody>${rows}</tbody></table>
+    </div></div>`;
+}
+
+// ─── SUBJECTS VIEW ───
+let _subjectFilterCT = ''; // filter ประเภทหลักสูตรใน subjects view
+let _ctEditMode      = false; // โหมดแก้ไขประเภทหลักสูตร
+
+function renderSubjectsView() {
+  const ca = document.getElementById('contentArea');
+
+  // ── card ประเภทหลักสูตร ─────────────────────────────────────
+  let ctCardBody = '';
+  if (_ctEditMode) {
+    // โหมดแก้ไข: แสดง chips พร้อมปุ่มแก้ไข/ลบ + ช่องเพิ่มใหม่
+    const ctChips = state.courseTypeList.map((ct,i) => `
+      <span style="display:inline-flex;align-items:center;gap:3px;background:#fff3e0;
+        border:1.5px solid #ffb74d;border-radius:12px;padding:3px 10px;font-size:0.82rem">
+        <span>${esc(ct)}</span>
+        <button onclick="editCourseType(${i})" style="background:none;border:none;cursor:pointer;
+          color:#1565c0;font-size:0.8rem;padding:0 2px;line-height:1" title="เปลี่ยนชื่อ">✏️</button>
+        <button onclick="deleteCourseType(${i})" style="background:none;border:none;cursor:pointer;
+          color:#c62828;font-size:1rem;padding:0;line-height:1" title="ลบ">✕</button>
+      </span>`).join('');
+
+    ctCardBody = `
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:34px;
+        padding:8px;background:#fffde7;border:1.5px dashed #ffb74d;border-radius:8px">
+        ${ctChips || '<span style="color:#aaa;font-size:0.82rem">ยังไม่มีรายการ</span>'}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-control" id="newCTInput" placeholder="พิมพ์ชื่อประเภทหลักสูตรใหม่ เช่น นนส."
+          style="max-width:280px" onkeydown="if(event.key==='Enter')addCourseType()">
+        <button class="btn btn-primary btn-sm" onclick="addCourseType()">+ เพิ่ม</button>
+      </div>`;
+  } else {
+    // โหมดปกติ: แสดง chips อ่านอย่างเดียว ไม่มีปุ่มใดๆ
+    const ctChips = state.courseTypeList.map(ct => `
+      <span style="display:inline-flex;align-items:center;background:#e3f2fd;
+        border:1px solid #90caf9;border-radius:12px;padding:3px 12px;font-size:0.82rem">
+        ${esc(ct)}
+      </span>`).join('');
+
+    ctCardBody = `
+      <div style="display:flex;flex-wrap:wrap;gap:6px;min-height:34px">
+        ${ctChips || '<span style="color:#aaa;font-size:0.82rem">ยังไม่มีรายการ</span>'}
+      </div>`;
+  }
+
+  const ctHeaderBtn = _ctEditMode
+    ? `<button class="btn btn-success btn-sm" onclick="saveCourseTypeList()">💾 บันทึก</button>`
+    : `<button class="btn btn-warning btn-sm" onclick="_ctEditMode=true;renderSubjectsView()">✏️ แก้ไข</button>`;
+
+  // ── filter + subject rows ────────────────────────────────────
+  const filtered = _subjectFilterCT
+    ? state.subjects.filter(s => (s.courseTypes||[]).includes(_subjectFilterCT))
+    : state.subjects;
+
+  const filterOpts = ['<option value="">— แสดงทั้งหมด —</option>',
+    ...state.courseTypeList.map(ct =>
+      `<option value="${esc(ct)}" ${_subjectFilterCT===ct?'selected':''}>${esc(ct)}</option>`)
+  ].join('');
+
+  const rows = filtered.map(s => {
+    const tags = (s.courseTypes||[]).map(ct =>
+      `<span style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;
+        padding:1px 8px;font-size:0.75rem;white-space:nowrap">${esc(ct)}</span>`
+    ).join(' ');
+    return `<tr>
+      <td>${esc(s.name)}</td>
+      <td>${esc(s.group||'')}</td>
+      <td class="text-center">${s.totalHours === '-' ? '-' : s.totalHours != null ? thaiNum(s.totalHours) : ''}</td>
+      <td>${s.evidence ? `<span style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;
+        padding:1px 8px;font-size:0.75rem">${esc(s.evidence)}</span>` : '<span style="color:#ccc;font-size:0.75rem">—</span>'}</td>
+      <td style="max-width:200px">${tags||'<span style="color:#bbb;font-size:0.75rem">ทุกหลักสูตร</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-gray btn-sm" onclick="editSubject('${s.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSubject('${s.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty-state">ยังไม่มีรายวิชา</td></tr>`;
+
+  ca.innerHTML = `
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header">
+      <h2>🏷️ ประเภทหลักสูตร</h2>
+      ${ctHeaderBtn}
+    </div>
+    <div class="card-body">
+      ${ctCardBody}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>📚 จัดการรายวิชา</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="form-control" style="font-size:0.82rem;padding:5px 8px;width:auto"
+          onchange="_subjectFilterCT=this.value;renderSubjectsView()">${filterOpts}</select>
+        <button class="btn btn-primary" onclick="openSubjectModal()">+ เพิ่มวิชา</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table"><thead><tr>
+        <th>ชื่อวิชา</th><th>หมวดวิชา</th><th>ชม.รวม</th><th>หลักฐาน</th><th>หลักสูตร</th><th>จัดการ</th>
+      </tr></thead><tbody>${rows}</tbody></table>
+    </div>
+  </div>`;
+}
+
+async function saveCourseTypeList() {
+  try {
+    await syncMasterData();
+    _ctEditMode = false;
+    renderSubjectsView();
+    showToast('💾 บันทึกประเภทหลักสูตรแล้ว');
+  } catch(e) { showToast('ผิดพลาด: '+e.message); }
+}
+function addCourseType() {
+  const inp = document.getElementById('newCTInput');
+  const val = inp.value.trim();
+  if (!val) { inp.focus(); return; }
+  if (state.courseTypeList.includes(val)) { showToast('มีรายการนี้แล้ว'); inp.select(); return; }
+  state.courseTypeList.push(val);
+  inp.value = '';
+  renderSubjectsView();
+  showToast(`เพิ่ม "${val}" แล้ว — กด 💾 บันทึก เพื่อยืนยัน`);
+}
+function editCourseType(i) {
+  const old = state.courseTypeList[i];
+  const nw  = prompt(`เปลี่ยนชื่อ "${old}" เป็น:`, old);
+  if (!nw || nw.trim() === old) return;
+  const val = nw.trim();
+  if (state.courseTypeList.includes(val)) { showToast('มีชื่อนี้แล้ว'); return; }
+  state.courseTypeList[i] = val;
+  state.subjects.forEach(s => {
+    if (s.courseTypes) s.courseTypes = s.courseTypes.map(x => x===old ? val : x);
+  });
+  state.courses.forEach(c => { if (c.courseType===old) c.courseType = val; });
+  renderSubjectsView(); // ยังอยู่ใน edit mode — รอกด บันทึก
+  showToast(`เปลี่ยน "${old}" → "${val}" แล้ว — กด 💾 บันทึก เพื่อยืนยัน`);
+}
+function deleteCourseType(i) {
+  const ct = state.courseTypeList[i];
+  if (!confirm(`ลบ "${ct}" ออกจากรายการ?`)) return;
+  state.courseTypeList.splice(i,1);
+  state.subjects.forEach(s => { if(s.courseTypes) s.courseTypes = s.courseTypes.filter(x=>x!==ct); });
+  renderSubjectsView();
+  showToast(`ลบ "${ct}" แล้ว — กด 💾 บันทึก เพื่อยืนยัน`);
+}
+
+// ─── SUMMARY VIEW ───
+function renderSummaryView() {
+  const ca = document.getElementById('contentArea');
+  const course = findCourse(state.currentCourseId);
+
+  if (!course) {
+    ca.innerHTML = `<div class="card"><div class="card-body">
+      <div class="empty-state"><div class="icon">📊</div>
+      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">กรุณาเลือกหลักสูตร</div>
+      <div>เลือกหลักสูตรจากแผงซ้ายก่อนดูสรุป</div>
+      </div></div></div>`;
+    return;
+  }
+
+  // เฉพาะ lesson entries, เรียงตาม date/time
+  const entries = [...(course.entries||[])]
+    .filter(e => e.type !== 'holiday')
+    .sort((a,b) => {
+      if (a.week !== b.week) return (a.week||0) - (b.week||0);
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return (a.startTime||'').localeCompare(b.startTime||'');
+    });
+
+  // ─ รวบรวม subjects ที่ใช้จริง ─
+  const subjectSet = [];
+  const subjectSeen = new Set();
+  entries.forEach(e => {
+    const name = e.subject || '';
+    if (name && !subjectSeen.has(name)) { subjectSeen.add(name); subjectSet.push(name); }
+  });
+
+  // ─ รวบรวม teachers ที่ใช้จริง ─
+  const teacherSet = [];
+  const teacherSeen = new Set();
+  entries.forEach(e => {
+    const txt = getTeacherText(e);
+    if (!txt) return;
+    // ถ้ามีหลายคน (/ คั่น) ให้แยก
+    txt.split('/').map(s=>s.trim()).filter(Boolean).forEach(name => {
+      if (!teacherSeen.has(name)) { teacherSeen.add(name); teacherSet.push(name); }
+    });
+  });
+
+  // ── ปรับ default selection ──
+  if (!subjectSet.includes(_summarySubject)) _summarySubject = subjectSet[0]||'';
+  if (!teacherSet.includes(_summaryTeacher)) _summaryTeacher = teacherSet[0]||'';
+
+  // ─ Sub-tab buttons ─
+  const subTabHtml = `
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <button class="btn ${_summaryTab==='subject'?'btn-primary':'btn-outline-dark'} btn-sm"
+        onclick="_summaryTab='subject';renderSummaryView()">📚 สรุปรายวิชา</button>
+      <button class="btn ${_summaryTab==='teacher'?'btn-primary':'btn-outline-dark'} btn-sm"
+        onclick="_summaryTab='teacher';renderSummaryView()">👤 สรุปรายบุคคล</button>
+      <span style="font-size:0.78rem;color:#888;margin-left:8px">
+        หลักสูตร: <strong>${esc(course.name)}</strong> รุ่นที่ ${toThai(course.runNumber||'')}
+      </span>
+    </div>`;
+
+  let bodyHtml = '';
+
+  if (_summaryTab === 'subject') {
+    // ── สรุปรายวิชา ──
+    const optionsHtml = subjectSet.map(s =>
+      `<option value="${esc(s)}" ${s===_summarySubject?'selected':''}>${esc(s)}</option>`
+    ).join('');
+
+    // กรองเฉพาะวิชาที่เลือก
+    const filtered = entries.filter(e => (e.subject||'') === _summarySubject);
+
+    const rowsHtml = filtered.length ? filtered.map(e => {
+      const cumStr = e.cumHours||e.cumulativeHours
+        ? `${thaiNum(e.cumHours||e.cumulativeHours)}/${thaiNum(course.totalHours||e.totalHours||'')}`
+        : '';
+      return `<tr>
+        <td class="text-center">${thaiNum(e.week||'')}</td>
+        <td style="white-space:nowrap;font-size:0.82rem">${dayName(e.date)}<br>${formatDate(e.date)}</td>
+        <td style="white-space:nowrap;font-size:0.82rem">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
+        <td class="text-center">${cumStr}</td>
+        <td style="font-size:0.82rem">${esc(getTeacherText(e))}</td>
+        <td class="text-center"><span class="badge badge-method">${esc(e.method||'')}</span></td>
+        <td style="font-size:0.8rem">${esc(e.location||'')}</td>
+        <td style="font-size:0.8rem">${esc(e.uniform||'')}</td>
+        <td style="font-size:0.8rem">${esc(e.notes||'')}</td>
+      </tr>`;
+    }).join('') :
+    `<tr><td colspan="9" class="empty-state" style="padding:24px">ไม่มีข้อมูลสำหรับวิชานี้</td></tr>`;
+
+    const totalHours = filtered.reduce((s,e)=>s+parseFloat(e.hours||0),0);
+
+    bodyHtml = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+        <label style="font-weight:700;white-space:nowrap">เลือกวิชา:</label>
+        <select class="form-control" style="max-width:360px;font-size:0.9rem"
+          onchange="_summarySubject=this.value;renderSummaryView()">
+          ${optionsHtml}
+        </select>
+        <span style="font-size:0.82rem;color:#555">
+          ${filtered.length ? `${toThai(filtered.length)} รายการ &nbsp;|&nbsp; รวม ${thaiNum(totalHours)} ชม.` : ''}
+        </span>
+        ${filtered.length ? `
+          <div style="display:flex;gap:6px;margin-left:auto">
+            <button class="btn btn-outline-dark btn-sm" onclick="printSummary('subject')">🖨️ พิมพ์</button>
+            <button class="btn btn-success btn-sm"  onclick="exportSummaryExcel('subject')">📥 Excel</button>
+          </div>` : ''}
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="summaryTable">
+          <thead><tr>
+            <th>สัปดาห์</th>
+            <th>วัน/วันที่</th>
+            <th>เวลา</th>
+            <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
+            <th>ผู้สอน</th>
+            <th>วิธีสอน</th>
+            <th>สถานที่</th>
+            <th>การแต่งกาย</th>
+            <th>หมายเหตุ</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+
+  } else {
+    // ── สรุปรายบุคคล ──
+    const optionsHtml = teacherSet.map(t =>
+      `<option value="${esc(t)}" ${t===_summaryTeacher?'selected':''}>${esc(t)}</option>`
+    ).join('');
+
+    // กรองเฉพาะที่ครูคนนั้นสอน (ครูอาจอยู่ใน list หลายคน)
+    const filtered = entries.filter(e => {
+      const txt = getTeacherText(e);
+      return txt.split('/').map(s=>s.trim()).includes(_summaryTeacher);
+    });
+
+    const rowsHtml = filtered.length ? filtered.map(e => {
+      const cumStr = e.cumHours||e.cumulativeHours
+        ? `${thaiNum(e.cumHours||e.cumulativeHours)}/${thaiNum(course.totalHours||e.totalHours||'')}`
+        : '';
+      return `<tr>
+        <td class="text-center">${thaiNum(e.week||'')}</td>
+        <td style="white-space:nowrap;font-size:0.82rem">${dayName(e.date)}<br>${formatDate(e.date)}</td>
+        <td style="white-space:nowrap;font-size:0.82rem">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
+        <td class="left" style="font-size:0.82rem">${esc(e.subject||'')}</td>
+        <td class="text-center">${cumStr}</td>
+        <td class="text-center"><span class="badge badge-method">${esc(e.method||'')}</span></td>
+        <td style="font-size:0.8rem">${esc(e.location||'')}</td>
+        <td style="font-size:0.8rem">${esc(e.uniform||'')}</td>
+        <td style="font-size:0.8rem">${esc(e.notes||'')}</td>
+      </tr>`;
+    }).join('') :
+    `<tr><td colspan="9" class="empty-state" style="padding:24px">ไม่มีข้อมูลสำหรับครูท่านนี้</td></tr>`;
+
+    const totalHours = filtered.reduce((s,e)=>s+parseFloat(e.hours||0),0);
+
+    bodyHtml = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+        <label style="font-weight:700;white-space:nowrap">เลือกผู้สอน:</label>
+        <select class="form-control" style="max-width:360px;font-size:0.9rem"
+          onchange="_summaryTeacher=this.value;renderSummaryView()">
+          ${optionsHtml}
+        </select>
+        <span style="font-size:0.82rem;color:#555">
+          ${filtered.length ? `${toThai(filtered.length)} รายการ &nbsp;|&nbsp; รวม ${thaiNum(totalHours)} ชม.` : ''}
+        </span>
+        ${filtered.length ? `
+          <div style="display:flex;gap:6px;margin-left:auto">
+            <button class="btn btn-outline-dark btn-sm" onclick="printSummary('teacher')">🖨️ พิมพ์</button>
+            <button class="btn btn-success btn-sm"  onclick="exportSummaryExcel('teacher')">📥 Excel</button>
+          </div>` : ''}
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="summaryTable">
+          <thead><tr>
+            <th>สัปดาห์</th>
+            <th>วัน/วันที่</th>
+            <th>เวลา</th>
+            <th>วิชา</th>
+            <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
+            <th>วิธีสอน</th>
+            <th>สถานที่</th>
+            <th>การแต่งกาย</th>
+            <th>หมายเหตุ</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+  }
+
+  ca.innerHTML = `<div class="card">
+    <div class="card-header">
+      <h2>📊 สรุปตารางสอน</h2>
+    </div>
+    <div class="card-body">
+      ${subTabHtml}
+      ${bodyHtml}
+    </div>
+  </div>`;
+}
+
+// ─── PRINT SUMMARY ───
+function printSummary(type) {
+  const course = findCourse(state.currentCourseId);
+  if (!course) return;
+
+  const SF = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;`;
+
+  // ── entries ที่กรองแล้ว (เหมือนใน renderSummaryView) ──
+  const entries = [...(course.entries||[])]
+    .filter(e => e.type !== 'holiday')
+    .sort((a,b) => {
+      if ((a.week||0) !== (b.week||0)) return (a.week||0) - (b.week||0);
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return (a.startTime||'').localeCompare(b.startTime||'');
+    });
+
+  // ── แปลงวัน เดือน ปี บรรทัดเดียว ──
+  function dateSingleLine(isoDate) {
+    if (!isoDate) return '';
+    const d = new Date(isoDate + 'T00:00:00');
+    const days   = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    return `วัน${days[d.getDay()]}ที่ ${toThai(d.getDate())} ${months[d.getMonth()]} ${toThai(d.getFullYear()+543)}`;
+  }
+
+  // ── ตัวเลขไทยสำหรับ print ──
+  function pNum(n) { return n !== '' && n !== null && n !== undefined ? toThai(n) : ''; }
+
+  let title = '', tableHtml = '';
+
+  if (type === 'subject') {
+    const filtered = entries.filter(e => (e.subject||'') === _summarySubject);
+    title = `สรุปรายวิชา: ${_summarySubject}`;
+
+    const rows = filtered.map(e => {
+      const cumStr = e.cumHours||e.cumulativeHours
+        ? `${pNum(e.cumHours||e.cumulativeHours)}/${pNum(course.totalHours||e.totalHours||'')}`
+        : '';
+      const timeStr = e.startTime && e.endTime
+        ? `${toThai(e.startTime.replace(':',''))}–${toThai(e.endTime.replace(':',''))}`
+        : '';
+      const teacherHtml = getTeacherText(e).split(/\s*\/\s*/).filter(Boolean).map(t=>esc(t)).join('<br>');
+      return `<tr>
+        <td style="text-align:center">${pNum(e.week||'')}</td>
+        <td style="white-space:nowrap">${esc(dateSingleLine(e.date))}</td>
+        <td style="text-align:center;white-space:nowrap">${esc(timeStr)}</td>
+        <td style="text-align:center">${cumStr}</td>
+        <td>${teacherHtml}</td>
+        <td style="text-align:center">${esc(e.method||'')}</td>
+        <td>${esc(e.location||'')}</td>
+        <td>${esc(e.uniform||'')}</td>
+        <td>${esc(e.notes||'')}</td>
+      </tr>`;
+    }).join('');
+
+    tableHtml = `<table>
+      <thead><tr>
+        <th style="width:4%">สัปดาห์</th>
+        <th style="width:16%">วัน เดือน ปี</th>
+        <th style="width:10%">เวลา</th>
+        <th style="width:8%">ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
+        <th style="width:18%">ผู้สอน</th>
+        <th style="width:6%">วิธีสอน</th>
+        <th style="width:12%">สถานที่</th>
+        <th style="width:12%">การแต่งกาย</th>
+        <th>หมายเหตุ</th>
+      </tr></thead>
+      <tbody>${rows||'<tr><td colspan="9" style="text-align:center">ไม่มีข้อมูล</td></tr>'}</tbody>
+    </table>`;
+
+  } else {
+    const filtered = entries.filter(e => {
+      const txt = getTeacherText(e);
+      return txt.split('/').map(s=>s.trim()).includes(_summaryTeacher);
+    });
+    title = `สรุปรายบุคคล: ${_summaryTeacher}`;
+
+    const rows = filtered.map(e => {
+      const cumStr = e.cumHours||e.cumulativeHours
+        ? `${pNum(e.cumHours||e.cumulativeHours)}/${pNum(course.totalHours||e.totalHours||'')}`
+        : '';
+      const timeStr = e.startTime && e.endTime
+        ? `${toThai(e.startTime.replace(':',''))}–${toThai(e.endTime.replace(':',''))}`
+        : '';
+      return `<tr>
+        <td style="text-align:center">${pNum(e.week||'')}</td>
+        <td style="white-space:nowrap">${esc(dateSingleLine(e.date))}</td>
+        <td style="text-align:center;white-space:nowrap">${esc(timeStr)}</td>
+        <td>${esc(e.subject||'')}</td>
+        <td style="text-align:center">${cumStr}</td>
+        <td style="text-align:center">${esc(e.method||'')}</td>
+        <td>${esc(e.location||'')}</td>
+        <td>${esc(e.uniform||'')}</td>
+        <td>${esc(e.notes||'')}</td>
+      </tr>`;
+    }).join('');
+
+    tableHtml = `<table>
+      <thead><tr>
+        <th style="width:4%">สัปดาห์</th>
+        <th style="width:16%">วัน เดือน ปี</th>
+        <th style="width:10%">เวลา</th>
+        <th>วิชา</th>
+        <th style="width:8%">ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
+        <th style="width:6%">วิธีสอน</th>
+        <th style="width:12%">สถานที่</th>
+        <th style="width:12%">การแต่งกาย</th>
+        <th>หมายเหตุ</th>
+      </tr></thead>
+      <tbody>${rows||'<tr><td colspan="9" style="text-align:center">ไม่มีข้อมูล</td></tr>'}</tbody>
+    </table>`;
+  }
+
+  const courseLine = `${course.name}  รุ่นที่ ${toThai(course.runNumber||'')}  —  ${state.schoolName}`;
+
+  const w = window.open('','_blank','width=1100,height=750');
+  w.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="utf-8">
+    <title>${esc(title)}</title>
+    <style>
+      @font-face { font-family:'TH SarabunIT๙'; src:local('TH SarabunIT๙'); }
+      * { box-sizing:border-box; margin:0; padding:0; }
+      body { font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif; font-size:16pt; margin:12mm 14mm; color:#000; }
+      h2  { text-align:center; font-size:18pt; margin-bottom:2px; color:#000; }
+      .sub { text-align:center; font-size:14pt; margin-bottom:10px; color:#000; }
+      table { border-collapse:collapse; width:100%; font-size:16pt; color:#000; }
+      th, td { border:1px solid #000; padding:3px 5px; vertical-align:middle; color:#000; }
+      th { background:#fff; text-align:center; font-size:15pt; font-weight:bold; }
+      @media print {
+        body { margin:8mm 10mm; }
+        @page { size:A4 landscape; margin:8mm 8mm 0 8mm; }
+      }
+    </style>
+  </head><body>
+    <h2>${esc(title)}</h2>
+    <div class="sub">${esc(courseLine)}</div>
+    ${tableHtml}
+    <script>window.onload=()=>{ window.print(); }<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+// ─── EXPORT EXCEL ───
+function exportSummaryExcel(type) {
+  const course = findCourse(state.currentCourseId);
+  if (!course) return;
+
+  if (typeof XLSX === 'undefined') {
+    showToast('❌ โหลด SheetJS ไม่สำเร็จ — กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+    return;
+  }
+
+  // entries เรียงตาม week / date / time
+  const entries = [...(course.entries||[])]
+    .filter(e => e.type !== 'holiday')
+    .sort((a,b) => {
+      if ((a.week||0) !== (b.week||0)) return (a.week||0) - (b.week||0);
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return (a.startTime||'').localeCompare(b.startTime||'');
+    });
+
+  const courseLine = `${course.name}  รุ่นที่ ${course.runNumber||''}  —  ${state.schoolName}`;
+  let wsData = [];
+  let fileName = '';
+  let sheetName = '';
+  let numCols = 0;
+
+  // ─────────────── รายวิชา ───────────────
+  if (type === 'subject') {
+    const filtered = entries.filter(e => (e.subject||'') === _summarySubject);
+    const totalHours = filtered.reduce((s,e) => s + parseFloat(e.hours||0), 0);
+    const safeName = _summarySubject.replace(/[\\/:*?"<>|]/g,'_').slice(0,40);
+    fileName = `สรุปรายวิชา_${safeName}_รุ่น${course.runNumber||''}.xlsx`;
+    sheetName = 'รายวิชา';
+    numCols = 12;
+
+    wsData.push([`สรุปรายวิชา: ${_summarySubject}`]);
+    wsData.push([courseLine]);
+    wsData.push([]);
+    wsData.push([
+      'สัปดาห์','วัน','วันที่','เวลาเริ่ม','เวลาสิ้นสุด',
+      'ชม.สะสม','ชม.ทั้งหมด',
+      'ผู้สอน','วิธีสอน','สถานที่','การแต่งกาย','หมายเหตุ'
+    ]);
+
+    filtered.forEach(e => {
+      wsData.push([
+        e.week  !== undefined ? Number(e.week) : '',
+        dayName(e.date),
+        formatDate(e.date),
+        e.startTime || '',
+        e.endTime   || '',
+        parseFloat(e.cumHours||e.cumulativeHours||0) || '',
+        parseFloat(course.totalHours||e.totalHours||0) || '',
+        getTeacherText(e),
+        e.method   || '',
+        e.location || '',
+        e.uniform  || '',
+        e.notes    || '',
+      ]);
+    });
+
+    // แถวรวม
+    wsData.push([]);
+    wsData.push(['','','','','รวมชั่วโมง', totalHours,'','','','','','']);
+
+  // ─────────────── รายบุคคล ───────────────
+  } else {
+    const filtered = entries.filter(e => {
+      const txt = getTeacherText(e);
+      return txt.split('/').map(s=>s.trim()).includes(_summaryTeacher);
+    });
+    const totalHours = filtered.reduce((s,e) => s + parseFloat(e.hours||0), 0);
+    const safeName = _summaryTeacher.replace(/[\\/:*?"<>|]/g,'_').slice(0,40);
+    fileName = `สรุปรายบุคคล_${safeName}_รุ่น${course.runNumber||''}.xlsx`;
+    sheetName = 'รายบุคคล';
+    numCols = 12;
+
+    wsData.push([`สรุปรายบุคคล: ${_summaryTeacher}`]);
+    wsData.push([courseLine]);
+    wsData.push([]);
+    wsData.push([
+      'สัปดาห์','วัน','วันที่','เวลาเริ่ม','เวลาสิ้นสุด',
+      'วิชา','ชม.สะสม','ชม.ทั้งหมด',
+      'วิธีสอน','สถานที่','การแต่งกาย','หมายเหตุ'
+    ]);
+
+    filtered.forEach(e => {
+      wsData.push([
+        e.week !== undefined ? Number(e.week) : '',
+        dayName(e.date),
+        formatDate(e.date),
+        e.startTime || '',
+        e.endTime   || '',
+        e.subject   || '',
+        parseFloat(e.cumHours||e.cumulativeHours||0) || '',
+        parseFloat(course.totalHours||e.totalHours||0) || '',
+        e.method   || '',
+        e.location || '',
+        e.uniform  || '',
+        e.notes    || '',
+      ]);
+    });
+
+    wsData.push([]);
+    wsData.push(['','','','','','รวมชั่วโมง', totalHours,'','','','','']);
+  }
+
+  // ── สร้าง worksheet ──
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Merge หัวเรื่อง 2 บรรทัดแรก (A1:M1 และ A2:M2)
+  const lastCol = numCols - 1;
+  ws['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:lastCol} },
+    { s:{r:1,c:0}, e:{r:1,c:lastCol} },
+  ];
+
+  // สไตล์หัวเรื่อง (ถ้า XLSX Pro ไม่มี style แต่ใส่ไว้ก็ไม่เสีย)
+  const titleStyle = { font:{bold:true,sz:16}, alignment:{horizontal:'center'} };
+  const headerStyle = { font:{bold:true}, fill:{fgColor:{rgb:'D9E1F2'}}, alignment:{horizontal:'center'} };
+  ['A1','A2'].forEach(ref => { if(ws[ref]) ws[ref].s = titleStyle; });
+  // หัวตาราง (row index 3 = ดัชนี 0)
+  const headerRowIdx = 3;
+  for (let c = 0; c < numCols; c++) {
+    const ref = XLSX.utils.encode_cell({r: headerRowIdx, c});
+    if (ws[ref]) ws[ref].s = headerStyle;
+  }
+
+  // ปรับความกว้างคอลัมน์อัตโนมัติ
+  const colWidths = wsData.reduce((acc, row) => {
+    row.forEach((cell, i) => {
+      const len = String(cell||'').length + 2;
+      acc[i] = Math.max(acc[i]||6, Math.min(len, 45));
+    });
+    return acc;
+  }, []);
+  ws['!cols'] = colWidths.map(w => ({ wch: w }));
+
+  // ── สร้าง workbook แล้วดาวน์โหลด ──
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, fileName);
+  showToast(`📥 ดาวน์โหลด ${fileName}`);
+}
+
+// ─── SETTINGS VIEW ───
+function renderSettingsView() {
+  const ca = document.getElementById('contentArea');
+
+  function listCard(title, icon, listKey, defaultKey, addFn, delFn) {
+    const items = state[listKey];
+    const chips = items.map((v,i) => `
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #f0f0f0">
+        <span style="flex:1;font-size:0.9rem">${esc(v)}</span>
+        <button class="btn btn-gray btn-sm btn-icon" title="ลบ" onclick="${delFn}(${i})">✕</button>
+      </div>`).join('') || '<div style="color:#aaa;font-size:0.85rem;padding:6px 0">ยังไม่มีรายการ</div>';
+    return `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header" style="padding:10px 16px">
+        <h3 style="font-size:1rem;margin:0">${icon} ${title}</h3>
+      </div>
+      <div class="card-body" style="padding:10px 16px">
+        <div style="max-height:220px;overflow-y:auto;margin-bottom:10px">${chips}</div>
+        <div style="display:flex;gap:6px">
+          <input class="form-control" id="cfg_add_${listKey}" placeholder="พิมพ์รายการใหม่..."
+            style="flex:1" onkeydown="if(event.key==='Enter'){${addFn}()}">
+          <button class="btn btn-primary btn-sm" onclick="${addFn}()">+ เพิ่ม</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  ca.innerHTML = `
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><h2>⚙️ ตั้งค่าระบบ</h2></div>
+    <div class="card-body">
+      <div class="form-row"><div class="form-group">
+        <label>ชื่อสถานศึกษา</label>
+        <input class="form-control" id="cfg_school" value="${esc(state.schoolName)}" placeholder="ชื่อโรงเรียน">
+      </div><div class="form-group" style="max-width:180px">
+        <label>ชื่อย่อ</label>
+        <input class="form-control" id="cfg_short" value="${esc(state.schoolShort)}" placeholder="เช่น รร.ขส.ขส.ทบ.">
+      </div></div>
+      <button class="btn btn-primary" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button>
+    </div>
+  </div>
+  ${listCard('สถานที่','📍','locationList','DEFAULT_LOCATIONS','addLocation','deleteLocation')}
+  ${listCard('หลักฐาน','📄','evidenceList','DEFAULT_EVIDENCES','addEvidence','deleteEvidence')}`;
+}
+
+// ─── สถานที่ CRUD ───
+async function addLocation() {
+  const inp = document.getElementById('cfg_add_locationList');
+  const v = inp.value.trim();
+  if (!v) return;
+  if (state.locationList.includes(v)) { showToast('มีรายการนี้แล้ว'); return; }
+  state.locationList.push(v);
+  inp.value = '';
+  await syncMasterData();
+  renderSettingsView();
+  showToast('✅ เพิ่มสถานที่แล้ว');
+}
+async function deleteLocation(i) {
+  state.locationList.splice(i, 1);
+  await syncMasterData();
+  renderSettingsView();
+  showToast('ลบสถานที่แล้ว');
+}
+
+// ─── หลักฐาน CRUD ───
+async function addEvidence() {
+  const inp = document.getElementById('cfg_add_evidenceList');
+  const v = inp.value.trim();
+  if (!v) return;
+  if (state.evidenceList.includes(v)) { showToast('มีรายการนี้แล้ว'); return; }
+  state.evidenceList.push(v);
+  inp.value = '';
+  await syncMasterData();
+  renderSettingsView();
+  showToast('✅ เพิ่มหลักฐานแล้ว');
+}
+async function deleteEvidence(i) {
+  state.evidenceList.splice(i, 1);
+  await syncMasterData();
+  renderSettingsView();
+  showToast('ลบหลักฐานแล้ว');
+}
+
+// ═══════════════════════════════════════════════
+//  SIDEBAR
+// ═══════════════════════════════════════════════
+function renderSidebar() {
+  const sel = document.getElementById('courseSelector');
+  sel.innerHTML = '<option value="">— เลือกหลักสูตร —</option>' +
+    state.courses.map(c => `<option value="${c.id}" ${c.id===state.currentCourseId?'selected':''}>
+      ${c.name} รุ่น ${c.runNumber||'?'}</option>`).join('');
+
+  const course = findCourse(state.currentCourseId);
+  const sc = document.getElementById('sidebarContent');
+  if (!course) { sc.innerHTML = '<div class="empty-state" style="padding:20px">เลือกหลักสูตรเพื่อดูข้อมูล</div>'; return; }
+
+  const entries = course.entries||[];
+  const weeks = [...new Set(entries.map(e=>e.week).filter(Boolean))].sort((a,b)=>a-b);
+
+  sc.innerHTML = `
+  <div style="padding:10px 0">
+    <div style="font-size:0.72rem;color:#888;font-weight:700;padding:0 14px 6px">ข้อมูลหลักสูตร</div>
+    <div class="sidebar-item">
+      <span>📅</span>
+      <div><div style="font-size:0.8rem;font-weight:600">${course.name}</div>
+        <div class="item-meta">รุ่นที่ ${toThai(course.runNumber||'?')} | ${toThai(entries.length)} รายการ</div>
+      </div>
+    </div>
+    <div class="sidebar-item">
+      <span>🗓️</span>
+      <div>
+        <div class="item-meta">เปิด: ${formatDate(course.startDate)||'-'}</div>
+        <div class="item-meta">ปิด: ${formatDate(course.endDate)||'-'}</div>
+      </div>
+    </div>
+    ${weeks.length?`
+    <div style="font-size:0.72rem;color:#888;font-weight:700;padding:8px 14px 4px;border-top:1px solid #eee;margin-top:6px">สัปดาห์</div>
+    ${weeks.map(w=>{
+      const wEntries = entries.filter(e=>e.week==w);
+      return `<div class="sidebar-item" style="padding:6px 14px">
+        <span>📌</span>
+        <div><div style="font-size:0.82rem">สัปดาห์ที่ ${toThai(w)}</div>
+          <div class="item-meta">${toThai(wEntries.length)} คาบ</div></div>
+      </div>`;
+    }).join('')}`:''}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  COURSE CRUD
+// ═══════════════════════════════════════════════
+function openCourseModal(id) {
+  state.editingCourseId = id||null;
+  const c = id ? findCourse(id) : null;
+  document.getElementById('courseModalTitle').textContent = id ? 'แก้ไขหลักสูตร' : 'สร้างหลักสูตรใหม่';
+  document.getElementById('c_name').value     = c?.name||'';
+  document.getElementById('c_run').value      = c?.runNumber||'';
+  // populate ปีงบประมาณ dropdown (2569–2590)
+  const yrSel = document.getElementById('c_year');
+  const curYr = c?.year || '';
+  yrSel.innerHTML = '<option value="">— เลือก —</option>' +
+    Array.from({length: 22}, (_,i) => 2569+i).map(y =>
+      `<option value="${y}" ${String(curYr)===String(y)?'selected':''}>${y}</option>`
+    ).join('');
+  // populate courseType dropdown
+  const ctSel = document.getElementById('c_courseType');
+  ctSel.innerHTML = '<option value="">— ไม่ระบุ —</option>' +
+    state.courseTypeList.map(ct => `<option value="${esc(ct)}" ${c?.courseType===ct?'selected':''}>${esc(ct)}</option>`).join('');
+  document.getElementById('c_start').value     = formatBEDate(c?.startDate)||'';
+  document.getElementById('c_start_iso').value = c?.startDate||'';
+  document.getElementById('c_end').value       = formatBEDate(c?.endDate)||'';
+  document.getElementById('c_end_iso').value   = c?.endDate||'';
+  document.getElementById('c_signer_label').value = c?.signerLabel||'ตรวจถูกต้อง';
+  document.getElementById('c_signer_rank').value  = c?.signerRank ||(c?.signer ? c.signer.split(' ')[0] : '');
+  document.getElementById('c_signer_name').value  = c?.signerName ||(c?.signer ? c.signer.split(' ').slice(1).join(' ') : '');
+  document.getElementById('c_signer_pos1').value  = c?.signerPos1 ||c?.signerPos||'';
+  document.getElementById('c_signer_pos2').value  = c?.signerPos2 ||'';
+  document.getElementById('c_signer_date').value  = c?.signerDate ||'';
+  openModal('courseModal');
+}
+function editCourse(id) { openCourseModal(id); }
+async function saveCourse() {
+  const name = document.getElementById('c_name').value.trim();
+  const run  = document.getElementById('c_run').value.trim();
+  if (!name || !run) { showToast('กรุณากรอกชื่อหลักสูตรและรุ่นที่'); return; }
+  const yearVal = parseInt(document.getElementById('c_year').value) || null;
+  const body = {
+    name, run_number: run,
+    year:         yearVal,
+    course_type:  document.getElementById('c_courseType').value || null,
+    start_date:   document.getElementById('c_start_iso').value || null,
+    end_date:     document.getElementById('c_end_iso').value   || null,
+    signer_label: document.getElementById('c_signer_label').value.trim()||'ตรวจถูกต้อง',
+    signer_rank:  document.getElementById('c_signer_rank').value.trim(),
+    signer_name:  document.getElementById('c_signer_name').value.trim(),
+    signer_pos1:  document.getElementById('c_signer_pos1').value.trim(),
+    signer_pos2:  document.getElementById('c_signer_pos2').value.trim(),
+    signer_date:  document.getElementById('c_signer_date').value.trim(),
+  };
+  try {
+    if (state.editingCourseId) {
+      await api('PUT', `/courses/${state.editingCourseId}`, body);
+      const c = findCourse(state.editingCourseId);
+      const ct = body.course_type||'';
+      Object.assign(c, { name, runNumber:run, year:yearVal, courseType:ct,
+        startDate:body.start_date||'', endDate:body.end_date||'',
+        signerLabel:body.signer_label, signerRank:body.signer_rank, signerName:body.signer_name,
+        signerPos1:body.signer_pos1, signerPos2:body.signer_pos2, signerDate:body.signer_date });
+    } else {
+      const newId = uid();
+      await api('POST', '/courses', { id: newId, ...body });
+      state.courses.push({ id:newId, name, runNumber:run, year:yearVal, courseType:body.course_type||'',
+        startDate:body.start_date||'', endDate:body.end_date||'',
+        signerLabel:body.signer_label, signerRank:body.signer_rank, signerName:body.signer_name,
+        signerPos1:body.signer_pos1, signerPos2:body.signer_pos2, signerDate:body.signer_date,
+        isPublic:false, entries:[] });
+    }
+    // เรียงลำดับใหม่หลังบันทึก
+    state.courses.sort((a, b) => {
+      const yr = (b.year || 0) - (a.year || 0);
+      if (yr !== 0) return yr;
+      if (a.startDate && b.startDate) return b.startDate.localeCompare(a.startDate);
+      if (a.startDate) return -1;
+      if (b.startDate) return 1;
+      return 0;
+    });
+    closeModal('courseModal'); renderSidebar(); renderContent();
+    showToast(state.editingCourseId ? 'แก้ไขหลักสูตรแล้ว' : 'สร้างหลักสูตรแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+async function toggleCoursePublic(id) {
+  const c = findCourse(id);
+  if (!c) return;
+  try {
+    const res = await api('PATCH', `/courses/${id}/visibility`);
+    c.isPublic = !!res.is_public;
+    renderCoursesView();
+    showToast(c.isPublic
+      ? `✅ "${c.name}" เปิดให้ดูสาธารณะแล้ว`
+      : `🔒 "${c.name}" ปิดการดูสาธารณะแล้ว`);
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+async function deleteCourse(id) {
+  const c = findCourse(id);
+  if (!confirm(`ลบหลักสูตร "${c?.name}" และรายการทั้งหมด?`)) return;
+  try {
+    await api('DELETE', `/courses/${id}`);
+    state.courses = state.courses.filter(x=>x.id!==id);
+    if (state.currentCourseId===id) state.currentCourseId=null;
+    renderSidebar(); renderContent(); showToast('ลบหลักสูตรแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+async function cloneCourse(id) {
+  const src = findCourse(id);
+  if (!src) return;
+  if (!confirm(`คัดลอกหลักสูตร "${src.name}" เป็นหลักสูตรใหม่?`)) return;
+
+  showToast('กำลังคัดลอก…');
+  try {
+    // โหลด entries ของต้นฉบับก่อน (ถ้ายังไม่ได้โหลด)
+    if (src.entries === null) {
+      const rows = await api('GET', `/entries?course_id=${encodeURIComponent(id)}`);
+      src.entries = rows.map(mapEntryRow);
+    }
+
+    // สร้างหลักสูตรใหม่ (id ใหม่ ชื่อ + "คัดลอก")
+    const newId   = uid();
+    const newName = src.name + ' (คัดลอก)';
+    await api('POST', '/courses', {
+      id: newId, name: newName,
+      run_number:   src.runNumber,
+      start_date:   src.startDate || null,
+      end_date:     src.endDate   || null,
+      signer_label: src.signerLabel,
+      signer_rank:  src.signerRank,
+      signer_name:  src.signerName,
+      signer_pos1:  src.signerPos1,
+      signer_pos2:  src.signerPos2,
+      signer_date:  src.signerDate,
+    });
+
+    // คัดลอก entries ทีละรายการ
+    const srcEntries = src.entries || [];
+    for (const e of srcEntries) {
+      const newEntryId = uid();
+      const body = entryToBody({ ...e, id: newEntryId }, newId);
+      body.id = newEntryId;
+      await api('POST', '/entries', body);
+    }
+
+    // เพิ่มใน state local
+    const newCourse = {
+      ...src, id: newId, name: newName,
+      entries: (src.entries||[]).map(e => ({ ...e, id: uid() })),
+    };
+    state.courses.push(newCourse);
+
+    renderSidebar(); renderContent();
+    showToast(`คัดลอกสำเร็จ: "${newName}" (${srcEntries.length} รายการ)`);
+
+    // เปิด modal แก้ไขหลักสูตรใหม่ทันที
+    editCourse(newId);
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+function selectCourse(id) {
+  state.currentCourseId = id||null;
+  renderSidebar(); renderContent();
+  if (id) loadEntriesForCourse(id);
+}
+function selectCourseAndGo(id) {
+  state.currentCourseId = id;
+  showView('schedule');
+  renderSidebar();
+  loadEntriesForCourse(id);
+}
+
+// ═══════════════════════════════════════════════
+//  TEACHER CONFLICT CHECK
+// ═══════════════════════════════════════════════
+/**
+ * ตรวจสอบผู้สอนซ้ำวัน/เวลาในทุกหลักสูตร
+ * คืน array ของ conflict objects (ว่าง = ไม่ชน)
+ */
+// ═══════════════════════════════════════════════
+//  CONFLICT SET — สแกนทุก entry ทุกหลักสูตร
+//  คืน Set ของ entry.id ที่มีครูซ้ำวัน/เวลา
+// ═══════════════════════════════════════════════
+function buildConflictSet() {
+  // รวบรวม entry ทั้งหมด (ข้ามวันหยุด)
+  const all = [];
+  for (const c of state.courses) {
+    for (const en of (c.entries||[])) {
+      if (en.type === 'holiday' || !en.date || !en.startTime || !en.endTime) continue;
+      // resolve teacherIds (เหมือน checkTeacherConflict)
+      let tids = (en.teacherIds && en.teacherIds.length)
+        ? en.teacherIds
+        : state.teachers.filter(t => {
+            const ts = en.teacher||'';
+            return ts.includes(t.name) && (!t.rank || ts.includes(t.rank));
+          }).map(t=>t.id);
+      all.push({ id: en.id, date: en.date, s: en.startTime, e: en.endTime, tids });
+    }
+  }
+  const conflictIds = new Set();
+  for (let i = 0; i < all.length; i++) {
+    for (let j = i+1; j < all.length; j++) {
+      const a = all[i], b = all[j];
+      if (a.date !== b.date) continue;
+      if (a.s >= b.e || b.s >= a.e) continue;   // ไม่ overlap
+      const clash = a.tids.filter(id => b.tids.includes(id));
+      if (clash.length) { conflictIds.add(a.id); conflictIds.add(b.id); }
+    }
+  }
+  return conflictIds;
+}
+
+function checkTeacherConflict(date, startTime, endTime, teacherIds, excludeEntryId) {
+  if (!date || !startTime || !endTime || !teacherIds.length) return [];
+  const conflicts = [];
+  for (const c of state.courses) {
+    for (const en of (c.entries || [])) {
+      if (en.type === 'holiday') continue;
+      if (en.id === excludeEntryId) continue;
+      if (en.date !== date) continue;
+      const s2 = en.startTime, e2 = en.endTime;
+      if (!s2 || !e2) continue;
+      // overlap: ช่วงเวลาทับกัน → s1 < e2 AND s2 < e1
+      if (startTime >= e2 || s2 >= endTime) continue;
+
+      // ── ดึง teacherIds ของ entry ที่โหลดจาก API ──────────────
+      // mapEntryRow เก็บ teacherIds: [] เสมอ (API คืนชื่อ ไม่ใช่ ID)
+      // ให้แปลงชื่อผู้สอนกลับเป็น ID โดยเทียบกับ state.teachers
+      let entryTids = (en.teacherIds && en.teacherIds.length)
+        ? en.teacherIds
+        : state.teachers
+            .filter(t => {
+              const teacherStr = en.teacher || '';
+              // เทียบทั้งชื่อและยศ เพื่อความแม่นยำ
+              return teacherStr.includes(t.name) &&
+                     (!t.rank || teacherStr.includes(t.rank));
+            })
+            .map(t => t.id);
+
+      const clash = teacherIds.filter(id => entryTids.includes(id));
+      for (const tid of clash) {
+        const t = findTeacher(tid);
+        conflicts.push({
+          teacherName: t ? `${t.rank} ${t.name}` : tid,
+          courseName:  (c.name || c.id) + (c.runNumber ? ` รุ่นที่ ${c.runNumber}` : ''),
+          startTime:   s2,
+          endTime:     e2,
+          subject:     en.subject || '',
+        });
+      }
+    }
+  }
+  return conflicts;
+}
+
+// ═══════════════════════════════════════════════
+//  ENTRY CRUD
+// ═══════════════════════════════════════════════
+function openEntryModal(entryId) {
+  const course = findCourse(state.currentCourseId);
+  if (!course) { showToast('เลือกหลักสูตรก่อน'); return; }
+  state.editingEntryId = entryId||null;
+  const e = entryId ? (course.entries||[]).find(x=>x.id===entryId) : null;
+  document.getElementById('entryModalTitle').textContent = entryId ? 'แก้ไขรายการ' : 'เพิ่มรายการตารางสอน';
+
+  // ผู้สอน — init chips
+  const selIds = e?.teacherIds?.length ? e.teacherIds : (e?.teacherId ? [e.teacherId] : []);
+  _entryTeachers = [...selIds];
+  const tPick = document.getElementById('e_teacher_pick');
+  tPick.innerHTML = '<option value="">— เลือกผู้สอนเพื่อเพิ่ม —</option>' +
+    state.teachers.map(t=>`<option value="${t.id}">${esc(t.rank)} ${esc(t.name)}</option>`).join('');
+  renderEntryTeacherChips();
+
+  // Populate subject dropdown — filter ตาม courseType ของหลักสูตรปัจจุบัน
+  const _ct = course.courseType || '';
+  const _visSubjects = _ct
+    ? state.subjects.filter(s => !(s.courseTypes||[]).length || (s.courseTypes||[]).includes(_ct))
+    : state.subjects;
+  const sSel = document.getElementById('e_subjectId');
+  sSel.innerHTML = `<option value="">— พิมพ์เองด้านล่าง${_ct?' ('+_ct+')':''} —</option>` +
+    _visSubjects.map(s=>`<option value="${s.id}" ${e?.subjectId===s.id?'selected':''}>${s.name}${s.totalHours?' ('+s.totalHours+' ชม.)':''}</option>`).join('');
+
+  document.getElementById('e_date').value      = formatBEDate(e?.date)||'';
+  document.getElementById('e_date_iso').value  = e?.date||'';
+  document.getElementById('e_start').value     = e?.startTime||'08:00';
+  document.getElementById('e_end').value       = e?.endTime||'10:00';
+  document.getElementById('e_week').value      = e?.week||'';
+  document.getElementById('e_subject').value   = e?.subject||'';
+  document.getElementById('e_cumHours').value  = e?.cumHours||e?.cumulativeHours||'';
+  document.getElementById('e_totalHours').value= e?.totalHours||'';
+  document.getElementById('e_method').value    = e?.method||'บ.';
+  // อัปเดต datalist จาก state
+  document.getElementById('locations-list').innerHTML =
+    state.locationList.map(v=>`<option value="${esc(v)}"></option>`).join('');
+  document.getElementById('evidence-list').innerHTML  =
+    state.evidenceList.map(v=>`<option value="${esc(v)}"></option>`).join('');
+  document.getElementById('e_location').value  = e?.location||'';
+  document.getElementById('e_evidence').value  = e?.evidence||'';
+  document.getElementById('e_uniform').value   = e?.uniform||'ชุดปกติแขนยาว';
+  document.getElementById('e_notes').value     = e?.notes||'';
+
+  // (hours คำนวณอัตโนมัติจากเวลาเริ่ม-สิ้นสุดเมื่อบันทึก)
+
+  openModal('entryModal');
+}
+function editEntry(id) { openEntryModal(id); }
+function onSubjectSelect(id) {
+  const s = findSubject(id);
+  if (s) {
+    document.getElementById('e_subject').value    = s.name;
+    document.getElementById('e_totalHours').value = s.totalHours||'';
+    // Auto-fill หลักฐาน จากวิชา (เฉพาะเมื่อยังไม่ได้กรอก หรือวิชามีค่าตั้งต้น)
+    if (s.evidence) {
+      document.getElementById('e_evidence').value = s.evidence;
+    }
+    // Auto-populate chips ด้วยครูที่สอนวิชานี้
+    if (id) {
+      _entryTeachers = state.teachers
+        .filter(t => (t.subjects||[]).includes(id))
+        .map(t => t.id);
+      renderEntryTeacherChips();
+    }
+  }
+}
+async function saveEntry() {
+  const course = findCourse(state.currentCourseId);
+  if (!course) return;
+  const date      = document.getElementById('e_date_iso').value;
+  const subject   = document.getElementById('e_subject').value.trim();
+  const startTime = document.getElementById('e_start').value;
+  const endTime   = document.getElementById('e_end').value;
+  const teacherIds = [..._entryTeachers];
+  if (!date || !subject) { showToast('กรุณาเลือกวันที่ และกรอกชื่อวิชา'); return; }
+  if (teacherIds.length === 0) { showToast('กรุณาเลือกผู้สอนอย่างน้อย ๑ คน'); return; }
+
+  // ── ตรวจสอบผู้สอนซ้ำวัน/เวลา ทุกหลักสูตร ──────────────
+  const conflicts = checkTeacherConflict(date, startTime, endTime, teacherIds, state.editingEntryId);
+  if (conflicts.length > 0) {
+    const lines = conflicts.map(c =>
+      `👤 ${c.teacherName}\n` +
+      `   ซ้ำกับหลักสูตร : ${c.courseName}\n` +
+      `   วิชา           : ${c.subject}\n` +
+      `   เวลา           : ${c.startTime} – ${c.endTime}`
+    ).join('\n\n');
+    alert(`⚠️ ไม่สามารถบันทึกได้\nผู้สอนมีตารางสอนซ้ำในวันและเวลาเดียวกัน\n${'─'.repeat(40)}\n${lines}`);
+    return;
+  }
+
+  // สร้างข้อความผู้สอนจาก IDs
+  const teacher = teacherIds.map(id => {
+    const t = findTeacher(id); return t ? `${t.rank} ${t.name}` : '';
+  }).filter(Boolean).join(' / ');
+
+  const entry = {
+    id:        state.editingEntryId || uid(),
+    date,
+    startTime,
+    endTime,
+    hours:     parseFloat(autoHours(startTime, endTime))||'',
+    week:      parseInt(document.getElementById('e_week').value)||'',
+    subjectId: document.getElementById('e_subjectId').value||null,
+    subject,
+    cumHours:  parseFloat(document.getElementById('e_cumHours').value)||'',
+    totalHours:parseFloat(document.getElementById('e_totalHours').value)||'',
+    teacherIds,
+    teacher,
+    method:    document.getElementById('e_method').value,
+    location:  document.getElementById('e_location').value.trim(),
+    evidence:  document.getElementById('e_evidence').value.trim(),
+    uniform:   document.getElementById('e_uniform').value.trim(),
+    notes:     document.getElementById('e_notes').value.trim(),
+  };
+
+  if (!course.entries) course.entries = [];
+  const body = entryToBody(entry, course.id);
+  try {
+    if (state.editingEntryId) {
+      await api('PUT', `/entries/${state.editingEntryId}`, body);
+      const idx = course.entries.findIndex(x=>x.id===state.editingEntryId);
+      if (idx>=0) course.entries[idx] = entry;
+    } else {
+      await api('POST', '/entries', body);
+      course.entries.push(entry);
+    }
+    closeModal('entryModal'); renderSidebar(); renderScheduleView();
+    showToast(state.editingEntryId ? 'แก้ไขรายการแล้ว' : 'เพิ่มรายการแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+async function deleteEntry(id) {
+  const course = findCourse(state.currentCourseId);
+  if (!course || !confirm('ลบรายการนี้?')) return;
+  try {
+    await api('DELETE', `/entries/${id}`);
+    course.entries = course.entries.filter(x=>x.id!==id);
+    renderSidebar(); renderScheduleView(); showToast('ลบรายการแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+async function duplicateEntry(id) {
+  const course = findCourse(state.currentCourseId);
+  if (!course) return;
+  const src = (course.entries||[]).find(x=>x.id===id);
+  if (!src) return;
+  const copy = { ...src, id: uid() };
+  if (!course.entries) course.entries = [];
+  const body = entryToBody(copy, course.id);
+  try {
+    await api('POST', '/entries', body);
+    course.entries.push(copy);
+    renderSidebar(); renderScheduleView();
+    showToast('📋 คัดลอกรายการแล้ว');
+  } catch(e) { showToast('ผิดพลาด: '+e.message); }
+}
+
+// ═══════════════════════════════════════════════
+//  HOLIDAY CRUD
+// ═══════════════════════════════════════════════
+function openHolidayModal(entryId) {
+  const course = findCourse(state.currentCourseId);
+  if (!course) { showToast('เลือกหลักสูตรก่อน'); return; }
+  state.editingHolidayId = entryId||null;
+  const e = entryId ? (course.entries||[]).find(x=>x.id===entryId) : null;
+  document.getElementById('holidayModalTitle').textContent = entryId ? 'แก้ไขวันหยุด' : 'เพิ่มวันหยุด';
+  document.getElementById('h_date').value     = formatBEDate(e?.date)||'';
+  document.getElementById('h_date_iso').value = e?.date||'';
+  document.getElementById('h_week').value     = e?.week||'';
+  document.getElementById('h_label').value = e?.label||'';
+  openModal('holidayModal');
+}
+function editHoliday(id) { openHolidayModal(id); }
+async function saveHoliday() {
+  const course = findCourse(state.currentCourseId);
+  if (!course) return;
+  const date  = document.getElementById('h_date_iso').value;
+  const label = document.getElementById('h_label').value.trim();
+  const week  = parseInt(document.getElementById('h_week').value)||1;
+  if (!date)  { showToast('กรุณาเลือกวันที่'); return; }
+  if (!label) { showToast('กรุณากรอกชื่อวันหยุด'); return; }
+  const obj = { id: state.editingHolidayId||uid(), type:'holiday', date, week, label };
+  if (!course.entries) course.entries = [];
+  const body = { id:obj.id, course_id:course.id, type:'holiday', entry_date:date, week, label };
+  try {
+    if (state.editingHolidayId) {
+      await api('PUT', `/entries/${state.editingHolidayId}`, body);
+      const idx = course.entries.findIndex(x=>x.id===state.editingHolidayId);
+      if (idx>=0) course.entries[idx]=obj; else course.entries.push(obj);
+    } else {
+      await api('POST', '/entries', body);
+      course.entries.push(obj);
+    }
+    closeModal('holidayModal'); renderSidebar(); renderScheduleView();
+    showToast(state.editingHolidayId ? 'แก้ไขวันหยุดแล้ว' : 'เพิ่มวันหยุดแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+async function deleteHoliday(id) {
+  const course = findCourse(state.currentCourseId);
+  if (!course || !confirm('ลบวันหยุดนี้?')) return;
+  try {
+    await api('DELETE', `/entries/${id}`);
+    course.entries = course.entries.filter(x=>x.id!==id);
+    renderSidebar(); renderScheduleView(); showToast('ลบแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+// ═══════════════════════════════════════════════
+//  TEACHER CRUD
+// ═══════════════════════════════════════════════
+function openTeacherModal(id) {
+  state.editingTeacherId = id||null;
+  const t = id ? findTeacher(id) : null;
+  document.getElementById('teacherModalTitle').textContent = id ? 'แก้ไขครูอาจารย์' : 'เพิ่มครูอาจารย์';
+  document.getElementById('t_rank').value    = t?.rank||'';
+  document.getElementById('t_name').value    = t?.name||'';
+  document.getElementById('t_position').value= t?.position||'';
+  document.getElementById('t_unit').value    = t?.unit||'';
+  // วิชาที่สอน — init chips
+  _teacherSubjects = [...(t?.subjects||[])];
+  const tsPick = document.getElementById('t_subject_pick');
+  tsPick.innerHTML = '<option value="">— เลือกวิชาเพื่อเพิ่ม —</option>' +
+    state.subjects.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  renderTeacherSubjectChips();
+  openModal('teacherModal');
+}
+function editTeacher(id) { openTeacherModal(id); }
+async function saveTeacher() {
+  const rank = document.getElementById('t_rank').value.trim();
+  const name = document.getElementById('t_name').value.trim();
+  if (!name) { showToast('กรุณากรอกชื่อ'); return; }
+  const subjects = [..._teacherSubjects];
+  const obj = {
+    id: state.editingTeacherId||uid(), rank, name,
+    position: document.getElementById('t_position').value.trim(),
+    unit:     document.getElementById('t_unit').value.trim(),
+    subjects
+  };
+  if (state.editingTeacherId) {
+    const idx = state.teachers.findIndex(x=>x.id===state.editingTeacherId);
+    if (idx>=0) state.teachers[idx]=obj;
+  } else {
+    state.teachers.push(obj);
+  }
+  try {
+    await syncMasterData();
+    closeModal('teacherModal'); renderContent(); showToast('บันทึกครูอาจารย์แล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+async function deleteTeacher(id) {
+  if (!confirm('ลบครูอาจารย์นี้?')) return;
+  state.teachers = state.teachers.filter(x=>x.id!==id);
+  try {
+    await syncMasterData();
+    renderContent(); showToast('ลบแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+// ═══════════════════════════════════════════════
+//  SUBJECT CRUD
+// ═══════════════════════════════════════════════
+function openSubjectModal(id) {
+  state.editingSubjectId = id||null;
+  const s = id ? findSubject(id) : null;
+  document.getElementById('subjectModalTitle').textContent = id ? 'แก้ไขวิชา' : 'เพิ่มวิชา';
+  document.getElementById('s_name').value     = s?.name||'';
+  document.getElementById('s_hours').value    = (s?.totalHours === '-' || s?.totalHours == null) ? '' : s.totalHours;
+  document.getElementById('s_group').value    = s?.group||'';
+  document.getElementById('s_evidence').value = s?.evidence||'';
+  // inject datalist หลักฐาน จาก state
+  document.getElementById('s_evidence-list').innerHTML =
+    state.evidenceList.map(v=>`<option value="${esc(v)}"></option>`).join('');
+  // render checkboxes ประเภทหลักสูตร
+  const sel = new Set(s?.courseTypes || []);
+  document.getElementById('s_ctypes_box').innerHTML = state.courseTypeList.map(ct => {
+    const chk = sel.has(ct) ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;cursor:pointer;
+              background:${sel.has(ct)?'#e3f2fd':'#f5f5f5'};padding:3px 8px;border-radius:12px;
+              border:1.5px solid ${sel.has(ct)?'#1976d2':'#ddd'};user-select:none">
+              <input type="checkbox" value="${esc(ct)}" ${chk}
+                onchange="this.closest('label').style.background=this.checked?'#e3f2fd':'#f5f5f5';
+                          this.closest('label').style.borderColor=this.checked?'#1976d2':'#ddd'">
+              ${esc(ct)}</label>`;
+  }).join('');
+  openModal('subjectModal');
+}
+function editSubject(id) { openSubjectModal(id); }
+async function saveSubject() {
+  const name = document.getElementById('s_name').value.trim();
+  if (!name) { showToast('กรุณากรอกชื่อวิชา'); return; }
+  const courseTypes = [...document.querySelectorAll('#s_ctypes_box input[type=checkbox]:checked')].map(el=>el.value);
+  const evidence    = document.getElementById('s_evidence').value.trim();
+  const _hVal = document.getElementById('s_hours').value.trim();
+  const totalHours = _hVal === '' ? '-' : (parseInt(_hVal) >= 0 ? parseInt(_hVal) : 0);
+  const obj = { id:state.editingSubjectId||uid(), name, totalHours, group:document.getElementById('s_group').value.trim(), courseTypes, evidence };
+  if (state.editingSubjectId) {
+    const idx = state.subjects.findIndex(x=>x.id===state.editingSubjectId);
+    if (idx>=0) state.subjects[idx]=obj;
+  } else {
+    state.subjects.push(obj);
+  }
+  try {
+    await syncMasterData();
+    closeModal('subjectModal'); renderContent(); showToast('บันทึกวิชาแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+async function deleteSubject(id) {
+  if (!confirm('ลบวิชานี้?')) return;
+  state.subjects = state.subjects.filter(x=>x.id!==id);
+  try {
+    await syncMasterData();
+    renderContent(); showToast('ลบแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════
+async function saveSettings() {
+  state.schoolName  = document.getElementById('cfg_school').value.trim();
+  state.schoolShort = document.getElementById('cfg_short').value.trim();
+  try {
+    await api('PUT', '/settings', {
+      schoolName:  state.schoolName,
+      schoolShort: state.schoolShort,
+    });
+    showToast('บันทึกการตั้งค่าแล้ว');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+// ═══════════════════════════════════════════════
+//  PRINT
+// ═══════════════════════════════════════════════
+function printTimetable() {
+  const course = findCourse(state.currentCourseId);
+  if (!course) { showToast('เลือกหลักสูตรก่อน'); return; }
+
+  const entries = [...(course.entries||[])].sort((a,b)=>{
+    if (a.date!==b.date) return a.date.localeCompare(b.date);
+    return (a.startTime||'').localeCompare(b.startTime||'');
+  });
+
+  const weeks = [...new Set(entries.map(e=>e.week||1))].sort((a,b)=>a-b);
+
+  let pages = '';
+  weeks.forEach(w => {
+    const wEntries = entries.filter(e=>(e.week||1)==w);
+    // dateRange: คิดเฉพาะรายการสอน (ไม่รวมวันหยุด)
+    const teachDates = wEntries.filter(e=>e.type!=='holiday').map(e=>e.date).filter(Boolean).sort();
+    const allDates   = wEntries.map(e=>e.date).filter(Boolean).sort();
+    const drDates    = teachDates.length ? teachDates : allDates;
+    const dateRange = drDates.length
+      ? `${formatDate(drDates[0])}${drDates.length>1 ? ' – '+formatDate(drDates[drDates.length-1]) : ''}`
+      : '';
+
+    // จัดกลุ่มตามวันที่ (รักษาลำดับ)
+    const dateOrder = [...new Set(wEntries.map(e=>e.date))];
+    const byDate = {};
+    wEntries.forEach(e => { (byDate[e.date] = byDate[e.date]||[]).push(e); });
+
+    // ─── สร้าง <tbody> ต่อ 1 วัน (break-inside:avoid = ปัดทั้งวัน) ───
+    const HF = "font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;font-weight:bold;text-align:center;background:white;border:none;padding:1px 0;";
+    let tBodyArr = [];
+    dateOrder.forEach(date => {
+      const dayEntries = byDate[date];
+
+      // ── วันหยุด: แถวสีแดงทั้งแถว ──
+      if (dayEntries.length === 1 && dayEntries[0].type === 'holiday') {
+        const h = dayEntries[0];
+        const RRED = 'background:#e53935;color:black;font-weight:bold;text-align:center;border:1px solid black;';
+        tBodyArr.push(`<tbody style="break-inside:avoid;page-break-inside:avoid">
+          <tr>
+            <td style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:14pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
+            <td colspan="9" style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:14pt;padding:6px 4px">หยุด ${esc(h.label)}</td>
+          </tr>
+        </tbody>`);
+        return;
+      }
+
+      const daySpan = dayEntries.length;
+
+      // rowspan การแต่งกาย
+      const uInfo = dayEntries.map((e, i) => {
+        if (i === 0 || e.uniform !== dayEntries[i-1].uniform) {
+          let span = 1;
+          for (let j = i+1; j < dayEntries.length; j++) {
+            if (dayEntries[j].uniform === e.uniform) span++; else break;
+          }
+          return { show: true, span };
+        }
+        return { show: false, span: 0 };
+      });
+
+      let rows = '';
+      dayEntries.forEach((e, idx) => {
+        const isFirst = idx === 0;
+        const isLast  = idx === dayEntries.length - 1;
+
+        // border-collapse:collapse → กำหนดเส้นบน/ล่างด้วย class
+        // แถวแรกของวัน: มีเส้นบน  | แถวสุดท้ายของวัน: มีเส้นล่าง
+        // แถวกลาง: ไม่มีเส้นบน+ล่าง → เซลทั้งคู่ none → เส้นหายไป
+        const topCls = isFirst ? '' : 'notop';
+        const botCls = isLast  ? '' : 'nobot';
+        const cls    = [topCls, botCls].filter(Boolean).join(' ');
+
+        // ผู้สอน: 1 คน / บรรทัด
+        const teacherHtml = getTeacherText(e)
+          .split(/\s*\/\s*/).map(t=>esc(t.trim())).filter(Boolean).join('<br>');
+        const cumStr = e.cumHours ? `${thaiNum(e.cumHours)}/${thaiNum(e.totalHours||'')}` : '';
+
+        // วันที่: rowspan ทั้งวัน, ชิดซ้าย
+        const dateCell = isFirst
+          ? `<td rowspan="${daySpan}" class="left" style="white-space:nowrap;vertical-align:top">${formatDatePrint(date)}</td>`
+          : '';
+
+        // การแต่งกาย: rowspan, ถ้าหมดก่อนแถวสุดท้ายของวัน → nobot ด้วย
+        const u = uInfo[idx];
+        let uniformCell = '';
+        if (u.show) {
+          const uIsLastInDay = (idx + u.span - 1) === dayEntries.length - 1;
+          const uCls = [topCls, uIsLastInDay ? '' : 'nobot'].filter(Boolean).join(' ');
+          uniformCell = `<td rowspan="${u.span}" class="${uCls||''}" style="vertical-align:top">${esc(e.uniform||'')}</td>`;
+        }
+
+        rows += `<tr>
+          ${dateCell}
+          <td class="${cls}" style="white-space:nowrap;vertical-align:top">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
+          <td class="left ${cls}">${esc(e.subject)}</td>
+          <td class="${cls}">${cumStr}</td>
+          <td class="left ${cls}">${teacherHtml}</td>
+          <td class="f12 ${cls}">${esc(e.method||'')}</td>
+          <td class="f12 ${cls}">${esc(e.location||'')}</td>
+          <td class="${cls}">${esc(e.evidence||'')}</td>
+          ${uniformCell}
+          <td class="left ${cls}">${esc(e.notes||'')}</td>
+        </tr>`;
+      });
+      tBodyArr.push(`<tbody style="break-inside:avoid;page-break-inside:avoid">${rows}</tbody>`);
+    });
+
+    // ─── <thead> ซ้ำทุกหน้าที่ล้น ───
+    const thead = `<thead>
+      <tr><td colspan="10" style="${HF}padding-top:8mm">ตารางสอนประจำสัปดาห์</td></tr>
+      <tr><td colspan="10" style="${HF}">${esc(state.schoolName)}</td></tr>
+      <tr><td colspan="10" style="${HF}padding-bottom:3px">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')} &nbsp; ประจำสัปดาห์ที่ ${toThai(w)} &nbsp; วันที่ ${dateRange}</td></tr>
+      <tr>
+        <th>วัน , เดือน , ปี</th>
+        <th>เวลา</th>
+        <th>วิชา</th>
+        <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
+        <th>ผู้สอน</th>
+        <th>วิธีสอน</th>
+        <th>สถานที่</th>
+        <th>หลักฐาน</th>
+        <th>การแต่งกาย</th>
+        <th>หมายเหตุ</th>
+      </tr>
+    </thead>`;
+
+    // ผู้รับรอง: แสดงเฉพาะสัปดาห์สุดท้าย
+    const isLastWeek = (w === weeks[weeks.length - 1]);
+    const SF = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;line-height:1.3;`;
+    // กึ่งกลางหน้า = margin-left:50%
+    // ยศ   : เยื้อง 10ch จากกึ่งกลาง
+    // ชื่อ : เยื้อง 14ch จากกึ่งกลาง
+    // จุดกึ่งกลางตำแหน่ง = 14ch + (name.length / 2) ch จากกึ่งกลางหน้า
+    // ตำแหน่ง: centered บนจุดนั้น (translateX -50%)
+    // วันที่:  เริ่มจากจุดนั้น (ไม่ translate)
+    // ทุกบรรทัดคำนวณ margin-left จากขอบซ้ายของ outer-div (ซึ่งเริ่มที่ 50%)
+    // ชื่อ   : 14ch
+    // pos1   : 14 + name/2 - pos1/2  ch
+    // pos2   : 14 + name/2 - pos2/2  ch
+    // วันที่ : 14 + name/2           ch
+    const _nL  = (course.signerName||'').length;
+    const _p1L = (course.signerPos1||'').length;
+    const _p2L = (course.signerPos2||'').length;
+    const _nameML = 14;
+    const _pos1ML = (15 + _nL/2 - _p1L/2).toFixed(3);
+    const _pos2ML = (15 + _nL/2 - _p2L/2).toFixed(3);
+    const _dateML = (12 + _nL/2).toFixed(3);
+    // break-before:avoid → ให้ browser พยายามไม่ขึ้นหน้าใหม่ก่อน footer
+    // ถ้ามีพื้นที่พอ footer จะอยู่หน้าเดียวกับวันสุดท้ายโดยไม่ต้องสร้างตารางใหม่
+    const footerHtml = '';
+
+    const colgroup = `<colgroup>
+          <col style="width:14%"><!-- วัน เดือน ปี -->
+          <col style="width:9%"> <!-- เวลา -->
+          <col style="width:17%"><!-- วิชา -->
+          <col style="width:6%"> <!-- หมดไป/ชม.ทั้งหมด -->
+          <col style="width:16%"><!-- ผู้สอน -->
+          <col style="width:5%"> <!-- วิธีสอน -->
+          <col style="width:8%"> <!-- สถานที่ -->
+          <col style="width:7%"> <!-- หลักฐาน -->
+          <col style="width:7%"> <!-- การแต่งกาย -->
+          <col style="width:11%"><!-- หมายเหตุ -->
+        </colgroup>`;
+    const emptyBody = `<tbody><tr><td colspan="10" style="text-align:center;padding:20px">(ไม่มีข้อมูล)</td></tr></tbody>`;
+    const allBodies = tBodyArr.join('') || emptyBody;
+
+    // ตารางเดียวตลอด — footer ใช้ break-before:avoid ติดวันสุดท้ายเองโดยไม่ขึ้น thead ใหม่
+    pages += `
+    <div class="print-page">
+      <table class="print-table">
+        ${colgroup}
+        ${thead}
+        ${allBodies}
+      </table>
+      ${footerHtml}
+    </div>`;
+  });
+
+  if (!weeks.length) {
+    pages = `<div class="print-page">
+      <div class="print-header">
+        <div class="print-title">ตารางสอนประจำสัปดาห์</div>
+        <div class="school-name">${esc(state.schoolName)}</div>
+        <div class="course-line">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')}</div>
+      </div>
+      <p style="text-align:center;padding:20px">(ไม่มีข้อมูล)</p></div>`;
+  }
+
+  document.getElementById('printArea').innerHTML = pages;
+  const _oldTitle = document.title;
+  document.title = '';
+  window.print();
+  setTimeout(() => { document.title = _oldTitle; }, 1500);
+}
+
+// ═══════════════════════════════════════════════
+//  SAVE / LOAD
+// ═══════════════════════════════════════════════
+function saveData() {
+  const json = JSON.stringify(state, null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json], {type:'application/json'}));
+  a.download = `timetable_${Date.now()}.json`;
+  a.click();
+  showToast('บันทึกไฟล์แล้ว');
+}
+function loadData() {
+  const input = Object.assign(document.createElement('input'), {type:'file', accept:'.json'});
+  input.onchange = e => {
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        const d = JSON.parse(ev.target.result);
+        Object.assign(state, d);
+        renderSidebar(); renderContent();
+        showToast('โหลดข้อมูลสำเร็จ');
+      } catch { showToast('ไฟล์ไม่ถูกต้อง'); }
+    };
+    r.readAsText(e.target.files[0]);
+  };
+  input.click();
+}
+
+// ═══════════════════════════════════════════════
+//  SAMPLE DATA — นนส.ทบ. รุ่นที่ ๒๘
+// ═══════════════════════════════════════════════
+async function loadSampleData() {
+  if (state.courses.length && !confirm('มีข้อมูลอยู่แล้ว ต้องการโหลดข้อมูลตัวอย่างทับหรือไม่?')) return;
+
+  // ── ครูอาจารย์ ──────────────────────────────
+  const teachers = [
+    { id:'t01', rank:'พ.อ.หญิง', name:'รัตน์เกล้า สนิทรักษา',  position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t02', rank:'พ.ท.',     name:'ชูชาติ เอมศิริ',         position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t03', rank:'พ.ท.',     name:'มนตรี สร้อยทอง',         position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t04', rank:'พ.ท.',     name:'กฤษดา จันทรวิจิตรกุล',   position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t05', rank:'พ.ท.',     name:'ประกอบ เชิดฉาย',         position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t06', rank:'พ.ท.',     name:'อดิฐา นิยมไทย',          position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t07', rank:'พ.ท.',     name:'พนม โรจนศิริ',            position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t08', rank:'พ.ท.',     name:'ไพโรจน์ เครือแสง',       position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t09', rank:'พ.ท.หญิง', name:'อาภรณ์ วิเชียร',        position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t10', rank:'พ.อ.',     name:'พงศ์นิกูล ไชยบุรินทร์',  position:'ผู้บังคับบัญชา', unit:'รร.ขส.ขส.ทบ.' },
+    { id:'t11', rank:'พ.ต.',     name:'ณัฐพล พัฒนกุล',          position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t12', rank:'พ.ต.',     name:'วธัญญู ขนาบแก้ว',        position:'ครูวิทยากร',   unit:'ศรภ.' },
+    { id:'t13', rank:'ร.อ.',     name:'จตุรัตน์ คลายบุตร',      position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t14', rank:'ร.อ.',     name:'สุรกุล กลีบลำดวน',       position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t15', rank:'ร.อ.',     name:'กฤษดา ภู่สัตยาธนพร',    position:'ครูวิทยากร',   unit:'รร.ธน.' },
+    { id:'t16', rank:'ร.อ.หญิง', name:'วชิราพรรณ ทองขาม',      position:'ครูวิทยากร',   unit:'รร.กร.ฯ' },
+    { id:'t17', rank:'ร.ท.',     name:'นันทวัฒน์ นันทโรจนวัชร์',position:'ครูฝึก',       unit:'พัน.นร.รร.ขส.ขส.ทบ.' },
+    { id:'t18', rank:'ร.ท.',     name:'สุทธิพร สุภาพร',         position:'ครูวิทยากร',   unit:'รร.สพศ.ฯ' },
+    { id:'t19', rank:'ร.ท.',     name:'ธานี อยู่อัตถิ',         position:'ครูวิทยากร',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t20', rank:'ร.ต.',     name:'บรรพจน์ กระต่ายทอง',     position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t21', rank:'ร.ต.',     name:'สุริยะ ปทุมารักษ์',      position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t22', rank:'ร.ต.หญิง', name:'ณัฐพร เรียนพืชน์',      position:'ครูอาจารย์',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t23', rank:'จ.ส.อ.',   name:'วัทธิกร มุณี',           position:'ผู้ช่วยครู',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'t24', rank:'จ.ส.อ.',   name:'อธิวัฒน์ ทองไพรวัลย์',  position:'ผู้ช่วยครู',   unit:'กศ.รร.ขส.ขส.ทบ.' },
+  ];
+
+  // ── วิชา ────────────────────────────────────
+  const subjects = [
+    { id:'s01', name:'วิชาการจัดส่วนราชการและการเคลื่อนย้าย', group:'วิชาเหล่า ขส.',   totalHours:125 },
+    { id:'s02', name:'วิชาการขนส่งด้วยรถยนต์',                group:'วิชาเหล่า ขส.',   totalHours:110 },
+    { id:'s03', name:'วิชาการขนส่งทางรถไฟ',                   group:'วิชาเหล่า ขส.',   totalHours:25  },
+    { id:'s04', name:'วิชาการขนส่งทางน้ำ',                    group:'วิชาเหล่า ขส.',   totalHours:25  },
+    { id:'s05', name:'วิชาการขนส่งทางอากาศ',                  group:'วิชาเหล่า ขส.',   totalHours:25  },
+    { id:'s06', name:'วิชาการใช้แบบพิมพ์ สป. สายขส.',         group:'วิชาเหล่า ขส.',   totalHours:50  },
+    { id:'s07', name:'วิชาการส่งกำลังบำรุง สป. สายขส.',       group:'วิชาเหล่า ขส.',   totalHours:20  },
+    { id:'s08', name:'วิชาคอมพิวเตอร์เบื้องต้น',              group:'วิชาทั่วไป',       totalHours:30  },
+    { id:'s09', name:'วิชาภาษาอังกฤษ',                        group:'วิชาทั่วไป',       totalHours:40  },
+    { id:'s10', name:'วิชาการปลูกฝังอุดมการณ์และความรักชาติ', group:'วิชาทั่วไป',       totalHours:10  },
+    { id:'s11', name:'วิชาการป้องกันและปราบปรามการก่อความไม่สงบ', group:'วิชาทั่วไป',   totalHours:10  },
+    { id:'s12', name:'วิชาการต่อต้านการก่อการร้าย',           group:'วิชาทั่วไป',       totalHours:5   },
+    { id:'s13', name:'วิชาการรักษาความปลอดภัย',               group:'วิชาทั่วไป',       totalHours:10  },
+    { id:'s14', name:'วิชาศาสนา ศีลธรรม และจริยธรรม',         group:'วิชาทั่วไป',       totalHours:5   },
+    { id:'s15', name:'วิชากฎหมายที่ทหารควรรู้',               group:'วิชาทั่วไป',       totalHours:5   },
+    { id:'s16', name:'วิชามวยไทยขั้นพื้นฐาน',                 group:'วิชาทั่วไป',       totalHours:10  },
+    { id:'s17', name:'วิชาทหารภาคปฏิบัติ (ฝึกทบทวน)',        group:'วิชาฝึก',          totalHours:105 },
+    { id:'s18', name:'บรรยายพิเศษ ประกันคุณภาพการศึกษา',      group:'บรรยายพิเศษ',      totalHours:5   },
+    { id:'s19', name:'วิชาครูทหารและการฝึกที่เน้นผลการปฏิบัติ',group:'วิชาทั่วไป',      totalHours:5   },
+    { id:'s20', name:'วิชาระเบียบการเงินส่วนบุคคล',           group:'บรรยายพิเศษ',      totalHours:5   },
+    { id:'s21', name:'วิชาการดูงานและฝึกปฏิบัติงาน',          group:'วิชาฝึก',          totalHours:55  },
+    { id:'s22', name:'พิธีเปิดหลักสูตร',                      group:'กิจกรรม',          totalHours:2   },
+  ];
+
+  // ── ตารางสอน (สัปดาห์ที่ ๑-๕) ──────────────
+  const entries = [
+    // ── สัปดาห์ที่ ๑ (๓-๘ มี.ค. ๒๕๖๘) ────────────────────────────────
+    { id:uid(), week:1, date:'2025-03-03', startTime:'13:00', endTime:'15:00', hours:2,
+      subjectId:'s03', subject:'วิชาการขนส่งทางรถไฟ',
+      cumHours:3, totalHours:25,
+      teacher:'พ.ท. อดิฐา นิยมไทย / พ.ท. พนม โรจนศิริ / ร.อ. จตุรัตน์ คลายบุตร',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:1, date:'2025-03-03', startTime:'15:00', endTime:'17:00', hours:2,
+      subjectId:'s04', subject:'วิชาการขนส่งทางน้ำ',
+      cumHours:2, totalHours:25,
+      teacher:'พ.ท. ประกอบ เชิดฉาย / พ.ต. ณัฐพล พัฒนกุล',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:1, date:'2025-03-04', startTime:'08:00', endTime:'10:00', hours:2,
+      subjectId:'s03', subject:'วิชาการขนส่งทางรถไฟ',
+      cumHours:5, totalHours:25,
+      teacher:'พ.ท. อดิฐา นิยมไทย / จ.ส.อ. วัทธิกร มุณี',
+      method:'บ./สช.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:1, date:'2025-03-04', startTime:'10:00', endTime:'12:00', hours:2,
+      subjectId:'s04', subject:'วิชาการขนส่งทางน้ำ',
+      cumHours:5, totalHours:25,
+      teacher:'พ.ท. ประกอบ เชิดฉาย / พ.ต. ณัฐพล พัฒนกุล',
+      method:'บ./สช.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:1, date:'2025-03-04', startTime:'13:00', endTime:'17:00', hours:4,
+      subjectId:'s05', subject:'วิชาการขนส่งทางอากาศ',
+      cumHours:5, totalHours:25,
+      teacher:'พ.อ.หญิง รัตน์เกล้า สนิทรักษา / พ.ท. มนตรี สร้อยทอง',
+      method:'บ.', location:'ห้องเรียน ๑๐๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:1, date:'2025-03-07', startTime:'10:00', endTime:'12:00', hours:2,
+      subjectId:'s05', subject:'วิชาการขนส่งทางอากาศ',
+      cumHours:8, totalHours:25,
+      teacher:'พ.อ.หญิง รัตน์เกล้า สนิทรักษา / พ.ท. มนตรี สร้อยทอง / จ.ส.อ. วัทธิกร มุณี',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:1, date:'2025-03-07', startTime:'15:00', endTime:'17:00', hours:2,
+      subjectId:'s17', subject:'วิชาทหารภาคปฏิบัติ (ฝึกทบทวน)',
+      cumHours:8, totalHours:105,
+      teacher:'ร.ท. นันทวัฒน์ นันทโรจนวัชร์ / ครูฝึก พัน.นร.รร.ขส.ขส.ทบ.',
+      method:'ฝ./ป.', location:'กองพัน นร.รร.ขส.ขส.ทบ.', evidence:'', uniform:'ชุดฝึก', notes:'' },
+
+    // ── สัปดาห์ที่ ๒ (๑๐-๑๕ มี.ค. ๒๕๖๘) ──────────────────────────────
+    { id:uid(), week:2, date:'2025-03-10', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s08', subject:'วิชาคอมพิวเตอร์เบื้องต้น',
+      cumHours:4, totalHours:30,
+      teacher:'ร.ต. สุริยะ ปทุมารักษ์ / จ.ส.อ. อธิวัฒน์ ทองไพรวัลย์',
+      method:'บ./ป.', location:'ห้องคอมพิวเตอร์', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:2, date:'2025-03-11', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s03', subject:'วิชาการขนส่งทางรถไฟ',
+      cumHours:9, totalHours:25,
+      teacher:'พ.ท. อดิฐา นิยมไทย / พ.ท. พนม โรจนศิริ / ร.อ. จตุรัตน์ คลายบุตร',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:2, date:'2025-03-12', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s13', subject:'วิชาการรักษาความปลอดภัย',
+      cumHours:4, totalHours:10,
+      teacher:'พ.ต. วธัญญู ขนาบแก้ว',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'วิทยากรจาก ศรภ.' },
+    { id:uid(), week:2, date:'2025-03-13', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s13', subject:'วิชาการรักษาความปลอดภัย',
+      cumHours:8, totalHours:10,
+      teacher:'พ.ต. วธัญญู ขนาบแก้ว',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'วิทยากรจาก ศรภ.' },
+    { id:uid(), week:2, date:'2025-03-14', startTime:'10:00', endTime:'12:00', hours:2,
+      subjectId:'s22', subject:'ซักซ้อมพิธีเปิดการศึกษาหลักสูตรฯ',
+      cumHours:1, totalHours:2,
+      teacher:'ผตก.รร.ขส.ขส.ทบ.',
+      method:'ฝ.', location:'ห้องเรียน ๑๒๐', evidence:'', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:2, date:'2025-03-15', startTime:'10:00', endTime:'12:00', hours:2,
+      subjectId:'s22', subject:'พิธีเปิดหลักสูตร นนส.ทบ. ๑ ปี ๖ เดือน เหล่า ขส. รุ่นที่ ๒๘',
+      cumHours:2, totalHours:2,
+      teacher:'ผบ.รร.ขส.ขส.ทบ.',
+      method:'', location:'ห้องเรียน ๑๒๐', evidence:'', uniform:'ชุดปกติแขนยาว', notes:'พิธีเปิดการศึกษา' },
+    { id:uid(), week:2, date:'2025-03-15', startTime:'13:00', endTime:'15:00', hours:2,
+      subjectId:'s03', subject:'วิชาการขนส่งทางรถไฟ',
+      cumHours:12, totalHours:25,
+      teacher:'พ.ท. อดิฐา นิยมไทย / พ.ท. พนม โรจนศิริ / ร.อ. จตุรัตน์ คลายบุตร',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+
+    // ── สัปดาห์ที่ ๓ (๑๗-๒๒ มี.ค. ๒๕๖๘) ──────────────────────────────
+    { id:uid(), week:3, date:'2025-03-17', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s08', subject:'วิชาคอมพิวเตอร์เบื้องต้น',
+      cumHours:8, totalHours:30,
+      teacher:'ร.ต. สุริยะ ปทุมารักษ์ / จ.ส.อ. อธิวัฒน์ ทองไพรวัลย์',
+      method:'บ./ป.', location:'ห้องคอมพิวเตอร์', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:3, date:'2025-03-18', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s10', subject:'วิชาการปลูกฝังอุดมการณ์และความรักชาติ',
+      cumHours:4, totalHours:10,
+      teacher:'ร.อ.หญิง วชิราพรรณ ทองขาม',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'วิทยากรจาก รร.กร.ฯ สอบ ๑๐ คะแนน' },
+    { id:uid(), week:3, date:'2025-03-18', startTime:'13:00', endTime:'15:00', hours:2,
+      subjectId:'s16', subject:'วิชามวยไทยขั้นพื้นฐาน',
+      cumHours:3, totalHours:10,
+      teacher:'พ.ท. ประกอบ เชิดฉาย',
+      method:'ป.', location:'กศ.รร.ขส.ขส.ทบ.', evidence:'', uniform:'ชุดพละ', notes:'' },
+    { id:uid(), week:3, date:'2025-03-19', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s11', subject:'วิชาการป้องกันและปราบปรามการก่อความไม่สงบ',
+      cumHours:4, totalHours:10,
+      teacher:'พ.ท. ไพโรจน์ เครือแสง',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:3, date:'2025-03-20', startTime:'08:00', endTime:'10:00', hours:2,
+      subjectId:'s03', subject:'วิชาการขนส่งทางรถไฟ',
+      cumHours:22, totalHours:25,
+      teacher:'พ.ท. อดิฐา นิยมไทย / พ.ท. พนม โรจนศิริ / ร.อ. จตุรัตน์ คลายบุตร',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'สอบ ๑๐ คะแนน' },
+    { id:uid(), week:3, date:'2025-03-21', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s14', subject:'วิชาศาสนา ศีลธรรม และจริยธรรม',
+      cumHours:5, totalHours:5,
+      teacher:'ร.ท. ธานี อยู่อัตถิ',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'สอบ ๑๐ คะแนน' },
+
+    // ── สัปดาห์ที่ ๔ (๒๔-๒๙ มี.ค. ๒๕๖๘) ──────────────────────────────
+    { id:uid(), week:4, date:'2025-03-24', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s08', subject:'วิชาคอมพิวเตอร์เบื้องต้น',
+      cumHours:12, totalHours:30,
+      teacher:'ร.ต. สุริยะ ปทุมารักษ์ / จ.ส.อ. อธิวัฒน์ ทองไพรวัลย์',
+      method:'บ./ป.', location:'ห้องคอมพิวเตอร์', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:4, date:'2025-03-25', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s06', subject:'วิชาการใช้แบบพิมพ์ สป. สายขส.',
+      cumHours:4, totalHours:50,
+      teacher:'พ.ท. กฤษดา จันทรวิจิตรกุล / ร.ต. บรรพจน์ กระต่ายทอง',
+      method:'บ./ป.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:4, date:'2025-03-26', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s05', subject:'วิชาการขนส่งทางอากาศ',
+      cumHours:15, totalHours:25,
+      teacher:'พ.อ.หญิง รัตน์เกล้า สนิทรักษา / พ.ท. มนตรี สร้อยทอง / จ.ส.อ. วัทธิกร มุณี',
+      method:'บ./สช.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:4, date:'2025-03-27', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s04', subject:'วิชาการขนส่งทางน้ำ',
+      cumHours:20, totalHours:25,
+      teacher:'พ.ท. ประกอบ เชิดฉาย / พ.ต. ณัฐพล พัฒนกุล',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:4, date:'2025-03-29', startTime:'08:00', endTime:'10:00', hours:2,
+      subjectId:'s17', subject:'วิชาทหารภาคปฏิบัติ (ฝึกทบทวน)',
+      cumHours:38, totalHours:105,
+      teacher:'ร.ท. นันทวัฒน์ นันทโรจนวัชร์ / ครูฝึก พัน.นร.รร.ขส.ขส.ทบ.',
+      method:'ฝ./ป.', location:'กองพัน นร.รร.ขส.ขส.ทบ.', evidence:'', uniform:'ชุดฝึก', notes:'' },
+
+    // ── สัปดาห์ที่ ๕ (๓๑ มี.ค. – ๕ เม.ย. ๒๕๖๘) ───────────────────────
+    { id:uid(), week:5, date:'2025-03-31', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s08', subject:'วิชาคอมพิวเตอร์เบื้องต้น',
+      cumHours:16, totalHours:30,
+      teacher:'ร.ต. สุริยะ ปทุมารักษ์ / จ.ส.อ. อธิวัฒน์ ทองไพรวัลย์',
+      method:'บ./ป.', location:'ห้องคอมพิวเตอร์', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:5, date:'2025-04-01', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s06', subject:'วิชาการใช้แบบพิมพ์ สป. สายขส.',
+      cumHours:20, totalHours:50,
+      teacher:'พ.ท. กฤษดา จันทรวิจิตรกุล / ร.ต. บรรพจน์ กระต่ายทอง',
+      method:'บ./ป.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'' },
+    { id:uid(), week:5, date:'2025-04-02', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s12', subject:'วิชาการต่อต้านการก่อการร้าย',
+      cumHours:5, totalHours:5,
+      teacher:'ร.ท. สุทธิพร สุภาพร',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'วิทยากรจาก รร.สพศ.ฯ สอบ ๑๐ คะแนน' },
+    { id:uid(), week:5, date:'2025-04-03', startTime:'08:00', endTime:'10:00', hours:2,
+      subjectId:'s03', subject:'วิชาการขนส่งทางรถไฟ',
+      cumHours:25, totalHours:25,
+      teacher:'พ.ท. อดิฐา นิยมไทย / พ.ท. พนม โรจนศิริ / ร.อ. จตุรัตน์ คลายบุตร',
+      method:'บ./สอ.', location:'ห้องเรียน ๑๒๐', evidence:'ข้อสอบ', uniform:'ชุดปกติแขนยาว', notes:'สอบปลายภาค' },
+    { id:uid(), week:5, date:'2025-04-03', startTime:'10:00', endTime:'12:00', hours:2,
+      subjectId:'s04', subject:'วิชาการขนส่งทางน้ำ',
+      cumHours:25, totalHours:25,
+      teacher:'พ.ท. ประกอบ เชิดฉาย / พ.ต. ณัฐพล พัฒนกุล',
+      method:'บ./สอ.', location:'ห้องเรียน ๑๒๐', evidence:'ข้อสอบ', uniform:'ชุดปกติแขนยาว', notes:'สอบปลายภาค' },
+    { id:uid(), week:5, date:'2025-04-03', startTime:'13:00', endTime:'17:00', hours:4,
+      subjectId:'s05', subject:'วิชาการขนส่งทางอากาศ',
+      cumHours:25, totalHours:25,
+      teacher:'พ.อ.หญิง รัตน์เกล้า สนิทรักษา / พ.ท. มนตรี สร้อยทอง / จ.ส.อ. วัทธิกร มุณี',
+      method:'บ./สอ.', location:'ห้องเรียน ๑๒๐', evidence:'ข้อสอบ', uniform:'ชุดปกติแขนยาว', notes:'สอบปลายภาค' },
+    { id:uid(), week:5, date:'2025-04-04', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s15', subject:'วิชากฎหมายที่ทหารควรรู้',
+      cumHours:5, totalHours:5,
+      teacher:'ร.อ. กฤษดา ภู่สัตยาธนพร',
+      method:'บ.', location:'ห้องเรียน ๑๒๐', evidence:'แผนการสอน', uniform:'ชุดปกติแขนยาว', notes:'วิทยากรจาก รร.ธน.' },
+    { id:uid(), week:5, date:'2025-04-05', startTime:'08:00', endTime:'12:00', hours:4,
+      subjectId:'s17', subject:'วิชาทหารภาคปฏิบัติ (ฝึกทบทวน)',
+      cumHours:50, totalHours:105,
+      teacher:'ร.ท. นันทวัฒน์ นันทโรจนวัชร์ / ครูฝึก พัน.นร.รร.ขส.ขส.ทบ.',
+      method:'ฝ./ป.', location:'กองพัน นร.รร.ขส.ขส.ทบ.', evidence:'', uniform:'ชุดฝึก', notes:'' },
+  ];
+
+  // ── หลักสูตร ─────────────────────────────────
+  const course = {
+    id: 'c28',
+    name: 'หลักสูตร นนส.ทบ. ๑ ปี ๖ เดือน เหล่า ขส.',
+    runNumber: '28',
+    year: '2568',
+    startDate: '2025-03-01',
+    endDate: '2025-10-31',
+    signerLabel: 'ตรวจถูกต้อง',
+    signerRank:  'พ.อ.',
+    signerName:  'กรีเทพ เขมะเพ็ชร',
+    signerPos1:  'หน.ผปมส.รร.ขส.ขส.ทบ. รักษาราชการแทน',
+    signerPos2:  'หน.ผตก.รร.ขส.ขส.ทบ.',
+    signerDate:  'มี.ค. ๖๙',
+    entries
+  };
+
+  // ── อัปเดต local state ──────────────────────────
+  state.schoolName  = 'โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก';
+  state.schoolShort = 'รร.ขส.ขส.ทบ.';
+  state.teachers    = teachers;
+  state.subjects    = subjects;
+
+  // ── บันทึกลง Database ───────────────────────────
+  showToast('กำลังบันทึกข้อมูลตัวอย่างลงฐานข้อมูล…');
+  try {
+    // 1. settings (schoolName + teachers + subjects)
+    await api('PUT', '/settings', {
+      schoolName:  state.schoolName,
+      schoolShort: state.schoolShort,
+      teachers:    JSON.stringify(teachers),
+      subjects:    JSON.stringify(subjects),
+    });
+
+    // 2. หลักสูตร — ถ้ามีแล้วให้ update, ถ้าไม่มีให้ create
+    const existCourses = await api('GET', '/courses');
+    const exists = existCourses.find(c => c.id === 'c28');
+    const courseBody = {
+      id:           'c28',
+      name:         course.name,
+      run_number:   course.runNumber,
+      start_date:   course.startDate,
+      end_date:     course.endDate,
+      signer_label: course.signerLabel,
+      signer_rank:  course.signerRank,
+      signer_name:  course.signerName,
+      signer_pos1:  course.signerPos1,
+      signer_pos2:  course.signerPos2,
+      signer_date:  course.signerDate,
+    };
+    if (exists) {
+      await api('PUT', '/courses/c28', courseBody);
+      // ลบ entries เดิมแล้ว insert ใหม่
+      await api('DELETE', `/entries?course_id=c28`);
+    } else {
+      await api('POST', '/courses', courseBody);
+    }
+
+    // 3. entries — บันทึกทีละรายการ
+    for (const e of entries) {
+      const t = (e.teacher||'').split(/\s*\/\s*/);
+      const splitT = str => {
+        if (!str) return ['',''];
+        const p = str.trim().split(/\s+/);
+        return p.length > 1 ? [p[0], p.slice(1).join(' ')] : ['', str.trim()];
+      };
+      const [r1,n1] = splitT(t[0]); const [r2,n2] = splitT(t[1]); const [r3,n3] = splitT(t[2]);
+      await api('POST', '/entries', {
+        id:          e.id,
+        course_id:   'c28',
+        type:        e.type || 'lesson',
+        entry_date:  e.date || null,
+        week:        e.week || null,
+        start_time:  e.startTime || null,
+        end_time:    e.endTime   || null,
+        subject:     e.subject   || null,
+        teacher1: n1||null, rank1: r1||null,
+        teacher2: n2||null, rank2: r2||null,
+        teacher3: n3||null, rank3: r3||null,
+        method:      e.method   || null,
+        location:    e.location || null,
+        evidence:    e.evidence || null,
+        uniform:     e.uniform  || null,
+        notes:       e.notes    || null,
+        cum_hours:   e.cumHours    || null,
+        total_hours: e.totalHours  || null,
+        label:       e.label || null,
+      });
+    }
+
+    // เพิ่มใน local state
+    const existing = state.courses.find(c => c.id === 'c28');
+    if (existing) {
+      Object.assign(existing, { ...course, entries });
+    } else {
+      state.courses.push({ ...course, entries });
+    }
+    state.currentCourseId = 'c28';
+
+    renderSidebar(); renderContent();
+    showToast(`บันทึกสำเร็จ! หลักสูตร นนส.ทบ. รุ่นที่ ๒๘ (${entries.length} รายการ) ลงฐานข้อมูลแล้ว`);
+
+  } catch (e) {
+    console.error(e);
+    showToast('เกิดข้อผิดพลาด: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  KEYBOARD & INIT
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'));
+});
+document.querySelectorAll('.modal-backdrop').forEach(el =>
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); }));
+
+// ═══════════════════════════════════════════════
+//  ADMIN MANAGEMENT VIEW
+// ═══════════════════════════════════════════════
+let _editingUserId = null;
+
+async function renderAdminView() {
+  const ca = document.getElementById('contentArea');
+  ca.innerHTML = `<div style="text-align:center;padding:40px;color:#888">⏳ กำลังโหลด...</div>`;
+
+  try {
+    const users = await api('GET', '/auth/users');
+
+    const actionLabel = { LOGIN_OK:'เข้าสู่ระบบ', LOGIN_FAIL:'login ผิด', CHANGE_PASSWORD:'เปลี่ยน pw ตัวเอง',
+      CREATE_USER:'สร้าง user', EDIT_USER:'แก้ไข user', DELETE_USER:'ลบ user', RESET_PASSWORD:'รีเซต pw' };
+    const actionColor = { LOGIN_OK:'#2e7d32', LOGIN_FAIL:'#c62828', CHANGE_PASSWORD:'#1565c0',
+      CREATE_USER:'#00695c', EDIT_USER:'#e65100', DELETE_USER:'#b71c1c', RESET_PASSWORD:'#6a1b9a' };
+
+    const isSA = isSuperAdmin();
+    const userRows = users.map(u => `
+      <tr>
+        <td>${esc(u.username)}</td>
+        <td>${esc(u.full_name||'—')}</td>
+        <td><span style="font-size:0.75rem;background:${u.username==='admin1'?'#1a2f4e':'#388e3c'};color:white;padding:2px 8px;border-radius:10px">
+          ${u.username==='admin1'?'Super Admin':'Admin'}</span></td>
+        <td style="font-size:0.78rem;color:#888">${u.created_at?new Date(u.created_at).toLocaleDateString('th-TH'):'—'}</td>
+        <td style="white-space:nowrap">
+          ${isSA && u.username !== 'admin1' ? `
+            <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9"
+              onclick="openEditUser(${u.id},'${esc(u.full_name||'')}')">✏️ แก้ไข</button>
+            <button class="btn btn-sm" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8"
+              onclick="openResetPw(${u.id},'${esc(u.username)}')">🔐 รีเซต pw</button>
+            <button class="btn btn-danger btn-sm"
+              onclick="deleteUser(${u.id},'${esc(u.username)}')">🗑️ ลบ</button>
+          ` : '<span style="color:#bbb;font-size:0.78rem">—</span>'}
+        </td>
+      </tr>`).join('');
+
+    let logsHtml = '';
+    if (isSA) {
+      const logs = await api('GET', '/auth/logs?limit=100');
+      const logRows = logs.map(l => {
+        const color = actionColor[l.action] || '#555';
+        const label = actionLabel[l.action] || l.action;
+        const dt = new Date(l.created_at);
+        const dtStr = `${dt.toLocaleDateString('th-TH')} ${dt.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}`;
+        return `<tr>
+          <td style="font-size:0.78rem;white-space:nowrap">${dtStr}</td>
+          <td><strong>${esc(l.username)}</strong></td>
+          <td><span style="font-size:0.73rem;color:${color};font-weight:700">${label}</span></td>
+          <td style="font-size:0.78rem;color:#555">${esc(l.detail||'')}</td>
+          <td style="font-size:0.73rem;color:#aaa">${esc(l.ip||'')}</td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="5" class="empty-state">ยังไม่มีบันทึก</td></tr>`;
+      logsHtml = `
+        <div class="card" style="margin-top:16px">
+          <div class="card-header"><h2>📋 บันทึกกิจกรรม (100 รายการล่าสุด)</h2></div>
+          <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+            <table class="data-table">
+              <thead><tr>
+                <th>วันเวลา</th><th>ผู้ใช้</th><th>กิจกรรม</th><th>รายละเอียด</th><th>IP</th>
+              </tr></thead>
+              <tbody>${logRows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    ca.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h2>👑 จัดการแอดมิน</h2>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" style="background:rgba(255,255,255,0.15);color:#1a2f4e;border:1px solid #ccd3dc"
+              onclick="openPwModal()">🔑 เปลี่ยนรหัสผ่านของฉัน</button>
+            ${isSA ? `<button class="btn btn-primary" onclick="openUserModal()">+ เพิ่มแอดมิน</button>` : ''}
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr>
+              <th>Username</th><th>ชื่อ-นามสกุล</th><th>สิทธิ์</th><th>สร้างเมื่อ</th><th>จัดการ</th>
+            </tr></thead>
+            <tbody>${userRows}</tbody>
+          </table>
+        </div>
+        ${!isSA ? `<div style="padding:10px 16px;font-size:0.78rem;color:#888;border-top:1px solid #eee">
+          💡 เฉพาะ admin1 เท่านั้นที่สามารถเพิ่ม/แก้ไข/ลบแอดมินได้
+        </div>` : ''}
+      </div>
+      ${logsHtml}`;
+  } catch (e) {
+    ca.innerHTML = `<div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${esc(e.message)}</div>`;
+  }
+}
+
+// ── User Modal ──
+function openUserModal() {
+  _editingUserId = null;
+  document.getElementById('userModalTitle').textContent = 'เพิ่มแอดมิน';
+  document.getElementById('u_username').value   = '';
+  document.getElementById('u_fullname').value   = '';
+  document.getElementById('u_password').value   = '';
+  document.getElementById('u_password2').value  = '';
+  document.getElementById('u_username').disabled = false;
+  document.getElementById('u_pass_row').style.display = '';
+  document.getElementById('u_save_btn').textContent = 'บันทึก';
+  openModal('userModal');
+}
+function openEditUser(id, fullName) {
+  _editingUserId = id;
+  document.getElementById('userModalTitle').textContent = 'แก้ไขข้อมูลแอดมิน';
+  document.getElementById('u_username').value   = '';
+  document.getElementById('u_username').disabled = true;
+  document.getElementById('u_fullname').value   = fullName;
+  document.getElementById('u_pass_row').style.display = 'none';
+  document.getElementById('u_save_btn').textContent = 'บันทึกการแก้ไข';
+  openModal('userModal');
+}
+async function saveUser() {
+  const username  = document.getElementById('u_username').value.trim();
+  const fullName  = document.getElementById('u_fullname').value.trim();
+  const password  = document.getElementById('u_password').value;
+  const password2 = document.getElementById('u_password2').value;
+
+  if (_editingUserId) {
+    // แก้ไขชื่อ
+    try {
+      await api('PUT', `/auth/users/${_editingUserId}`, { full_name: fullName });
+      closeModal('userModal'); renderAdminView(); showToast('แก้ไขข้อมูลสำเร็จ');
+    } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+  } else {
+    // สร้างใหม่
+    if (!username) { showToast('กรุณากรอก username'); return; }
+    if (!password) { showToast('กรุณากรอก password'); return; }
+    if (password !== password2) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
+    try {
+      await api('POST', '/auth/users', { username, password, role:'admin', full_name: fullName||null });
+      closeModal('userModal'); renderAdminView(); showToast(`✅ สร้างแอดมิน "${username}" สำเร็จ`);
+    } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+  }
+}
+async function deleteUser(id, username) {
+  if (!confirm(`ลบแอดมิน "${username}"?\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
+  try {
+    await api('DELETE', `/auth/users/${id}`);
+    renderAdminView(); showToast(`ลบ "${username}" สำเร็จ`);
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+// ── Change own password ──
+function openPwModal() {
+  ['pw_old','pw_new','pw_new2'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = ''; el.type = 'text';
+  });
+  openModal('pwModal');
+}
+async function changeMyPassword() {
+  const oldPassword = document.getElementById('pw_old').value;
+  const newPassword = document.getElementById('pw_new').value;
+  const newPassword2= document.getElementById('pw_new2').value;
+  if (!oldPassword || !newPassword) { showToast('กรุณากรอกข้อมูลให้ครบ'); return; }
+  if (newPassword !== newPassword2) { showToast('รหัสผ่านใหม่ไม่ตรงกัน'); return; }
+  try {
+    await api('PUT', '/auth/password', { oldPassword, newPassword });
+    closeModal('pwModal'); showToast('✅ เปลี่ยนรหัสผ่านสำเร็จ');
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+// ── Reset password (admin1 only) ──
+function openResetPw(id, username) {
+  document.getElementById('resetPwUserId').value = id;
+  document.getElementById('resetPwTarget').textContent = username;
+  ['resetPwNew','resetPwNew2'].forEach(i => {
+    const el = document.getElementById(i);
+    el.value = ''; el.type = 'text';
+  });
+  openModal('resetPwModal');
+}
+async function doResetPassword() {
+  const id         = document.getElementById('resetPwUserId').value;
+  const newPassword= document.getElementById('resetPwNew').value;
+  const newPassword2=document.getElementById('resetPwNew2').value;
+  if (!newPassword) { showToast('กรุณากรอกรหัสผ่านใหม่'); return; }
+  if (newPassword !== newPassword2) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
+  try {
+    const res = await api('PUT', `/auth/users/${id}/reset-password`, { newPassword });
+    closeModal('resetPwModal'); renderAdminView(); showToast('✅ ' + res.message);
+  } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+// ข้อมูลที่แสดงก่อน login: ซ่อนหน้าจอหลัก ไม่ต้อง render ล่วงหน้า
+// initApp() จะถูกเรียกหลัง login สำเร็จ หรือหลัง auto-login ผ่าน token
+
+// ═══════════════════════════════════════════════
+//  BE CALENDAR PICKER
+// ═══════════════════════════════════════════════
+let _beCalTarget   = null;  // { isoId, displayId }
+let _beCalYear     = 0;     // CE year
+let _beCalMonth    = 0;     // 0–11
+let _beCalSelected = null;  // 'YYYY-MM-DD' CE
+
+const _thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                   'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+function openBECal(isoId, displayId, triggerEl) {
+  _beCalTarget = { isoId, displayId };
+  const iso   = document.getElementById(isoId)?.value;
+  const today = new Date();
+  if (iso && iso.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const d = new Date(iso + 'T00:00:00');
+    _beCalYear     = d.getFullYear();
+    _beCalMonth    = d.getMonth();
+    _beCalSelected = iso;
+  } else {
+    _beCalYear     = today.getFullYear();
+    _beCalMonth    = today.getMonth();
+    _beCalSelected = null;
+  }
+  renderBECalendar();
+  const popup = document.getElementById('beCalPopup');
+  popup.style.display = 'block';
+  document.getElementById('beCalOverlay').style.display = 'block';
+  if (triggerEl) {
+    const rect = triggerEl.getBoundingClientRect();
+    let top  = rect.bottom + 6;
+    let left = rect.left;
+    if (left + 284 > window.innerWidth)  left = window.innerWidth - 290;
+    if (left < 4) left = 4;
+    if (top + 310 > window.innerHeight)  top  = rect.top - 314;
+    popup.style.top  = top  + 'px';
+    popup.style.left = left + 'px';
+  }
+}
+
+function closeBECal() {
+  document.getElementById('beCalPopup').style.display    = 'none';
+  document.getElementById('beCalOverlay').style.display  = 'none';
+  _beCalTarget = null;
+}
+
+function beCalNav(dir) {
+  _beCalMonth += dir;
+  if (_beCalMonth > 11) { _beCalMonth = 0;  _beCalYear++; }
+  if (_beCalMonth < 0)  { _beCalMonth = 11; _beCalYear--; }
+  renderBECalendar();
+}
+
+function renderBECalendar() {
+  const beYear  = _beCalYear + 543;
+  document.getElementById('beCalTitle').textContent = `${_thMonths[_beCalMonth]} ${beYear}`;
+  const today   = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const firstDow     = new Date(_beCalYear, _beCalMonth, 1).getDay(); // 0=Sun
+  const daysInMonth  = new Date(_beCalYear, _beCalMonth + 1, 0).getDate();
+
+  let html = '';
+  for (let i = 0; i < firstDow; i++) {
+    html += `<button class="be-cal-day" disabled></button>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${_beCalYear}-${String(_beCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = (firstDow + d - 1) % 7;
+    let cls   = 'be-cal-day';
+    if (dow === 0) cls += ' sun';
+    else if (dow === 6) cls += ' sat';
+    if (iso === todayStr)     cls += ' today';
+    if (iso === _beCalSelected) cls += ' selected';
+    html += `<button class="${cls}" onclick="selectBEDate('${iso}')">${d}</button>`;
+  }
+  document.getElementById('beCalDays').innerHTML = html;
+}
+
+function selectBEDate(iso) {
+  if (!_beCalTarget) return;
+  _beCalSelected = iso;
+  const isoEl  = document.getElementById(_beCalTarget.isoId);
+  if (isoEl) isoEl.value = iso;
+  const dispEl = document.getElementById(_beCalTarget.displayId);
+  if (dispEl) {
+    const [y, m, d] = iso.split('-');
+    dispEl.value = `${d}/${m}/${parseInt(y) + 543}`;
+  }
+  closeBECal();
+}
+</script>
+</body>
+</html>
