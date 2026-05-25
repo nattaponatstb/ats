@@ -1018,7 +1018,7 @@ function mapEntryRow(r) {
     teacher:    [r.rank1, r.teacher1].filter(Boolean).join(' ') +
                 (r.teacher2 ? ' / ' + [r.rank2, r.teacher2].filter(Boolean).join(' ') : '') +
                 (r.teacher3 ? ' / ' + [r.rank3, r.teacher3].filter(Boolean).join(' ') : ''),
-    teacherIds: [],
+    teacherIds: (() => { try { return JSON.parse(r.teacher_ids||'[]'); } catch { return []; } })(),
     method:     r.method,
     location:   r.location,
     evidence:   r.evidence,
@@ -1143,6 +1143,7 @@ function entryToBody(entry, courseId) {
     cum_hours:   entry.cumHours    || null,
     total_hours: entry.totalHours  || null,
     label:       entry.label || null,
+    teacher_ids: JSON.stringify(entry.teacherIds || []),
   };
 }
 
