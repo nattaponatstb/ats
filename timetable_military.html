@@ -185,60 +185,41 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 }
 .sidebar-overlay.open { display: block; }
 
-@media (max-width: 900px) {
-  /* Topbar */
-  .topbar-brand { flex-shrink: 0 !important; padding: 8px 10px !important; border-right: none !important; }
-  .topbar-brand h1 { font-size: 0.85rem !important; }
-  .topbar-brand .sub { display: none !important; }
-  .topbar-nav {
-    overflow-x: auto !important; -webkit-overflow-scrolling: touch;
-    flex: 1 1 0 !important; min-width: 0 !important; scrollbar-width: none;
-  }
-  .topbar-nav::-webkit-scrollbar { display: none; }
-  .tab-btn { padding: 0 10px !important; font-size: 0.75rem !important; flex-shrink: 0 !important; }
-  .topbar-actions { flex-shrink: 0 !important; padding: 0 6px !important; gap: 4px !important; }
-  .topbar-actions .btn { font-size: 0.72rem !important; padding: 5px 7px !important; }
-  #sidebarToggle { display: flex !important; flex-shrink: 0 !important; }
-  .topbar-nav { display: none !important; }
-  .topbar-actions .btn-outline:not([onclick*="print"]) { display: none !important; }
-  .topbar-actions .user-badge { display: none !important; }
-  .topbar-actions .public-badge .btn-exit-public { font-size: 0.72rem !important; }
-  .sidebar-mobile-nav { display: flex !important; }
+/* CSS media query (fallback) + JS class .is-mobile */
+@media (max-width: 900px) { body { --is-mobile: 1; } }
 
-  /* Sidebar drawer */
-  .sidebar {
-    position: fixed !important;
-    left: 0 !important; top: 0 !important; bottom: 0 !important;
-    z-index: 100 !important; width: 280px !important;
-    transform: translateX(-100%) !important;
-    transition: transform 0.25s ease !important;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.25) !important;
-  }
-  .sidebar.open { transform: translateX(0) !important; }
+body.is-mobile .topbar-brand,
+@media (max-width: 900px) { .topbar-brand } { flex-shrink: 0 !important; padding: 8px 10px !important; border-right: none !important; }
 
-  /* Main content full width */
-  .main-content { overflow: hidden !important; }
-  .content-area { padding: 10px !important; overflow-x: auto !important; }
+.is-mobile .topbar-brand h1 { font-size: 0.85rem !important; }
+.is-mobile .topbar-brand .sub { display: none !important; }
+.is-mobile .topbar-nav { display: none !important; }
+.is-mobile #sidebarToggle { display: flex !important; flex-shrink: 0 !important; }
+.is-mobile .topbar-actions { flex-shrink: 0 !important; padding: 0 6px !important; gap: 4px !important; }
+.is-mobile .topbar-actions .btn-outline:not([onclick*="print"]) { display: none !important; }
+.is-mobile .topbar-actions .user-badge { display: none !important; }
+.is-mobile .sidebar-mobile-nav { display: flex !important; }
 
-  /* Form rows stack */
-  .form-row { flex-direction: column !important; gap: 8px !important; }
-
-  /* Modal bottom sheet */
-  .modal-backdrop { padding: 0 !important; align-items: flex-end !important; }
-  .modal {
-    border-radius: 16px 16px 0 0 !important; max-height: 92vh !important;
-    display: flex !important; flex-direction: column !important;
-  }
-  .modal-body { max-height: 62vh !important; flex: 1 !important; }
-
-  /* Tables */
-  .data-table { font-size: 0.75rem !important; }
-  .data-table th, .data-table td { padding: 5px 6px !important; }
-
-  /* Card */
-  .card-header { flex-wrap: wrap !important; gap: 8px !important; }
-  .card-body { padding: 12px 14px !important; }
+.is-mobile .sidebar {
+  position: fixed !important;
+  left: 0 !important; top: 0 !important; bottom: 0 !important;
+  z-index: 100 !important; width: 280px !important;
+  transform: translateX(-100%) !important;
+  transition: transform 0.25s ease !important;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.25) !important;
 }
+.is-mobile .sidebar.open { transform: translateX(0) !important; }
+.is-mobile .content-area { padding: 10px !important; overflow-x: auto !important; }
+.is-mobile .form-row { flex-direction: column !important; gap: 8px !important; }
+.is-mobile .modal-backdrop { padding: 0 !important; align-items: flex-end !important; }
+.is-mobile .modal {
+  border-radius: 16px 16px 0 0 !important; max-height: 92vh !important;
+  display: flex !important; flex-direction: column !important;
+}
+.is-mobile .modal-body { max-height: 62vh !important; flex: 1 !important; }
+.is-mobile .data-table { font-size: 0.75rem !important; }
+.is-mobile .data-table th, .is-mobile .data-table td { padding: 5px 6px !important; }
+.is-mobile .card-header { flex-wrap: wrap !important; gap: 8px !important; }
 
 /* ===== PRINT STYLES ===== */
 @media print {
@@ -2561,6 +2542,15 @@ async function cloneCourse(id) {
     editCourse(newId);
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
+function applyMobileLayout() {
+  const mobile = window.innerWidth <= 900;
+  document.body.classList.toggle('is-mobile', mobile);
+}
+window.addEventListener('resize', applyMobileLayout);
+document.addEventListener('DOMContentLoaded', applyMobileLayout);
+// เรียกทันทีเผื่อ DOMContentLoaded ผ่านไปแล้ว
+applyMobileLayout();
+
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebarOverlay').classList.toggle('open');
