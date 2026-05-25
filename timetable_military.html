@@ -2942,9 +2942,9 @@ function changePassword() {
 }
 
 // ═══════════════════════════════════════════════
-//  PRINT
+//  PRINT  (JS-split: วัด height จริง แบ่งหน้าเอง ใส่หัวทุกหน้า)
 // ═══════════════════════════════════════════════
-function printTimetable() {
+async function printTimetable() {
   const course = findCourse(state.currentCourseId);
   if (!course) { showToast('เลือกหลักสูตรก่อน'); return; }
 
@@ -2952,67 +2952,49 @@ function printTimetable() {
     if (a.date !== b.date) return a.date.localeCompare(b.date);
     return (a.startTime||'').localeCompare(b.startTime||'');
   });
-
   const weeks = [...new Set(entries.map(e => e.week||1))].sort((a,b) => a-b);
 
-  // ── colgroup ─────────────────────────────────────────────────────────────
+  // ── colgroup ──────────────────────────────────────────────────────────────
   const colgroup = `<colgroup>
-    <col style="width:14%"><!-- วัน เดือน ปี -->
-    <col style="width:9%"> <!-- เวลา -->
-    <col style="width:17%"><!-- วิชา -->
-    <col style="width:6%"> <!-- หมดไป/ชม.ทั้งหมด -->
-    <col style="width:16%"><!-- ผู้สอน -->
-    <col style="width:5%"> <!-- วิธีสอน -->
-    <col style="width:8%"> <!-- สถานที่ -->
-    <col style="width:7%"> <!-- หลักฐาน -->
-    <col style="width:7%"> <!-- การแต่งกาย -->
-    <col style="width:11%"><!-- หมายเหตุ -->
+    <col style="width:14%"><col style="width:9%"> <col style="width:17%">
+    <col style="width:6%"> <col style="width:16%"><col style="width:5%">
+    <col style="width:8%"> <col style="width:7%"> <col style="width:7%">
+    <col style="width:11%">
   </colgroup>`;
 
-  // ── <thead>: หัวกระดาษ + แถว column headers ─────────────────────────────
   const HF = "font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;font-weight:bold;text-align:center;background:white;border:none;padding:1px 0;";
-  const thead = (dateRange, w) => `<thead>
-    <tr><td colspan="10" style="${HF}padding-top:8mm">ตารางสอนประจำสัปดาห์</td></tr>
-    <tr><td colspan="10" style="${HF}">${esc(state.schoolName)}</td></tr>
-    <tr><td colspan="10" style="${HF}padding-bottom:3px">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')} &nbsp; ประจำสัปดาห์ที่ ${toThai(w)} &nbsp; วันที่ ${dateRange}</td></tr>
-    <tr>
-      <th>วัน , เดือน , ปี</th>
-      <th>เวลา</th>
-      <th>วิชา</th>
-      <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
-      <th>ผู้สอน</th>
-      <th>วิธีสอน</th>
-      <th>สถานที่</th>
-      <th>หลักฐาน</th>
-      <th>การแต่งกาย</th>
-      <th>หมายเหตุ</th>
-    </tr>
-  </thead>`;
 
-  // ── ส่วนตรวจถูกต้อง ───────────────────────────────────────────────────────
-  // ชื่อเต็ม (ยศ + ชื่อ-สกุล) ใช้คำนวณ offset
+  // ── หัวตาราง 4 แถว (สร้างใหม่ทุกหน้า) ────────────────────────────────────
+  function makeHeaderRows(dateRange, w) {
+    return `
+      <tr><td colspan="10" style="${HF}padding-top:6mm">ตารางสอนประจำสัปดาห์</td></tr>
+      <tr><td colspan="10" style="${HF}">${esc(state.schoolName)}</td></tr>
+      <tr><td colspan="10" style="${HF}padding-bottom:3px">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')} &nbsp; ประจำสัปดาห์ที่ ${toThai(w)} &nbsp; วันที่ ${dateRange}</td></tr>
+      <tr>
+        <th>วัน , เดือน , ปี</th><th>เวลา</th><th>วิชา</th>
+        <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th><th>ผู้สอน</th>
+        <th>วิธีสอน</th><th>สถานที่</th><th>หลักฐาน</th>
+        <th>การแต่งกาย</th><th>หมายเหตุ</th>
+      </tr>`;
+  }
+
+  // ── ตรวจถูกต้อง ───────────────────────────────────────────────────────────
   const _fullName = [course.signerRank||'', course.signerName||''].filter(Boolean).join(' ');
-  const nL  = _fullName.length;
-  const p1L = (course.signerPos1||'').length;
-  const p2L = (course.signerPos2||'').length;
-  // offset จากขอบซ้ายของ container ที่เริ่มที่ 50%
-  const pos1Off = Math.max(0, 15 + nL/2 - p1L/2).toFixed(2);
-  const pos2Off = Math.max(0, 15 + nL/2 - p2L/2).toFixed(2);
-  const dateOff = (14 + nL/2).toFixed(2);
+  const nL = _fullName.length, p1L = (course.signerPos1||'').length, p2L = (course.signerPos2||'').length;
+  const pos1Off = Math.max(0, 15+nL/2-p1L/2).toFixed(2);
+  const pos2Off = Math.max(0, 15+nL/2-p2L/2).toFixed(2);
+  const dateOff = (14+nL/2).toFixed(2);
   const SF = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;line-height:1.9;`;
+  const signerBlock = _fullName ? `<div style="${SF}">
+    <div style="margin-left:50%">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
+    <div style="margin-left:calc(50% + 14ch)">${esc(_fullName)}</div>
+    ${course.signerPos1?`<div style="margin-left:calc(50% + ${pos1Off}ch)">${esc(course.signerPos1)}</div>`:''}
+    ${course.signerPos2?`<div style="margin-left:calc(50% + ${pos2Off}ch)">${esc(course.signerPos2)}</div>`:''}
+    ${course.signerDate?`<div style="margin-left:calc(50% + ${dateOff}ch)">${esc(course.signerDate)}</div>`:''}
+  </div>` : '';
 
-  const signerBlock = _fullName ? `
-    <div style="${SF}">
-      <div style="margin-left:50%">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
-      <div style="margin-left:calc(50% + 14ch)">${esc(_fullName)}</div>
-      ${course.signerPos1 ? `<div style="margin-left:calc(50% + ${pos1Off}ch)">${esc(course.signerPos1)}</div>` : ''}
-      ${course.signerPos2 ? `<div style="margin-left:calc(50% + ${pos2Off}ch)">${esc(course.signerPos2)}</div>` : ''}
-      ${course.signerDate ? `<div style="margin-left:calc(50% + ${dateOff}ch)">${esc(course.signerDate)}</div>` : ''}
-    </div>` : '';
-
-  // ── helper: สร้าง tbody html ของ 1 วัน ──────────────────────────────────
+  // ── helper: row html ของ 1 วัน ────────────────────────────────────────────
   function buildDayBody(dayEntries, date) {
-    // วันหยุด
     if (dayEntries.length === 1 && dayEntries[0].type === 'holiday') {
       const h = dayEntries[0];
       const RRED = 'background:#e53935;color:black;font-weight:bold;border:1px solid black;';
@@ -3022,35 +3004,27 @@ function printTimetable() {
       </tr>`;
     }
     const daySpan = dayEntries.length;
-    const uInfo = dayEntries.map((e, i) => {
-      if (i === 0 || e.uniform !== dayEntries[i-1].uniform) {
-        let span = 1;
-        for (let j = i+1; j < dayEntries.length; j++) {
-          if (dayEntries[j].uniform === e.uniform) span++; else break;
-        }
-        return { show:true, span };
-      }
-      return { show:false, span:0 };
+    const uInfo = dayEntries.map((e,i) => {
+      if (i===0 || e.uniform!==dayEntries[i-1].uniform) {
+        let span=1; for(let j=i+1;j<dayEntries.length;j++){if(dayEntries[j].uniform===e.uniform)span++;else break;}
+        return {show:true,span};
+      } return {show:false,span:0};
     });
-    let rows = '';
-    dayEntries.forEach((e, idx) => {
-      const isFirst = idx === 0;
-      const isLast  = idx === dayEntries.length - 1;
-      const topCls  = isFirst ? '' : 'notop';
-      const botCls  = isLast  ? '' : 'nobot';
-      const cls     = [topCls, botCls].filter(Boolean).join(' ');
-      const teacherHtml = getTeacherText(e).split(/\s*\/\s*/).map(t=>esc(t.trim())).filter(Boolean).join('<br>');
-      const cumStr  = e.cumHours ? `${thaiNum(e.cumHours)}/${thaiNum(e.totalHours||'')}` : '';
-      const dateCell = isFirst ? `<td rowspan="${daySpan}" class="left" style="white-space:nowrap;vertical-align:top">${formatDatePrint(date)}</td>` : '';
-      const u = uInfo[idx];
-      let uniformCell = '';
-      if (u.show) {
-        const uIsLastInDay = (idx + u.span - 1) === dayEntries.length - 1;
-        const uCls = [topCls, uIsLastInDay ? '' : 'nobot'].filter(Boolean).join(' ');
-        uniformCell = `<td rowspan="${u.span}" class="${uCls||''}" style="vertical-align:top">${esc(e.uniform||'')}</td>`;
+    let rows='';
+    dayEntries.forEach((e,idx) => {
+      const isFirst=idx===0, isLast=idx===dayEntries.length-1;
+      const topCls=isFirst?'':'notop', botCls=isLast?'':'nobot';
+      const cls=[topCls,botCls].filter(Boolean).join(' ');
+      const teacherHtml=getTeacherText(e).split(/\s*\/\s*/).map(t=>esc(t.trim())).filter(Boolean).join('<br>');
+      const cumStr=e.cumHours?`${thaiNum(e.cumHours)}/${thaiNum(e.totalHours||'')}` :'';
+      const dateCell=isFirst?`<td rowspan="${daySpan}" class="left" style="white-space:nowrap;vertical-align:top">${formatDatePrint(date)}</td>`:'';
+      const u=uInfo[idx]; let uniformCell='';
+      if(u.show){
+        const uIsLastInDay=(idx+u.span-1)===dayEntries.length-1;
+        const uCls=[topCls,uIsLastInDay?'':'nobot'].filter(Boolean).join(' ');
+        uniformCell=`<td rowspan="${u.span}" class="${uCls||''}" style="vertical-align:top">${esc(e.uniform||'')}</td>`;
       }
-      rows += `<tr>
-        ${dateCell}
+      rows+=`<tr>${dateCell}
         <td class="${cls}" style="white-space:nowrap;vertical-align:top">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
         <td class="left ${cls}">${esc(e.subject)}</td>
         <td class="${cls}">${cumStr}</td>
@@ -3065,70 +3039,96 @@ function printTimetable() {
     return rows;
   }
 
-  // ── สร้างแต่ละสัปดาห์ ────────────────────────────────────────────────────
+  // ── ความสูงหน้า A4 landscape: 210mm − 8mm − 10mm = 192mm (CSS px ที่ 96dpi) ──
+  const PAGE_H_PX = Math.round(192 * 96 / 25.4);
+
   let pages = '';
-  weeks.forEach((w, wIdx) => {
-    const isLastWeek = (wIdx === weeks.length - 1);
-    const wEntries   = entries.filter(e => (e.week||1) === w);
-    const teachDates = wEntries.filter(e=>e.type!=='holiday').map(e=>e.date).filter(Boolean).sort();
-    const allDates   = wEntries.map(e=>e.date).filter(Boolean).sort();
-    const drDates    = teachDates.length ? teachDates : allDates;
-    const dateRange  = drDates.length
-      ? `${formatDate(drDates[0])}${drDates.length>1 ? ' – '+formatDate(drDates[drDates.length-1]) : ''}`
-      : '';
-    const dateOrder  = [...new Set(wEntries.map(e => e.date))];
-    const byDate     = {};
-    wEntries.forEach(e => { (byDate[e.date] = byDate[e.date]||[]).push(e); });
-
-    const emptyBody = `<tbody><tr><td colspan="10" style="text-align:center;padding:20px">(ไม่มีข้อมูล)</td></tr></tbody>`;
-
-    if (!dateOrder.length) {
-      pages += `<div class="print-page"><table class="print-table">${colgroup}${thead(dateRange,w)}${emptyBody}</table></div>`;
-      return;
-    }
-
-    let bodiesHtml = '';
-
-    if (!isLastWeek || !signerBlock) {
-      // ── สัปดาห์ปกติ: แต่ละวันเป็น tbody ─────────────────────────────────
-      dateOrder.forEach(date => {
-        bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">${buildDayBody(byDate[date], date)}</tbody>`;
-      });
-    } else {
-      // ── สัปดาห์สุดท้าย: วันสุดท้าย + ตรวจถูกต้อง ────────────────────────
-      const lastDate   = dateOrder[dateOrder.length - 1];
-      const otherDates = dateOrder.slice(0, -1);
-
-      // วันอื่นๆ (ยกเว้นวันสุดท้าย)
-      otherDates.forEach(date => {
-        bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">${buildDayBody(byDate[date], date)}</tbody>`;
-      });
-
-      // วันสุดท้าย + ตรวจถูกต้อง อยู่ใน tbody เดียวกัน
-      // break-inside:avoid → browser เลื่อนทั้งก้อนขึ้นหน้าใหม่ถ้าพื้นที่ไม่พอ
-      // <thead> (3 แถวหัว + แถวคอลัมน์) ซ้ำอัตโนมัติทุกหน้า รวมถึงหน้าที่กลุ่มนี้ขึ้นไปด้วย
-      bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">
-        ${buildDayBody(byDate[lastDate], lastDate)}
-        <tr><td colspan="10" style="border:none;height:1.6em;padding:0"></td></tr>
-        <tr><td colspan="10" style="border:none;padding:0">${signerBlock}</td></tr>
-      </tbody>`;
-    }
-
-    pages += `<div class="print-page">
-      <table class="print-table">
-        ${colgroup}
-        ${thead(dateRange,w)}
-        ${bodiesHtml}
-      </table>
-    </div>`;
-  });
 
   if (!weeks.length) {
-    pages = `<div class="print-page">
-      <table class="print-table">${colgroup}${thead('','')}
-        <tbody><tr><td colspan="10" style="text-align:center;padding:30px">(ไม่มีข้อมูล)</td></tr></tbody>
-      </table>
-    </div>`;
+    pages = `<div class="print-page"><table class="print-table">${colgroup}
+      <tbody>${makeHeaderRows('','')}
+        <tr><td colspan="10" style="text-align:center;padding:30px">(ไม่มีข้อมูล)</td></tr>
+      </tbody></table></div>`;
+  }
+
+  for (let wIdx=0; wIdx<weeks.length; wIdx++) {
+    const w = weeks[wIdx];
+    const isLastWeek = (wIdx === weeks.length-1);
+
+    const wEntries  = entries.filter(e=>(e.week||1)===w);
+    const tDates    = wEntries.filter(e=>e.type!=='holiday').map(e=>e.date).filter(Boolean).sort();
+    const aDates    = wEntries.map(e=>e.date).filter(Boolean).sort();
+    const drDates   = tDates.length ? tDates : aDates;
+    const dateRange = drDates.length
+      ? `${formatDate(drDates[0])}${drDates.length>1?' – '+formatDate(drDates[drDates.length-1]):''}`
+      : '';
+    const dateOrder = [...new Set(wEntries.map(e=>e.date))];
+    const byDate    = {};
+    wEntries.forEach(e => { (byDate[e.date]=byDate[e.date]||[]).push(e); });
+
+    const hdrHtml = makeHeaderRows(dateRange, w);
+    const sgnRows = (isLastWeek && signerBlock) ? `
+      <tr><td colspan="10" style="border:none;height:1.6em;padding:0"></td></tr>
+      <tr><td colspan="10" style="border:none;padding:0">${signerBlock}</td></tr>` : '';
+
+    if (!dateOrder.length) {
+      pages += `<div class="print-page"><table class="print-table">${colgroup}
+        <tbody>${hdrHtml}
+          <tr><td colspan="10" style="text-align:center;padding:20px">(ไม่มีข้อมูล)</td></tr>
+        </tbody></table></div>`;
+      continue;
+    }
+
+    // ── วัด height จริงในหน้าจอ ──────────────────────────────────────────
+    const measDiv = document.createElement('div');
+    measDiv.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;pointer-events:none;z-index:-1;';
+    measDiv.innerHTML = `<table class="print-table" style="width:281mm">${colgroup}
+      <tbody id="mhdr">${hdrHtml}</tbody>
+      ${dateOrder.map((d,i)=>`<tbody id="md${i}">${buildDayBody(byDate[d],d)}</tbody>`).join('')}
+      ${sgnRows ? `<tbody id="msgn">${sgnRows}</tbody>` : ''}
+    </table>`;
+    document.body.appendChild(measDiv);
+    await new Promise(r => requestAnimationFrame(r));
+
+    const hdrH  = measDiv.querySelector('#mhdr').offsetHeight;
+    const dayHs = dateOrder.map((_,i) => measDiv.querySelector(`#md${i}`).offsetHeight);
+    const sgnH  = sgnRows ? (measDiv.querySelector('#msgn')?.offsetHeight||0) : 0;
+    document.body.removeChild(measDiv);
+
+    const contentH = PAGE_H_PX - hdrH;   // พื้นที่ใช้ได้ต่อหน้า (ไม่นับหัว)
+
+    // ── แบ่งวันลงหน้า ────────────────────────────────────────────────────
+    const pageGroups = [[]];
+    let cumH = 0;
+    dateOrder.forEach((date, di) => {
+      const isLastDay = di === dateOrder.length-1;
+      const needed = (isLastDay && isLastWeek && signerBlock)
+        ? dayHs[di] + sgnH : dayHs[di];
+      if (cumH > 0 && cumH + needed > contentH) {
+        pageGroups.push([]); cumH = 0;
+      }
+      pageGroups[pageGroups.length-1].push(di);
+      cumH += needed;
+    });
+
+    // ── สร้าง HTML แต่ละหน้า ─────────────────────────────────────────────
+    pageGroups.forEach(group => {
+      const bodyHtml = group.map(di => {
+        const date = dateOrder[di];
+        const isLastDay = di === dateOrder.length-1;
+        const extra = (isLastDay && isLastWeek && signerBlock) ? sgnRows : '';
+        return `<tbody style="break-inside:avoid;page-break-inside:avoid">
+          ${buildDayBody(byDate[date], date)}${extra}
+        </tbody>`;
+      }).join('');
+
+      pages += `<div class="print-page">
+        <table class="print-table">${colgroup}
+          <tbody class="pt-hdr" style="break-inside:avoid;page-break-inside:avoid">${hdrHtml}</tbody>
+          ${bodyHtml}
+        </table>
+      </div>`;
+    });
   }
 
   document.getElementById('printArea').innerHTML = pages;
