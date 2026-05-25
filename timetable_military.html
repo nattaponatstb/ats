@@ -2202,11 +2202,9 @@ function printSummary(type) {
 
 // ─── PDF SAVE ───
 async function savePDFTimetable() {
-  showToast('💾 เปิดหน้าต่างพิมพ์ — เลือก "บันทึกเป็น PDF" หรือ "Save as PDF"');
   await printTimetable();
 }
 function savePDFSummary(type) {
-  showToast('💾 เปิดหน้าต่างพิมพ์ — เลือก "บันทึกเป็น PDF" หรือ "Save as PDF"');
   printSummary(type);
 }
 
