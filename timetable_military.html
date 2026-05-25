@@ -280,27 +280,17 @@ textarea.form-control { resize: vertical; min-height: 60px; }
     </div>
     <button class="btn btn-primary btn-login" onclick="doLogin()" id="loginBtn">เข้าสู่ระบบ</button>
     <div class="login-err" id="loginErr" style="text-align:center"></div>
+    <div style="margin-top:10px;padding:8px 12px;background:#f0f7ff;border-radius:8px;font-size:0.75rem;color:#666;text-align:center">
+      🔑 เข้าใช้ครั้งแรก: <strong>admin1</strong> / <strong>admin1234</strong>
+    </div>
     <div style="margin-top:16px;border-top:1px solid #e0e0e0;padding-top:14px">
       <div style="font-size:0.78rem;color:#999;margin-bottom:8px;text-align:center">หรือ</div>
       <button class="btn btn-outline-dark btn-login" onclick="enterPublicMode()" style="background:#f5f7fa;color:#1a2f4e;border:1px solid #ccd3dc">
         👁️ ดูตารางสอน
       </button>
     </div>
-    <div style="margin-top:14px;text-align:center">
-      <button onclick="showApiSetup()" style="background:none;border:none;color:#aaa;font-size:0.75rem;cursor:pointer;font-family:inherit;text-decoration:underline">
-        🔗 ตั้งค่า API Server
-      </button>
-      <div id="apiBaseDisplay" style="font-size:0.68rem;color:#bbb;margin-top:3px;word-break:break-all"></div>
-    </div>
   </div>
 </div>
-<script>
-  // แสดง API URL ปัจจุบันใต้ปุ่ม
-  (function() {
-    const el = document.getElementById('apiBaseDisplay');
-    if (el && API_BASE) el.textContent = API_BASE;
-  })();
-</script>
 
 <div class="app-shell">
 
@@ -849,92 +839,107 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 //  STATE
 // ═══════════════════════════════════════════════
 // ═══════════════════════════════════════════════
-//  API LAYER
+//  localStorage-based API (ทำงานได้โดยไม่ต้องมี server)
 // ═══════════════════════════════════════════════
-function _defaultApiBase() {
-  const h = location.hostname;
-  if (h === 'localhost' || h === '127.0.0.1' || h === '') {
-    return 'http://localhost:3000/api';
+const LS = {
+  settings: 'ttm_settings',
+  courses:  'ttm_courses',
+  entries:  'ttm_entries',
+  users:    'ttm_users',
+  session:  'ttm_session',
+};
+function lsRead(k)    { try { return JSON.parse(localStorage.getItem(k)||'null'); } catch { return null; } }
+function lsWrite(k,v) { localStorage.setItem(k, JSON.stringify(v)); }
+function _defaultUsers() {
+  return [{ id:'admin1', username:'admin1', password:'admin1234', role:'admin', full_name:'ผู้ดูแลระบบ' }];
+}
+
+function localApi(method, path, body) {
+  // ── /settings ──────────────────────────────────
+  if (path === '/settings') {
+    if (method === 'GET') return lsRead(LS.settings) || {};
+    if (method === 'PUT') { lsWrite(LS.settings, { ...(lsRead(LS.settings)||{}), ...body }); return { ok:true }; }
   }
-  return localStorage.getItem('ttm_api_base') || '';
-}
-let API_BASE = localStorage.getItem('ttm_api_base') || _defaultApiBase();
-
-function setApiBase(url) {
-  url = (url || '').trim().replace(/\/+$/, '');
-  if (!url) return;
-  API_BASE = url;
-  localStorage.setItem('ttm_api_base', url);
-  const el = document.getElementById('apiBaseDisplay');
-  if (el) el.textContent = url;
-  const el2 = document.getElementById('apiBaseShow');
-  if (el2) el2.textContent = url;
-}
-
-function showApiSetup(onDone) {
-  const overlay = document.createElement('div');
-  overlay.id = 'apiSetupOverlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center';
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:12px;padding:32px;width:90%;max-width:460px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
-      <div style="font-size:1.5rem;margin-bottom:8px">🔗 ตั้งค่า API Server</div>
-      <div style="color:#666;font-size:0.9rem;margin-bottom:20px">กรอก URL ของ server (backend) เพื่อเชื่อมต่อระบบ</div>
-      <div style="margin-bottom:8px;font-weight:600;font-size:0.9rem">API Server URL</div>
-      <input id="apiUrlInput" type="text" placeholder="https://xxxx.ngrok-free.app/api"
-        style="width:100%;padding:10px 12px;border:1.5px solid #c5d0de;border-radius:8px;font-size:0.95rem;font-family:inherit;margin-bottom:8px"
-        value="${API_BASE}">
-      <div style="font-size:0.75rem;color:#888;margin-bottom:20px">
-        💡 ถ้าใช้เครื่องตัวเอง: <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px">http://localhost:3000/api</code><br>
-        💡 ถ้าใช้ ngrok: <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px">https://xxxx.ngrok-free.app/api</code>
-      </div>
-      <div style="display:flex;gap:10px">
-        <button onclick="
-          const v=document.getElementById('apiUrlInput').value.trim();
-          if(!v){alert('กรุณากรอก URL');return;}
-          setApiBase(v);
-          document.getElementById('apiSetupOverlay').remove();
-          if(window._apiSetupCallback) window._apiSetupCallback();
-        " style="flex:1;padding:10px;background:linear-gradient(135deg,#1a2f4e,#2d5a8e);color:#fff;border:none;border-radius:8px;font-size:1rem;font-family:inherit;cursor:pointer;font-weight:600">
-          ✅ บันทึกและเชื่อมต่อ
-        </button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  document.getElementById('apiUrlInput').focus();
-  document.getElementById('apiUrlInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      const v = document.getElementById('apiUrlInput').value.trim();
-      if (!v) return;
-      setApiBase(v);
-      overlay.remove();
-      if (window._apiSetupCallback) window._apiSetupCallback();
+  // ── /courses ───────────────────────────────────
+  if (path === '/courses') {
+    if (method === 'GET') return lsRead(LS.courses) || [];
+    if (method === 'POST') {
+      const list = lsRead(LS.courses) || [];
+      list.push(body); lsWrite(LS.courses, list);
+      return { id: body.id };
     }
-  });
-  window._apiSetupCallback = onDone || null;
+  }
+  // ── /courses/:id ───────────────────────────────
+  const cm = path.match(/^\/courses\/([^\/\?]+)$/);
+  if (cm) {
+    const id = cm[1]; const list = lsRead(LS.courses) || [];
+    if (method === 'PUT') {
+      const i = list.findIndex(c => c.id === id);
+      if (i >= 0) list[i] = { ...list[i], ...body };
+      lsWrite(LS.courses, list); return { ok:true };
+    }
+    if (method === 'DELETE') {
+      lsWrite(LS.courses, list.filter(c => c.id !== id));
+      lsWrite(LS.entries, (lsRead(LS.entries)||[]).filter(e => e.course_id !== id));
+      return { ok:true };
+    }
+  }
+  // ── /courses/:id/visibility ────────────────────
+  const vm = path.match(/^\/courses\/([^\/]+)\/visibility$/);
+  if (vm && method === 'PATCH') {
+    const id = vm[1]; const list = lsRead(LS.courses) || [];
+    const i = list.findIndex(c => c.id === id);
+    if (i >= 0) { list[i].is_public = list[i].is_public ? 0 : 1; lsWrite(LS.courses, list); return { ...list[i] }; }
+  }
+  // ── /entries ───────────────────────────────────
+  if (path.startsWith('/entries')) {
+    const ents = lsRead(LS.entries) || [];
+    const qs = path.includes('?') ? path.split('?')[1] : '';
+    const cid = new URLSearchParams(qs).get('course_id');
+    if (method === 'GET') return cid ? ents.filter(e => e.course_id === cid) : ents;
+    if (method === 'POST') { ents.push(body); lsWrite(LS.entries, ents); return { id: body.id }; }
+    if (method === 'DELETE' && cid) { lsWrite(LS.entries, ents.filter(e => e.course_id !== cid)); return { ok:true }; }
+  }
+  // ── /entries/:id ───────────────────────────────
+  const em = path.match(/^\/entries\/([^\/\?]+)$/);
+  if (em) {
+    const id = em[1]; const ents = lsRead(LS.entries) || [];
+    if (method === 'PUT') {
+      const i = ents.findIndex(e => e.id === id);
+      if (i >= 0) ents[i] = { ...ents[i], ...body };
+      lsWrite(LS.entries, ents); return { ok:true };
+    }
+    if (method === 'DELETE') { lsWrite(LS.entries, ents.filter(e => e.id !== id)); return { ok:true }; }
+  }
+  // ── /auth/login ────────────────────────────────
+  if (path === '/auth/login' && method === 'POST') {
+    const users = lsRead(LS.users) || _defaultUsers();
+    const u = users.find(x => x.username === body.username && x.password === body.password);
+    if (!u) throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    const sess = { token:'ls_'+u.id, user:{ id:u.id, username:u.username, role:u.role, full_name:u.full_name } };
+    lsWrite(LS.session, sess);
+    return sess;
+  }
+  // ── /auth/me ───────────────────────────────────
+  if (path === '/auth/me' && method === 'GET') {
+    const sess = lsRead(LS.session);
+    if (!sess) throw new Error('ไม่ได้เข้าสู่ระบบ');
+    return { user: sess.user };
+  }
+  return {};
 }
-let _token = sessionStorage.getItem('ttm_token') || '';
+
+async function api(method, path, body) {
+  return localApi(method, path, body);
+}
+
+let _token = lsRead(LS.session)?.token || '';
 let _publicMode = false;
 let _currentUser = null;   // { id, username, role, full_name }
 function isSuperAdmin() { return _currentUser?.username?.toLowerCase() === 'admin1'; }
 
-async function api(method, path, body) {
-  const headers = { 'Content-Type': 'application/json' };
-  // ใน public mode GET ไม่ต้องส่ง token
-  if (_token && !(method === 'GET' && _publicMode)) {
-    headers['Authorization'] = 'Bearer ' + _token;
-  }
-  const opts = { method, headers };
-  if (body !== undefined) opts.body = JSON.stringify(body);
-  const res = await fetch(API_BASE + path, opts);
-  if (res.status === 401 && !_publicMode) { doLogout(); throw new Error('กรุณาเข้าสู่ระบบใหม่'); }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
-  return data;
-}
-
 // ── Login / Logout ──────────────────────────────
 async function doLogin() {
-  if (!API_BASE) { showApiSetup(doLogin); return; }
   const username = document.getElementById('l_user').value.trim();
   const password = document.getElementById('l_pass').value;
   const errEl    = document.getElementById('loginErr');
@@ -944,16 +949,9 @@ async function doLogin() {
   btn.disabled   = true;
   errEl.textContent = '';
   try {
-    const res = await fetch(API_BASE + '/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ');
+    const data = await api('POST', '/auth/login', { username, password });
     _token = data.token;
     _currentUser = data.user;
-    sessionStorage.setItem('ttm_token', _token);
     document.getElementById('topbarUser').textContent = data.user.full_name || data.user.username;
     document.getElementById('loginScreen').classList.add('hidden');
     await initApp();
@@ -967,7 +965,7 @@ async function doLogin() {
 
 function doLogout() {
   _token = '';
-  sessionStorage.removeItem('ttm_token');
+  localStorage.removeItem(LS.session);
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('l_pass').value  = '';
   document.getElementById('loginErr').textContent = '';
@@ -979,7 +977,6 @@ function doLogout() {
 
 // ── Public (read-only) mode ────────────────────
 async function enterPublicMode() {
-  if (!API_BASE) { showApiSetup(enterPublicMode); return; }
   _publicMode = true;
   state.currentView = 'schedule';   // บังคับเปิดหน้าตารางสอนเสมอ
   document.querySelector('.app-shell').classList.add('public-mode');
@@ -1147,17 +1144,6 @@ function entryToBody(entry, courseId) {
 
 // บันทึก teachers + subjects กลับไป settings
 async function syncMasterData() {
-  // ดึง subjects ล่าสุดจาก server ก่อน เพื่อป้องกันเขียนทับวิชาที่ seed จากภายนอก
-  try {
-    const latest  = await api('GET', '/settings');
-    const srvSubs = JSON.parse(latest.subjects || '[]');
-    const stateIds = new Set(state.subjects.map(s => s.id));
-    const extra    = srvSubs.filter(s => !stateIds.has(s.id));
-    if (extra.length > 0) {
-      state.subjects = [...state.subjects, ...extra];
-    }
-  } catch { /* ถ้า fetch ไม่ได้ ใช้ state เดิม */ }
-
   await api('PUT', '/settings', {
     teachers:       JSON.stringify(state.teachers),
     subjects:       JSON.stringify(state.subjects),
@@ -1176,7 +1162,7 @@ async function syncMasterData() {
     document.getElementById('topbarUser').textContent = me.user?.full_name || me.user?.username || '—';
     document.getElementById('loginScreen').classList.add('hidden');
     await initApp();
-  } catch { _token = ''; sessionStorage.removeItem('ttm_token'); }
+  } catch { _token = ''; localStorage.removeItem(LS.session); }
 })();
 
 // ═══════════════════════════════════════════════
@@ -2222,14 +2208,14 @@ function renderSettingsView() {
         <input class="form-control" id="cfg_short" value="${esc(state.schoolShort)}" placeholder="เช่น รร.ขส.ขส.ทบ.">
       </div></div>
       <button class="btn btn-primary" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button>
+      <button class="btn btn-gray" onclick="changePassword()" style="margin-left:8px">🔑 เปลี่ยนรหัสผ่าน</button>
     </div>
   </div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-header"><h3 style="font-size:1rem;margin:0">🔗 API Server</h3></div>
-    <div class="card-body">
-      <div style="font-size:0.85rem;color:#666;margin-bottom:8px">URL ปัจจุบัน:</div>
-      <code id="apiBaseShow" style="background:#f3f4f6;padding:6px 10px;border-radius:6px;font-size:0.85rem;display:block;margin-bottom:12px;word-break:break-all">${API_BASE || '(ยังไม่ได้ตั้งค่า)'}</code>
-      <button class="btn btn-primary btn-sm" onclick="showApiSetup(()=>{ renderSettingsView(); })">🔧 เปลี่ยน API Server URL</button>
+    <div class="card-header"><h3 style="font-size:1rem;margin:0">💾 สำรอง / กู้คืนข้อมูล</h3></div>
+    <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="exportAllData()">📤 ส่งออกข้อมูล (JSON)</button>
+      <button class="btn btn-gray" onclick="importAllData()">📥 นำเข้าข้อมูล (JSON)</button>
     </div>
   </div>
   ${listCard('สถานที่','📍','locationList','DEFAULT_LOCATIONS','addLocation','deleteLocation')}
@@ -2902,6 +2888,53 @@ async function saveSettings() {
     });
     showToast('บันทึกการตั้งค่าแล้ว');
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
+}
+
+function exportAllData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    settings: lsRead(LS.settings),
+    courses:  lsRead(LS.courses),
+    entries:  lsRead(LS.entries),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'timetable-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  showToast('ส่งออกข้อมูลสำเร็จ');
+}
+
+function importAllData() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.version) throw new Error('ไฟล์ไม่ถูกต้อง');
+      if (!confirm('นำเข้าข้อมูลจะแทนที่ข้อมูลปัจจุบันทั้งหมด ยืนยันหรือไม่?')) return;
+      if (data.settings) lsWrite(LS.settings, data.settings);
+      if (data.courses)  lsWrite(LS.courses, data.courses);
+      if (data.entries)  lsWrite(LS.entries, data.entries);
+      showToast('นำเข้าสำเร็จ — กำลังโหลดใหม่…');
+      setTimeout(() => location.reload(), 1200);
+    } catch (e) { showToast('นำเข้าไม่สำเร็จ: ' + e.message); }
+  };
+  inp.click();
+}
+
+function changePassword() {
+  const oldP = prompt('รหัสผ่านเดิม:'); if (oldP === null) return;
+  const newP = prompt('รหัสผ่านใหม่ (อย่างน้อย 4 ตัวอักษร):'); if (!newP || newP.length < 4) { showToast('รหัสผ่านสั้นเกินไป'); return; }
+  const users = lsRead(LS.users) || _defaultUsers();
+  const u = users.find(x => x.username === _currentUser?.username);
+  if (!u || u.password !== oldP) { showToast('รหัสผ่านเดิมไม่ถูกต้อง'); return; }
+  u.password = newP;
+  lsWrite(LS.users, users);
+  showToast('เปลี่ยนรหัสผ่านแล้ว');
 }
 
 // ═══════════════════════════════════════════════
