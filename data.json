@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "syncedAt": "2026-05-25T12:18:56.208Z",
+  "syncedAt": "2026-05-25T12:19:08.340Z",
   "syncedBy": "admin1",
   "settings": {
     "schoolName": "โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก",
@@ -40,7 +40,7 @@
     },
     {
       "id": "mpl0zzysb6ox",
-      "is_public": 1,
+      "is_public": 0,
       "name": "ddpdopdr",
       "run_number": "45",
       "signer_date": "",
