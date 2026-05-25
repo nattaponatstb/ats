@@ -2379,26 +2379,34 @@ function renderSettingsView() {
     </div>
   </div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-header"><h3 style="font-size:1rem;margin:0">☁️ ซิงค์ข้อมูลขึ้นเว็บไซท์ (GitHub)</h3></div>
+    <div class="card-header"><h3 style="font-size:1rem;margin:0">☁️ ซิงค์ข้อมูลขึ้นเว็บไซท์</h3></div>
     <div class="card-body">
+      <div style="background:#e8f5e9;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;line-height:2">
+        <strong>ตั้งค่าครั้งแรก (3 ขั้นตอน):</strong><br>
+        <b>① </b>เปิดลิงก์นี้:
+        <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=timetable-sync"
+           target="_blank"
+           style="color:#1565c0;font-weight:700;text-decoration:underline">
+          คลิกเพื่อสร้าง Token ที่ GitHub →
+        </a><br>
+        <b>② </b>เลื่อนลงกด <strong style="background:#2e7d32;color:white;padding:1px 8px;border-radius:4px">Generate token</strong> (ไม่ต้องเปลี่ยนอะไร)<br>
+        <b>③ </b>Copy token ที่ได้ (ขึ้นต้นด้วย <code>ghp_</code>) มาวางด้านล่าง
+      </div>
       <div class="form-group" style="margin-bottom:10px">
-        <label>GitHub Personal Access Token <small style="color:#888">(เก็บไว้ในเครื่องนี้เท่านั้น ไม่ส่งออกไปที่ใด)</small></label>
+        <label>GitHub Token <small style="color:#888">(เก็บในเครื่องนี้เท่านั้น)</small></label>
         <div style="display:flex;gap:8px">
           <input class="form-control" type="password" id="cfg_github_token"
             value="${esc(lsRead('ttm_github_token')||'')}"
-            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="flex:1;font-family:monospace">
-          <button class="btn btn-primary btn-sm" onclick="saveGithubToken()">💾 บันทึก Token</button>
-        </div>
-        <div style="font-size:0.78rem;color:#888;margin-top:4px">
-          สร้าง Token ได้ที่ GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
-          <br>ให้สิทธิ์: <strong>Contents: Read and write</strong> เฉพาะ repo <strong>nattaponatstb/ats</strong>
+            placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            style="flex:1;font-family:monospace;font-size:0.82rem">
+          <button class="btn btn-primary btn-sm" onclick="saveGithubToken()">💾 บันทึก</button>
         </div>
       </div>
       <div id="syncStatus" style="margin-bottom:10px;font-size:0.82rem;color:#555">
         ${lsRead('ttm_last_sync') ? `<span style="color:#2e7d32">✅ ซิงค์ล่าสุด: ${esc(lsRead('ttm_last_sync'))}</span>` : '<span style="color:#888">ยังไม่เคยซิงค์</span>'}
       </div>
       <button class="btn btn-sm" onclick="syncToGitHub()"
-        style="background:#2e7d32;color:white;border:none;font-weight:700;padding:8px 18px">
+        style="background:#2e7d32;color:white;border:none;font-weight:700;padding:8px 20px;font-size:1rem">
         ☁️ บันทึกการแก้ไขขึ้นเว็บไซท์
       </button>
     </div>
