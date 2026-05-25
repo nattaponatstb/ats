@@ -4194,6 +4194,14 @@ async function renderAdminView() {
 }
 
 // ── User Modal ──
+function _buildRoleOptions(selectedRole) {
+  // Super Admin เห็น option ทั้งสอง; Admin เห็นแค่ Admin
+  const sel = document.getElementById('u_role');
+  sel.innerHTML = isSuperAdmin()
+    ? `<option value="admin"     ${selectedRole==='admin'    ?'selected':''}>👤 Admin — แก้ไขข้อมูลได้</option>
+       <option value="superadmin"${selectedRole==='superadmin'?'selected':''}>👑 Super Admin — ซิงค์ + สำรองข้อมูลได้</option>`
+    : `<option value="admin" selected>👤 Admin — แก้ไขข้อมูลได้</option>`;
+}
 function openUserModal() {
   _editingUserId = null;
   document.getElementById('userModalTitle').textContent = 'เพิ่มผู้ใช้งาน';
@@ -4201,10 +4209,10 @@ function openUserModal() {
   document.getElementById('u_fullname').value    = '';
   document.getElementById('u_password').value    = '';
   document.getElementById('u_password2').value   = '';
-  document.getElementById('u_role').value        = 'admin';
   document.getElementById('u_username').disabled = false;
   document.getElementById('u_pass_row').style.display  = '';
   document.getElementById('u_role_row').style.display  = '';
+  _buildRoleOptions('admin');
   document.getElementById('u_save_btn').textContent = 'บันทึก';
   openModal('userModal');
 }
@@ -4214,9 +4222,9 @@ function openEditUser(id, fullName, role) {
   document.getElementById('u_username').value    = '';
   document.getElementById('u_username').disabled = true;
   document.getElementById('u_fullname').value    = fullName;
-  document.getElementById('u_role').value        = role || 'admin';
   document.getElementById('u_pass_row').style.display  = 'none';
   document.getElementById('u_role_row').style.display  = '';
+  _buildRoleOptions(role || 'admin');
   document.getElementById('u_save_btn').textContent = 'บันทึกการแก้ไข';
   openModal('userModal');
 }
