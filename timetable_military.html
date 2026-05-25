@@ -2485,8 +2485,10 @@ async function deleteEvidence(i) {
 // ═══════════════════════════════════════════════
 function renderSidebar() {
   const sel = document.getElementById('courseSelector');
+  // โหมดดูอย่างเดียว → แสดงเฉพาะหลักสูตรที่เป็นสาธารณะ
+  const visibleCourses = _publicMode ? state.courses.filter(c => c.isPublic) : state.courses;
   sel.innerHTML = '<option value="">— เลือกหลักสูตร —</option>' +
-    state.courses.map(c => `<option value="${c.id}" ${c.id===state.currentCourseId?'selected':''}>
+    visibleCourses.map(c => `<option value="${c.id}" ${c.id===state.currentCourseId?'selected':''}>
       ${c.name} รุ่น ${c.runNumber||'?'}</option>`).join('');
 
   const course = findCourse(state.currentCourseId);
