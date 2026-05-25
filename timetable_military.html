@@ -2239,20 +2239,78 @@ function printSummary(type) {
 
   const courseLine = `${course.name}  รุ่นที่ ${toThai(course.runNumber||'')}  —  ${state.schoolName}`;
 
-  // เขียนลง #printArea แล้ว window.print() → ใช้ได้ทั้งเดสก์ท็อปและมือถือ
-  document.getElementById('printArea').innerHTML = `
-    <div class="ps-wrap" style="margin:10mm 12mm;font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;color:#000">
-      <h2 style="text-align:center;font-size:18pt;margin-bottom:2px">${esc(title)}</h2>
-      <div class="sub" style="text-align:center;font-size:14pt;margin-bottom:10px">${esc(courseLine)}</div>
+  openPrintWindow(`
+    <div class="ps-wrap">
+      <h2>${esc(title)}</h2>
+      <div class="sub">${esc(courseLine)}</div>
       ${tableHtml}
-    </div>`;
-  const _oldTitle = document.title;
-  document.title = '';
-  window.print();
-  setTimeout(() => {
-    document.title = _oldTitle;
-    document.getElementById('printArea').innerHTML = '';
-  }, 1500);
+    </div>`, true);
+}
+
+// ─── OPEN PRINT WINDOW (เหมือนกันทุกอุปกรณ์) ───
+function openPrintWindow(bodyHtml, landscape = true) {
+  const pSize   = landscape ? 'A4 landscape' : 'A4 portrait';
+  const vpWidth = landscape ? 1050 : 740;
+  const html = `<!DOCTYPE html><html lang="th"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=${vpWidth},initial-scale=1">
+  <style>
+    @font-face{font-family:'TH SarabunIT๙';src:local('TH SarabunIT๙'),local('TH Sarabun New');}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:white;width:${vpWidth}px;font-size:9pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    @media print{
+      @page{size:${pSize};margin:8mm 8mm 10mm 8mm;}
+      body{width:auto;}
+      .print-page{page-break-after:always;}
+      .print-page:last-child{page-break-after:avoid;}
+      head,header,footer{display:none!important;}
+    }
+    /* ── timetable ── */
+    .print-page{font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;color:black;}
+    .print-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+    .print-table thead{display:table-header-group;}
+    .print-table th{border:1px solid black;padding:2px 4px;vertical-align:middle;text-align:center;
+      background:#d0d0d0;font-weight:bold;font-size:14pt;
+      font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;line-height:1.2;white-space:nowrap;}
+    .print-table td{border:1px solid black;padding:2px 4px;vertical-align:top;text-align:center;
+      font-size:14pt;font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;line-height:1.2;}
+    .print-table td.left{text-align:left;}
+    .print-table td.f12{font-size:12pt;}
+    .print-table td.nobot{border-bottom:none;}
+    .print-table td.notop{border-top:none;}
+    /* ── summary ── */
+    .ps-wrap{font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;color:#000;margin:10mm 12mm;}
+    .ps-wrap h2{text-align:center;font-size:18pt;margin-bottom:2px;}
+    .ps-wrap .sub{text-align:center;font-size:14pt;margin-bottom:10px;}
+    .ps-wrap table{border-collapse:collapse;width:100%;font-size:16pt;color:#000;}
+    .ps-wrap th,.ps-wrap td{border:1px solid #000;padding:3px 5px;vertical-align:middle;color:#000;}
+    .ps-wrap th{background:#fff;text-align:center;font-weight:bold;}
+  </style>
+</head><body>
+  ${bodyHtml}
+  <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});<\/script>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const w    = window.open(url, '_blank');
+
+  if (!w) {
+    // popup blocked → fallback iframe
+    const fr = document.createElement('iframe');
+    fr.style.cssText = 'position:fixed;left:-9999px;top:0;border:none;width:1px;height:1px';
+    document.body.appendChild(fr);
+    fr.onload = function() {
+      try { fr.contentWindow.print(); } catch(e) {}
+      setTimeout(function() {
+        if (fr.parentNode) fr.parentNode.removeChild(fr);
+        URL.revokeObjectURL(url);
+      }, 4000);
+    };
+    fr.src = url;
+  } else {
+    setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+  }
 }
 
 // ─── PDF SAVE ───
@@ -3612,11 +3670,7 @@ async function printTimetable() {
     });
   }
 
-  document.getElementById('printArea').innerHTML = pages;
-  const _oldTitle = document.title;
-  document.title = '';
-  window.print();
-  setTimeout(() => { document.title = _oldTitle; }, 1500);
+  openPrintWindow(pages, true);
 }
 
 // ═══════════════════════════════════════════════
