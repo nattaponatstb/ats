@@ -1,92 +1,61 @@
-// config/db.js — เชื่อมต่อ SQL Server ผ่าน Named Pipe + Windows Auth (msnodesqlv8)
-const msnodesql = require('msnodesqlv8');
-require('dotenv').config();
+// config/db.js — PostgreSQL via pg (ใช้ได้บน Railway, Render, Supabase ฯลฯ)
+const { Pool } = require('pg');
 
-const DB_NAME = process.env.DB_NAME || 'TimetableMilitary';
-const CONN_STR = `Driver={ODBC Driver 17 for SQL Server};Server=np:\\\\.\\pipe\\MSSQL$SQLEXPRESS\\sql\\query;Database=${DB_NAME};Trusted_Connection=yes;`;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost')
+    ? { rejectUnauthorized: false }
+    : false,
+});
 
-let _conn = null;
+pool.on('connect', () => console.log('✅ Connected to PostgreSQL'));
+pool.on('error',  (err) => console.error('❌ PostgreSQL error:', err.message));
 
-function openConnection() {
-  return new Promise((resolve, reject) => {
-    msnodesql.open(CONN_STR, (err, conn) => {
-      if (err) reject(err);
-      else resolve(conn);
-    });
-  });
-}
-
-async function getConnection() {
-  if (_conn) return _conn;
-  _conn = await openConnection();
-  console.log('✅ Connected to SQL Server (Windows Auth / Named Pipe)');
-  return _conn;
-}
-
-// ── Request class — เลียนแบบ mssql API ──────────────────────────────────────
+// ── Request class — mimics mssql/msnodesqlv8 interface ───────────────────────
 class Request {
-  constructor(conn) {
-    this._conn = conn;
-    this._params = {};
-  }
+  constructor() { this._params = {}; }
 
-  input(name, _type, value) {
-    // แปลง undefined/null ให้เป็น null ทุกครั้ง
-    this._params[name] = (value === undefined || value === '') ? null : value;
+  input(name, typeOrValue, value) {
+    // รองรับทั้ง input(name, type, value) และ input(name, value)
+    const val = (value !== undefined) ? value : typeOrValue;
+    this._params[name] = (val === undefined || val === '') ? null : val;
     return this;
   }
 
-  query(sqlText) {
-    return new Promise((resolve, reject) => {
-      // แทนที่ @param ด้วย ? และสร้าง array ค่า
-      const values = [];
-      const paramSql = sqlText.replace(/@(\w+)/g, (_, name) => {
-        values.push(this._params.hasOwnProperty(name) ? this._params[name] : null);
-        return '?';
-      });
+  async query(sqlText) {
+    const values = [];
+    const seen   = {};   // param name → $N index
+    let   idx    = 0;
 
-      // เพิ่ม SELECT @@ROWCOUNT สำหรับ DML เพื่อให้รู้จำนวนแถวที่เปลี่ยน
-      const isDML = /^\s*(INSERT|UPDATE|DELETE|MERGE)/i.test(sqlText.trim());
-      const finalSql = isDML ? paramSql + '; SELECT @@ROWCOUNT AS __rc' : paramSql;
-
-      let recordset  = [];
-      let rowsAffected = [0];
-
-      this._conn.query(finalSql, values, (err, rows, more) => {
-        if (err) { reject(err); return; }
-
-        if (rows && rows.length > 0) {
-          if (rows[0].__rc !== undefined) {
-            rowsAffected = [rows[0].__rc];   // จาก SELECT @@ROWCOUNT
-          } else {
-            recordset = recordset.concat(rows);
-          }
-        }
-
-        if (!more) {
-          // DML ที่ไม่มีแถว: rowsAffected ยังเป็น [0] แต่ถ้าไม่มี error ถือว่าสำเร็จ
-          if (isDML && rowsAffected[0] === 0) rowsAffected = [1];
-          resolve({ recordset, rowsAffected });
-        }
-      });
+    // แปลง @paramName → $N (ตัวเดิมซ้ำใช้ index เดิม)
+    const pgSql = sqlText.replace(/@(\w+)/g, (_, name) => {
+      if (!(name in seen)) {
+        seen[name] = ++idx;
+        values.push((name in this._params) ? this._params[name] : null);
+      }
+      return '$' + seen[name];
     });
+
+    const result = await pool.query(pgSql, values);
+    return {
+      recordset:    result.rows,
+      rowsAffected: [result.rowCount],
+    };
   }
 }
 
-// ── Pool wrapper — ให้ interface เหมือน mssql ────────────────────────────────
 async function getPool() {
-  const conn = await getConnection();
-  return { request: () => new Request(conn) };
+  return { request: () => new Request() };
 }
 
-// ── sql type stubs (routes ใช้แค่ type hints ซึ่ง msnodesqlv8 ไม่ต้องการ) ──
+// sql type stubs — ใช้แค่ compatibility ไม่มีผลจริงใน pg
 const sql = {
-  NVarChar: (n) => `nvarchar(${n||'max'})`,
-  VarChar:  (n) => `varchar(${n||'max'})`,
-  Int:      'int',
-  Date:     'date',
-  Decimal:  (p, s) => `decimal(${p},${s})`,
+  NVarChar: () => null,
+  VarChar:  () => null,
+  Int:      null,
+  Date:     null,
+  Decimal:  () => null,
   MAX:      -1,
 };
 
-module.exports = { sql, getPool };
+module.exports = { sql, getPool, pool };
