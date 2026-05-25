@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "syncedAt": "2026-05-25T09:36:27.893Z",
+  "syncedAt": "2026-05-25T09:37:06.760Z",
   "syncedBy": "admin1",
   "settings": {
     "schoolName": "โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก",
@@ -21,6 +21,23 @@
       "signer_pos1": "หน.ผปมส.รร.ขส.ขส.ทบ. รักษาราชการแทน",
       "signer_pos2": "หน.ผตก.รร.ขส.ขส.ทบ.",
       "signer_date": "มี.ค. ๖๙",
+      "is_public": 1
+    },
+    {
+      "id": "mpl0ihaxh27n",
+      "name": "eryserg",
+      "run_number": "45",
+      "year": null,
+      "course_type": null,
+      "start_date": null,
+      "end_date": null,
+      "signer_label": "ตรวจถูกต้อง",
+      "signer_rank": "",
+      "signer_name": "",
+      "signer_pos1": "",
+      "signer_pos2": "",
+      "signer_pos3": "",
+      "signer_date": "",
       "is_public": 1
     }
   ],
