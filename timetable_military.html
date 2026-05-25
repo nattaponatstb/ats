@@ -360,6 +360,8 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 /* ── Public (read-only) mode ── */
 .public-mode .hide-public { display:none !important; }
+/* ── Super Admin only ── */
+.app-shell:not(.is-superadmin) .sa-only { display:none !important; }
 .public-badge { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.12); border-radius:8px; padding:4px 12px; font-size:0.82rem; color:rgba(255,255,255,0.9); }
 .public-badge .badge-label { font-weight:700; letter-spacing:0.03em; }
 .btn-exit-public { background:rgba(255,255,255,0.18); color:white; border:1px solid rgba(255,255,255,0.35); border-radius:6px; padding:5px 12px; cursor:pointer; font-size:0.82rem; font-family:inherit; font-weight:600; }
@@ -444,7 +446,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
       <button class="btn btn-outline btn-sm hide-public" onclick="loadSampleData()">🗂️ โหลดตัวอย่าง</button>
       <button class="btn btn-outline btn-sm" onclick="printTimetable()">🖨️ พิมพ์ตาราง</button>
       <button class="btn btn-outline btn-sm" onclick="savePDFTimetable()" style="color:#ff7043;border-color:rgba(255,112,67,0.6)">💾 PDF ตาราง</button>
-      <button class="btn btn-sm hide-public" id="syncBtn" onclick="syncToGitHub()"
+      <button class="btn btn-sm hide-public sa-only" id="syncBtn" onclick="syncToGitHub()"
         style="background:#2e7d32;color:white;border:none;display:flex;align-items:center;gap:5px;font-weight:600">
         <span id="syncBtnIcon">☁️</span> บันทึกการแก้ไข
       </button>
@@ -477,7 +479,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
         <button onclick="showView('adminmgr');closeSidebar()" class="smn-btn hide-public" id="smn-adminmgr">👑 แอดมิน</button>
         <button onclick="printTimetable();closeSidebar()"     class="smn-btn">🖨️ พิมพ์ตาราง</button>
         <button onclick="savePDFTimetable();closeSidebar()"   class="smn-btn" style="color:#ff7043">💾 PDF ตาราง</button>
-        <button onclick="syncToGitHub();closeSidebar()" class="smn-btn hide-public" style="color:#80ff80;font-weight:700">☁️ บันทึกการแก้ไข</button>
+        <button onclick="syncToGitHub();closeSidebar()" class="smn-btn hide-public sa-only" style="color:#80ff80;font-weight:700">☁️ บันทึกการแก้ไข</button>
         <div class="smn-divider"></div>
         <button onclick="doLogout()" class="smn-btn smn-logout hide-public">🔓 ออกจากระบบ</button>
         <button onclick="exitPublicMode();closeSidebar()" class="smn-btn smn-login show-public-only">🔐 เข้าสู่ระบบ</button>
@@ -634,6 +636,13 @@ textarea.form-control { resize: vertical; min-height: 60px; }
           <label>ชื่อ-นามสกุล</label>
           <input class="form-control" id="u_fullname" placeholder="ชื่อแสดงในระบบ">
         </div>
+      </div>
+      <div class="form-group" id="u_role_row">
+        <label>สิทธิ์ผู้ใช้</label>
+        <select class="form-control" id="u_role">
+          <option value="admin">👤 Admin — แก้ไขข้อมูลได้</option>
+          <option value="superadmin">👑 Super Admin — แก้ไข + ซิงค์ + สำรองข้อมูล</option>
+        </select>
       </div>
       <div class="form-row" id="u_pass_row">
         <div class="form-group">
@@ -1007,7 +1016,7 @@ const LS = {
 function lsRead(k)    { try { return JSON.parse(localStorage.getItem(k)||'null'); } catch { return null; } }
 function lsWrite(k,v) { localStorage.setItem(k, JSON.stringify(v)); }
 function _defaultUsers() {
-  return [{ id:'admin1', username:'admin1', password:'admin1234', role:'admin', full_name:'ผู้ดูแลระบบ' }];
+  return [{ id:'admin1', username:'admin1', password:'admin1234', role:'superadmin', full_name:'ผู้ดูแลระบบ' }];
 }
 function writeLog(action, detail) {
   const logs = lsRead(LS.logs) || [];
@@ -1151,7 +1160,7 @@ async function api(method, path, body) {
 let _token = lsRead(LS.session)?.token || '';
 let _publicMode = false;
 let _currentUser = null;   // { id, username, role, full_name }
-function isSuperAdmin() { return _currentUser?.username?.toLowerCase() === 'admin1'; }
+function isSuperAdmin() { return _currentUser?.role === 'superadmin'; }
 
 // ── Login / Logout ──────────────────────────────
 async function doLogin() {
@@ -1169,7 +1178,9 @@ async function doLogin() {
     _currentUser = data.user;
     // รีเซต public mode เสมอเมื่อ login สำเร็จ
     _publicMode = false;
-    document.querySelector('.app-shell').classList.remove('public-mode');
+    const _shell = document.querySelector('.app-shell');
+    _shell.classList.remove('public-mode');
+    _shell.classList.toggle('is-superadmin', data.user?.role === 'superadmin');
     document.getElementById('publicBadge').style.display = 'none';
     writeLog('LOGIN_OK', `เข้าสู่ระบบสำเร็จ`);
     document.getElementById('topbarUser').textContent = data.user.full_name || data.user.username;
@@ -1186,6 +1197,7 @@ async function doLogin() {
 function doLogout() {
   _token = '';
   localStorage.removeItem(LS.session);
+  document.querySelector('.app-shell').classList.remove('is-superadmin');
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('l_pass').value  = '';
   document.getElementById('loginErr').textContent = '';
@@ -1213,6 +1225,7 @@ async function enterPublicMode() {
 function exitPublicMode() {
   _publicMode = false;
   document.querySelector('.app-shell').classList.remove('public-mode');
+  document.querySelector('.app-shell').classList.remove('is-superadmin');
   document.getElementById('publicBadge').style.display = 'none';
   document.getElementById('loginScreen').classList.remove('hidden');
   state.courses = []; state.teachers = []; state.subjects = [];
@@ -1398,6 +1411,7 @@ async function syncMasterData() {
     _currentUser = me.user;
     document.getElementById('topbarUser').textContent = me.user?.full_name || me.user?.username || '—';
     document.getElementById('loginScreen').classList.add('hidden');
+    document.querySelector('.app-shell').classList.toggle('is-superadmin', me.user?.role === 'superadmin');
     await initApp();
   } catch { _token = ''; localStorage.removeItem(LS.session); }
 })();
@@ -2507,7 +2521,7 @@ function renderSettingsView() {
       <button class="btn btn-gray" onclick="changePassword()" style="margin-left:8px">🔑 เปลี่ยนรหัสผ่าน</button>
     </div>
   </div>
-  <div class="card" style="margin-bottom:16px">
+  ${isSuperAdmin() ? `<div class="card" style="margin-bottom:16px">
     <div class="card-header"><h3 style="font-size:1rem;margin:0">☁️ ซิงค์ข้อมูลขึ้นเว็บไซท์</h3></div>
     <div class="card-body">
       <div style="background:#e8f5e9;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:0.85rem;line-height:2.2">
@@ -2550,7 +2564,11 @@ function renderSettingsView() {
       <button class="btn btn-primary" onclick="exportAllData()">📤 ส่งออกข้อมูล (JSON)</button>
       <button class="btn btn-gray" onclick="importAllData()">📥 นำเข้าข้อมูล (JSON)</button>
     </div>
-  </div>
+  </div>` : `<div class="card" style="margin-bottom:16px">
+    <div class="card-body" style="color:#888;font-size:0.85rem;text-align:center;padding:18px">
+      🔒 การซิงค์ข้อมูลและสำรองข้อมูล — เฉพาะ <strong>Super Admin</strong> เท่านั้น
+    </div>
+  </div>`}
   ${listCard('สถานที่','📍','locationList','DEFAULT_LOCATIONS','addLocation','deleteLocation')}
   ${listCard('หลักฐาน','📄','evidenceList','DEFAULT_EVIDENCES','addEvidence','deleteEvidence')}`;
 }
@@ -3294,6 +3312,7 @@ async function testGithubToken() {
 }
 
 async function syncToGitHub() {
+  if (!isSuperAdmin()) { showToast('⛔ เฉพาะ Super Admin เท่านั้น'); return; }
   const token = lsRead('ttm_github_token') || '';
   if (!token) {
     showToast('❌ กรุณาตั้งค่า GitHub Token ในหน้าตั้งค่าก่อน');
@@ -3429,6 +3448,7 @@ async function loadFromGitHub() {
 }
 
 function exportAllData() {
+  if (!isSuperAdmin()) { showToast('⛔ เฉพาะ Super Admin เท่านั้น'); return; }
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -3445,6 +3465,7 @@ function exportAllData() {
 }
 
 function importAllData() {
+  if (!isSuperAdmin()) { showToast('⛔ เฉพาะ Super Admin เท่านั้น'); return; }
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = '.json';
   inp.onchange = async e => {
@@ -4091,24 +4112,28 @@ async function renderAdminView() {
     };
 
     const isSA = isSuperAdmin();
-    const userRows = users.map(u => `
-      <tr>
+    const userRows = users.map(u => {
+      const isMe = String(u.id) === String(_currentUser?.id) || u.username === _currentUser?.username;
+      const roleBadge = u.role === 'superadmin'
+        ? `<span style="font-size:0.75rem;background:#1a2f4e;color:white;padding:2px 8px;border-radius:10px">👑 Super Admin</span>`
+        : `<span style="font-size:0.75rem;background:#388e3c;color:white;padding:2px 8px;border-radius:10px">👤 Admin</span>`;
+      const actions = isSA && !isMe ? `
+        <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9"
+          onclick="openEditUser(${u.id},'${esc(u.full_name||'')}','${u.role||'admin'}')">✏️ แก้ไข</button>
+        <button class="btn btn-sm" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8"
+          onclick="openResetPw(${u.id},'${esc(u.username)}')">🔐 รีเซต pw</button>
+        <button class="btn btn-danger btn-sm"
+          onclick="deleteUser(${u.id},'${esc(u.username)}')">🗑️ ลบ</button>`
+        : isMe ? `<span style="font-size:0.78rem;color:#888">(บัญชีของคุณ)</span>`
+        : `<span style="color:#bbb;font-size:0.78rem">—</span>`;
+      return `<tr>
         <td>${esc(u.username)}</td>
         <td>${esc(u.full_name||'—')}</td>
-        <td><span style="font-size:0.75rem;background:${u.username==='admin1'?'#1a2f4e':'#388e3c'};color:white;padding:2px 8px;border-radius:10px">
-          ${u.username==='admin1'?'Super Admin':'Admin'}</span></td>
+        <td>${roleBadge}</td>
         <td style="font-size:0.78rem;color:#888">${u.created_at?new Date(u.created_at).toLocaleDateString('th-TH'):'—'}</td>
-        <td style="white-space:nowrap">
-          ${isSA && u.username !== 'admin1' ? `
-            <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9"
-              onclick="openEditUser(${u.id},'${esc(u.full_name||'')}')">✏️ แก้ไข</button>
-            <button class="btn btn-sm" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8"
-              onclick="openResetPw(${u.id},'${esc(u.username)}')">🔐 รีเซต pw</button>
-            <button class="btn btn-danger btn-sm"
-              onclick="deleteUser(${u.id},'${esc(u.username)}')">🗑️ ลบ</button>
-          ` : '<span style="color:#bbb;font-size:0.78rem">—</span>'}
-        </td>
-      </tr>`).join('');
+        <td style="white-space:nowrap">${actions}</td>
+      </tr>`;
+    }).join('');
 
     let logsHtml = '';
     if (isSA) {
@@ -4159,7 +4184,7 @@ async function renderAdminView() {
           </table>
         </div>
         ${!isSA ? `<div style="padding:10px 16px;font-size:0.78rem;color:#888;border-top:1px solid #eee">
-          💡 เฉพาะ admin1 เท่านั้นที่สามารถเพิ่ม/แก้ไข/ลบแอดมินได้
+          💡 เฉพาะ <strong>Super Admin</strong> เท่านั้นที่สามารถเพิ่ม/แก้ไข/ลบผู้ใช้ได้
         </div>` : ''}
       </div>
       ${logsHtml}`;
@@ -4171,23 +4196,27 @@ async function renderAdminView() {
 // ── User Modal ──
 function openUserModal() {
   _editingUserId = null;
-  document.getElementById('userModalTitle').textContent = 'เพิ่มแอดมิน';
-  document.getElementById('u_username').value   = '';
-  document.getElementById('u_fullname').value   = '';
-  document.getElementById('u_password').value   = '';
-  document.getElementById('u_password2').value  = '';
+  document.getElementById('userModalTitle').textContent = 'เพิ่มผู้ใช้งาน';
+  document.getElementById('u_username').value    = '';
+  document.getElementById('u_fullname').value    = '';
+  document.getElementById('u_password').value    = '';
+  document.getElementById('u_password2').value   = '';
+  document.getElementById('u_role').value        = 'admin';
   document.getElementById('u_username').disabled = false;
-  document.getElementById('u_pass_row').style.display = '';
+  document.getElementById('u_pass_row').style.display  = '';
+  document.getElementById('u_role_row').style.display  = '';
   document.getElementById('u_save_btn').textContent = 'บันทึก';
   openModal('userModal');
 }
-function openEditUser(id, fullName) {
+function openEditUser(id, fullName, role) {
   _editingUserId = id;
-  document.getElementById('userModalTitle').textContent = 'แก้ไขข้อมูลแอดมิน';
-  document.getElementById('u_username').value   = '';
+  document.getElementById('userModalTitle').textContent = 'แก้ไขข้อมูลผู้ใช้';
+  document.getElementById('u_username').value    = '';
   document.getElementById('u_username').disabled = true;
-  document.getElementById('u_fullname').value   = fullName;
-  document.getElementById('u_pass_row').style.display = 'none';
+  document.getElementById('u_fullname').value    = fullName;
+  document.getElementById('u_role').value        = role || 'admin';
+  document.getElementById('u_pass_row').style.display  = 'none';
+  document.getElementById('u_role_row').style.display  = '';
   document.getElementById('u_save_btn').textContent = 'บันทึกการแก้ไข';
   openModal('userModal');
 }
@@ -4197,11 +4226,12 @@ async function saveUser() {
   const password  = document.getElementById('u_password').value;
   const password2 = document.getElementById('u_password2').value;
 
+  const role = document.getElementById('u_role').value || 'admin';
   if (_editingUserId) {
-    // แก้ไขชื่อ
+    // แก้ไขชื่อ + สิทธิ์
     try {
-      await api('PUT', `/auth/users/${_editingUserId}`, { full_name: fullName });
-      writeLog('EDIT_USER', `แก้ไขชื่อผู้ใช้ id:${_editingUserId} → ${fullName}`);
+      await api('PUT', `/auth/users/${_editingUserId}`, { full_name: fullName, role });
+      writeLog('EDIT_USER', `แก้ไขผู้ใช้ id:${_editingUserId} → ${fullName} (${role})`);
       closeModal('userModal'); renderAdminView(); showToast('แก้ไขข้อมูลสำเร็จ');
     } catch (e) { showToast('ผิดพลาด: ' + e.message); }
   } else {
@@ -4210,17 +4240,26 @@ async function saveUser() {
     if (!password) { showToast('กรุณากรอก password'); return; }
     if (password !== password2) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
     try {
-      await api('POST', '/auth/users', { username, password, role:'admin', full_name: fullName||null });
-      writeLog('CREATE_USER', `สร้างแอดมิน: ${username} (${fullName||'—'})`);
-      closeModal('userModal'); renderAdminView(); showToast(`✅ สร้างแอดมิน "${username}" สำเร็จ`);
+      await api('POST', '/auth/users', { username, password, role, full_name: fullName||null });
+      writeLog('CREATE_USER', `สร้างผู้ใช้: ${username} (${role})`);
+      closeModal('userModal'); renderAdminView(); showToast(`✅ สร้าง "${username}" สำเร็จ (${role})`);
     } catch (e) { showToast('ผิดพลาด: ' + e.message); }
   }
 }
 async function deleteUser(id, username) {
-  if (!confirm(`ลบแอดมิน "${username}"?\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
+  // ป้องกันลบ super admin คนสุดท้าย
+  const users = lsRead(LS.users) || _defaultUsers();
+  const target = users.find(u => String(u.id) === String(id));
+  if (target?.role === 'superadmin') {
+    const superAdmins = users.filter(u => u.role === 'superadmin');
+    if (superAdmins.length <= 1) {
+      showToast('⛔ ไม่สามารถลบ Super Admin คนสุดท้ายได้'); return;
+    }
+  }
+  if (!confirm(`ลบผู้ใช้ "${username}"?\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
   try {
     await api('DELETE', `/auth/users/${id}`);
-    writeLog('DELETE_USER', `ลบแอดมิน: ${username}`);
+    writeLog('DELETE_USER', `ลบผู้ใช้: ${username}`);
     renderAdminView(); showToast(`ลบ "${username}" สำเร็จ`);
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
