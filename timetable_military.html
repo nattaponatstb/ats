@@ -1851,7 +1851,7 @@ function renderSummaryView() {
         <td style="white-space:nowrap;font-size:0.82rem">${dayName(e.date)}<br>${formatDate(e.date)}</td>
         <td style="white-space:nowrap;font-size:0.82rem">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
         <td class="text-center">${cumStr}</td>
-        <td style="font-size:0.82rem">${getTeacherText(e).split(' / ').map(t=>esc(t)).join('<br>')}</td>
+        <td style="font-size:0.82rem">${getTeacherText(e).split(' / ').map(t=>`<span style="white-space:nowrap;display:block">${esc(t)}</span>`).join('')}</td>
         <td class="text-center"><span class="badge badge-method">${esc(e.method||'')}</span></td>
         <td style="font-size:0.8rem">${esc(e.location||'')}</td>
         <td style="font-size:0.8rem">${esc(e.uniform||'')}</td>
