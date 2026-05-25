@@ -2294,11 +2294,11 @@ function openPrintWindow(bodyHtml, landscape = true) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=${vpWidth},initial-scale=1">
   <style>
+    @page{size:${pSize};margin:0;}
     @font-face{font-family:'TH SarabunIT๙';src:local('TH SarabunIT๙'),local('TH Sarabun New');}
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:white;width:${vpWidth}px;font-size:9pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     @media print{
-      @page{size:${pSize};margin:0;}
       body{width:auto;padding:8mm 8mm 10mm 8mm;}
       .print-page{page-break-after:always;}
       .print-page:last-child{page-break-after:avoid;}
