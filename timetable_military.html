@@ -2967,19 +2967,25 @@ function printTimetable() {
     <col style="width:11%"><!-- หมายเหตุ -->
   </colgroup>`;
 
-  // ── <thead>: แถว column headers เท่านั้น (ไม่มีหัวกระดาษ) ───────────────
-  const thead = `<thead><tr>
-    <th>วัน , เดือน , ปี</th>
-    <th>เวลา</th>
-    <th>วิชา</th>
-    <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
-    <th>ผู้สอน</th>
-    <th>วิธีสอน</th>
-    <th>สถานที่</th>
-    <th>หลักฐาน</th>
-    <th>การแต่งกาย</th>
-    <th>หมายเหตุ</th>
-  </tr></thead>`;
+  // ── <thead>: หัวกระดาษ + แถว column headers ─────────────────────────────
+  const HF = "font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;font-weight:bold;text-align:center;background:white;border:none;padding:1px 0;";
+  const thead = (dateRange, w) => `<thead>
+    <tr><td colspan="10" style="${HF}padding-top:8mm">ตารางสอนประจำสัปดาห์</td></tr>
+    <tr><td colspan="10" style="${HF}">${esc(state.schoolName)}</td></tr>
+    <tr><td colspan="10" style="${HF}padding-bottom:3px">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')} &nbsp; ประจำสัปดาห์ที่ ${toThai(w)} &nbsp; วันที่ ${dateRange}</td></tr>
+    <tr>
+      <th>วัน , เดือน , ปี</th>
+      <th>เวลา</th>
+      <th>วิชา</th>
+      <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th>
+      <th>ผู้สอน</th>
+      <th>วิธีสอน</th>
+      <th>สถานที่</th>
+      <th>หลักฐาน</th>
+      <th>การแต่งกาย</th>
+      <th>หมายเหตุ</th>
+    </tr>
+  </thead>`;
 
   // ── ส่วนตรวจถูกต้อง ───────────────────────────────────────────────────────
   // ชื่อเต็ม (ยศ + ชื่อ-สกุล) ใช้คำนวณ offset
@@ -3062,6 +3068,12 @@ function printTimetable() {
   weeks.forEach((w, wIdx) => {
     const isLastWeek = (wIdx === weeks.length - 1);
     const wEntries   = entries.filter(e => (e.week||1) === w);
+    const teachDates = wEntries.filter(e=>e.type!=='holiday').map(e=>e.date).filter(Boolean).sort();
+    const allDates   = wEntries.map(e=>e.date).filter(Boolean).sort();
+    const drDates    = teachDates.length ? teachDates : allDates;
+    const dateRange  = drDates.length
+      ? `${formatDate(drDates[0])}${drDates.length>1 ? ' – '+formatDate(drDates[drDates.length-1]) : ''}`
+      : '';
     const dateOrder  = [...new Set(wEntries.map(e => e.date))];
     const byDate     = {};
     wEntries.forEach(e => { (byDate[e.date] = byDate[e.date]||[]).push(e); });
@@ -3069,7 +3081,7 @@ function printTimetable() {
     const emptyBody = `<tbody><tr><td colspan="10" style="text-align:center;padding:20px">(ไม่มีข้อมูล)</td></tr></tbody>`;
 
     if (!dateOrder.length) {
-      pages += `<div class="print-page"><table class="print-table">${colgroup}${thead}${emptyBody}</table></div>`;
+      pages += `<div class="print-page"><table class="print-table">${colgroup}${thead(dateRange,w)}${emptyBody}</table></div>`;
       return;
     }
 
@@ -3107,7 +3119,7 @@ function printTimetable() {
     pages += `<div class="print-page">
       <table class="print-table">
         ${colgroup}
-        ${thead}
+        ${thead(dateRange,w)}
         ${bodiesHtml}
       </table>
     </div>`;
@@ -3115,7 +3127,7 @@ function printTimetable() {
 
   if (!weeks.length) {
     pages = `<div class="print-page">
-      <table class="print-table">${colgroup}${thead}
+      <table class="print-table">${colgroup}${thead('','')}
         <tbody><tr><td colspan="10" style="text-align:center;padding:30px">(ไม่มีข้อมูล)</td></tr></tbody>
       </table>
     </div>`;
