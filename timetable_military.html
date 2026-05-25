@@ -2997,7 +2997,7 @@ async function printTimetable() {
   const SF = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;line-height:1.9;`;
   const signerBlock = _fullName ? `<div style="${SF}">
     <div style="margin-left:50%;text-align:left">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
-    <div style="margin-left:calc(50% + 10ch)">${esc(_fullName)}</div>
+    <div style="margin-left:calc(50% + 10em)">${esc(_fullName)}</div>
     ${course.signerPos1?`<div style="margin-left:calc(50% + ${pos1ML}ch);padding-left:${pos1PL}ch">${esc(course.signerPos1)}</div>`:''}
     ${course.signerPos2?`<div style="margin-left:calc(50% + ${pos2ML}ch);padding-left:${pos2PL}ch">${esc(course.signerPos2)}</div>`:''}
     ${course.signerDate?`<div style="margin-left:calc(50% + ${dateML}ch);padding-left:${datePL}ch">${esc(course.signerDate)}</div>`:''}
