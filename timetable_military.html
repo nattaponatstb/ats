@@ -2382,26 +2382,30 @@ function renderSettingsView() {
     <div class="card-header"><h3 style="font-size:1rem;margin:0">☁️ ซิงค์ข้อมูลขึ้นเว็บไซท์</h3></div>
     <div class="card-body">
       <div style="background:#e8f5e9;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:0.85rem;line-height:2.2">
-        <strong>⚡ ตั้งค่าครั้งเดียว — ทำตาม 3 ขั้นนี้:</strong><br>
-        <b style="color:#1565c0">① คลิกลิงก์นี้เพื่อสร้าง Token:</b><br>
+        <strong>⚡ สร้าง Token (ทำครั้งเดียว):</strong><br>
+        <b>① เปิดลิงก์นี้</b> (ต้อง login GitHub ก่อน):<br>
         <a href="https://github.com/settings/tokens/new?scopes=repo&description=timetable-sync"
            target="_blank"
            style="background:#1565c0;color:white;padding:6px 14px;border-radius:6px;text-decoration:none;font-weight:700;display:inline-block;margin:2px 0">
-          🔗 สร้าง GitHub Token (คลิกที่นี่)
-        </a><br>
-        <b style="color:#1565c0">② กดปุ่มสีเขียว "Generate token"</b> ที่ด้านล่างสุดของหน้า (ไม่ต้องเปลี่ยนอะไร)<br>
-        <b style="color:#1565c0">③ Copy token</b> ที่ขึ้นต้นด้วย <code style="background:#f5f5f5;padding:1px 5px">ghp_...</code> แล้ววางในช่องด้านล่าง
+          🔗 สร้าง GitHub Token
+        </a>
+        &nbsp;— ถ้าหน้าที่เปิดมีคำว่า <b>"Fine-grained"</b> ให้คลิก
+        <a href="https://github.com/settings/tokens/new?scopes=repo&description=timetable-sync" target="_blank" style="color:#c62828;font-weight:700">Tokens (classic)</a> ทางซ้ายแทน<br>
+        <b>② เลื่อนลงสุด</b> → กดปุ่มสีเขียว <b>"Generate token"</b><br>
+        <b>③ Copy token</b> ที่ขึ้นต้น <code style="background:#f5f5f5;padding:1px 5px">ghp_</code> → วางด้านล่าง
       </div>
-      <div class="form-group" style="margin-bottom:10px">
+      <div class="form-group" style="margin-bottom:8px">
         <label>GitHub Token <small style="color:#888">(เก็บในเครื่องนี้เท่านั้น)</small></label>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
           <input class="form-control" type="password" id="cfg_github_token"
             value="${esc(lsRead('ttm_github_token')||'')}"
             placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            style="flex:1;font-family:monospace;font-size:0.82rem">
+            style="flex:1;min-width:200px;font-family:monospace;font-size:0.82rem">
           <button class="btn btn-primary btn-sm" onclick="saveGithubToken()">💾 บันทึก</button>
+          <button class="btn btn-sm" onclick="testGithubToken()" style="background:#e65100;color:white;border:none">🔍 ทดสอบ</button>
         </div>
       </div>
+      <div id="tokenTestResult" style="margin-bottom:8px;font-size:0.82rem"></div>
       <div id="syncStatus" style="margin-bottom:10px;font-size:0.82rem;color:#555">
         ${lsRead('ttm_last_sync') ? `<span style="color:#2e7d32">✅ ซิงค์ล่าสุด: ${esc(lsRead('ttm_last_sync'))}</span>` : '<span style="color:#888">ยังไม่เคยซิงค์</span>'}
       </div>
@@ -3134,6 +3138,28 @@ function saveGithubToken() {
   const token = document.getElementById('cfg_github_token').value.trim();
   lsWrite('ttm_github_token', token);
   showToast(token ? '✅ บันทึก Token แล้ว' : 'ล้าง Token แล้ว');
+}
+
+async function testGithubToken() {
+  const token = document.getElementById('cfg_github_token')?.value.trim() || lsRead('ttm_github_token') || '';
+  const el = document.getElementById('tokenTestResult');
+  if (!token) { if(el) el.innerHTML='<span style="color:#c62828">❌ กรุณากรอก Token ก่อน</span>'; return; }
+  if(el) el.innerHTML = '⏳ กำลังทดสอบ…';
+  try {
+    const r = await fetch('https://api.github.com/repos/nattaponatstb/ats', {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    const j = await r.json();
+    if (r.ok && j.permissions?.push) {
+      if(el) el.innerHTML = '<span style="color:#2e7d32">✅ Token ใช้ได้ — มีสิทธิ์เขียนไฟล์</span>';
+    } else if (r.ok) {
+      if(el) el.innerHTML = '<span style="color:#e65100">⚠️ Token ถูกต้อง แต่ไม่มีสิทธิ์เขียน — กรุณาสร้าง Token ใหม่ที่มี repo scope</span>';
+    } else {
+      if(el) el.innerHTML = `<span style="color:#c62828">❌ Token ไม่ถูกต้อง: ${esc(j.message||r.status)}</span>`;
+    }
+  } catch(e) {
+    if(el) el.innerHTML = `<span style="color:#c62828">❌ เชื่อมต่อไม่ได้: ${esc(e.message)}</span>`;
+  }
 }
 
 async function syncToGitHub() {
