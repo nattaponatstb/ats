@@ -2993,7 +2993,7 @@ async function printTimetable() {
   // เดือน ปี  : margin-left = 50% + (14 + nBN/2 - 1)em
   const pos1ML = (14 + nBN/2 - p1L/2).toFixed(2);
   const pos2ML = (14 + nBN/2 - p2L/2).toFixed(2);
-  const dateML = (14 + nBN/2 - 1).toFixed(2);
+  const dateML = (14 + nBN/2).toFixed(2);
   const SF = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;line-height:1.9;`;
   const signerBlock = _fullName ? `<div style="${SF}">
     <div style="margin-left:50%;text-align:left">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
