@@ -3093,8 +3093,8 @@ function printTimetable() {
         bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">${buildDayBody(byDate[date], date)}</tbody>`;
       });
     } else {
-      // ── สัปดาห์สุดท้าย: วันสุดท้าย + ตรวจถูกต้อง ติดกัน ─────────────────
-      const lastDate  = dateOrder[dateOrder.length - 1];
+      // ── สัปดาห์สุดท้าย: วันสุดท้าย + ตรวจถูกต้อง ────────────────────────
+      const lastDate   = dateOrder[dateOrder.length - 1];
       const otherDates = dateOrder.slice(0, -1);
 
       // วันอื่นๆ (ยกเว้นวันสุดท้าย)
@@ -3102,15 +3102,22 @@ function printTimetable() {
         bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">${buildDayBody(byDate[date], date)}</tbody>`;
       });
 
-      // วันสุดท้าย: break-after:avoid เพื่อติดกับ tbody ถัดไป (ตรวจถูกต้อง)
-      bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid;break-after:avoid;page-break-after:avoid">
+      // วันสุดท้าย + ตรวจถูกต้อง อยู่ใน tbody เดียวกัน
+      // ถ้าพื้นที่ไม่พอ → browser เลื่อนทั้ง tbody ขึ้นหน้าใหม่
+      // 3 แถวหัว (ตารางสอน / โรงเรียน / หลักสูตร) ฝังไว้ด้านบนของ tbody
+      // จึงขึ้นหน้าใหม่พร้อมกันแน่นอน
+      const HFb = "font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;font-weight:bold;text-align:center;background:white;border:none;padding:1px 0;";
+      bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid">
+        <tr><td colspan="10" style="${HFb}padding-top:4mm">ตารางสอนประจำสัปดาห์</td></tr>
+        <tr><td colspan="10" style="${HFb}">${esc(state.schoolName)}</td></tr>
+        <tr><td colspan="10" style="${HFb}padding-bottom:3px">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')} &nbsp; ประจำสัปดาห์ที่ ${toThai(w)} &nbsp; วันที่ ${dateRange}</td></tr>
+        <tr>
+          <th>วัน , เดือน , ปี</th><th>เวลา</th><th>วิชา</th>
+          <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th><th>ผู้สอน</th>
+          <th>วิธีสอน</th><th>สถานที่</th><th>หลักฐาน</th>
+          <th>การแต่งกาย</th><th>หมายเหตุ</th>
+        </tr>
         ${buildDayBody(byDate[lastDate], lastDate)}
-      </tbody>`;
-
-      // ตรวจถูกต้อง: break-before:avoid → ติดกับวันสุดท้าย
-      // ถ้าพื้นที่ไม่พอ browser จะเลื่อนทั้งก้อนขึ้นหน้าใหม่
-      // thead จะซ้ำอัตโนมัติ (column headers) → วันสุดท้าย → เว้น 1 บรรทัด → ตรวจถูกต้อง
-      bodiesHtml += `<tbody style="break-inside:avoid;page-break-inside:avoid;break-before:avoid;page-break-before:avoid">
         <tr><td colspan="10" style="border:none;height:1.6em;padding:0"></td></tr>
         <tr><td colspan="10" style="border:none;padding:0">${signerBlock}</td></tr>
       </tbody>`;
