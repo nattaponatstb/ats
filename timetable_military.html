@@ -2979,28 +2979,29 @@ async function printTimetable() {
   }
 
   // ── ตรวจถูกต้อง ───────────────────────────────────────────────────────────
-  const _fullName = [course.signerRank||'', course.signerName||''].filter(Boolean).join(' ');
-  const nL  = _fullName.length;
-  const p1L = (course.signerPos1||'').length;
-  const p2L = (course.signerPos2||'').length;
+  const _rank     = course.signerRank||'';
+  const _name     = course.signerName||'';
+  const _fullName = [_rank, _name].filter(Boolean).join(' ');
+  const nBN   = _name.length + 2;          // ชื่อ-สกุล + วงเล็บ 2 ตัว
+  const p1L   = (course.signerPos1||'').length;
+  const p2L   = (course.signerPos2||'').length;
   // ── สูตรตำแหน่งตาม spec ────────────────────────────────────────────────
-  // ชื่อ-สกุล : margin-left = 50% + 14ch  , padding-left = 0
-  // ตำแหน่ง 1 : margin-left = 50% + (15 + name/2 - pos1/2)ch , padding-left = max(0,(name-pos1)/2)ch
-  // ตำแหน่ง 2 : margin-left = 50% + (15 + name/2 - pos2/2)ch , padding-left = max(0,(name-pos2)/2)ch
-  // เดือน ปี  : margin-left = 50% + (14 + name/2)ch          , padding-left = name/2 ch
-  const pos1ML = (15 + nL/2 - p1L/2).toFixed(2);
-  const pos1PL = Math.max(0, (nL - p1L)/2).toFixed(2);
-  const pos2ML = (15 + nL/2 - p2L/2).toFixed(2);
-  const pos2PL = Math.max(0, (nL - p2L)/2).toFixed(2);
-  const dateML = (14 + nL/2).toFixed(2);
-  const datePL = (nL/2).toFixed(2);
+  // ยศ        : margin-left = 50% + 10em
+  // ชื่อ-สกุล : margin-left = 50% + 14em  (แสดงพร้อมวงเล็บ)
+  // ตำแหน่ง 1 : margin-left = 50% + (14 + nBN/2 - p1L/2)em
+  // ตำแหน่ง 2 : margin-left = 50% + (14 + nBN/2 - p2L/2)em
+  // เดือน ปี  : margin-left = 50% + (14 + nBN/2 - 1)em
+  const pos1ML = (14 + nBN/2 - p1L/2).toFixed(2);
+  const pos2ML = (14 + nBN/2 - p2L/2).toFixed(2);
+  const dateML = (14 + nBN/2 - 1).toFixed(2);
   const SF = `font-family:'TH SarabunIT๙','TH Sarabun New',Sarabun,serif;font-size:16pt;line-height:1.9;`;
   const signerBlock = _fullName ? `<div style="${SF}">
     <div style="margin-left:50%;text-align:left">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
-    <div style="margin-left:calc(50% + 10em)">${esc(_fullName)}</div>
-    ${course.signerPos1?`<div style="margin-left:calc(50% + ${pos1ML}ch);padding-left:${pos1PL}ch">${esc(course.signerPos1)}</div>`:''}
-    ${course.signerPos2?`<div style="margin-left:calc(50% + ${pos2ML}ch);padding-left:${pos2PL}ch">${esc(course.signerPos2)}</div>`:''}
-    ${course.signerDate?`<div style="margin-left:calc(50% + ${dateML}ch);padding-left:${datePL}ch">${esc(course.signerDate)}</div>`:''}
+    ${_rank?`<div style="margin-left:calc(50% + 10em)">${esc(_rank)}</div>`:''}
+    ${_name?`<div style="margin-left:calc(50% + 14em)">(${esc(_name)})</div>`:''}
+    ${course.signerPos1?`<div style="margin-left:calc(50% + ${pos1ML}em)">${esc(course.signerPos1)}</div>`:''}
+    ${course.signerPos2?`<div style="margin-left:calc(50% + ${pos2ML}em)">${esc(course.signerPos2)}</div>`:''}
+    ${course.signerDate?`<div style="margin-left:calc(50% + ${dateML}em)">${esc(course.signerDate)}</div>`:''}
   </div>` : '';
 
   // ── helper: row html ของ 1 วัน ────────────────────────────────────────────
