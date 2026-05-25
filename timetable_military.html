@@ -286,8 +286,21 @@ textarea.form-control { resize: vertical; min-height: 60px; }
         👁️ ดูตารางสอน
       </button>
     </div>
+    <div style="margin-top:14px;text-align:center">
+      <button onclick="showApiSetup()" style="background:none;border:none;color:#aaa;font-size:0.75rem;cursor:pointer;font-family:inherit;text-decoration:underline">
+        🔗 ตั้งค่า API Server
+      </button>
+      <div id="apiBaseDisplay" style="font-size:0.68rem;color:#bbb;margin-top:3px;word-break:break-all"></div>
+    </div>
   </div>
 </div>
+<script>
+  // แสดง API URL ปัจจุบันใต้ปุ่ม
+  (function() {
+    const el = document.getElementById('apiBaseDisplay');
+    if (el && API_BASE) el.textContent = API_BASE;
+  })();
+</script>
 
 <div class="app-shell">
 
@@ -838,7 +851,67 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 // ═══════════════════════════════════════════════
 //  API LAYER
 // ═══════════════════════════════════════════════
-const API_BASE = 'http://localhost:3000/api';
+function _defaultApiBase() {
+  const h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1' || h === '') {
+    return 'http://localhost:3000/api';
+  }
+  return localStorage.getItem('ttm_api_base') || '';
+}
+let API_BASE = localStorage.getItem('ttm_api_base') || _defaultApiBase();
+
+function setApiBase(url) {
+  url = (url || '').trim().replace(/\/+$/, '');
+  if (!url) return;
+  API_BASE = url;
+  localStorage.setItem('ttm_api_base', url);
+  const el = document.getElementById('apiBaseDisplay');
+  if (el) el.textContent = url;
+  const el2 = document.getElementById('apiBaseShow');
+  if (el2) el2.textContent = url;
+}
+
+function showApiSetup(onDone) {
+  const overlay = document.createElement('div');
+  overlay.id = 'apiSetupOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:32px;width:90%;max-width:460px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+      <div style="font-size:1.5rem;margin-bottom:8px">🔗 ตั้งค่า API Server</div>
+      <div style="color:#666;font-size:0.9rem;margin-bottom:20px">กรอก URL ของ server (backend) เพื่อเชื่อมต่อระบบ</div>
+      <div style="margin-bottom:8px;font-weight:600;font-size:0.9rem">API Server URL</div>
+      <input id="apiUrlInput" type="text" placeholder="https://xxxx.ngrok-free.app/api"
+        style="width:100%;padding:10px 12px;border:1.5px solid #c5d0de;border-radius:8px;font-size:0.95rem;font-family:inherit;margin-bottom:8px"
+        value="${API_BASE}">
+      <div style="font-size:0.75rem;color:#888;margin-bottom:20px">
+        💡 ถ้าใช้เครื่องตัวเอง: <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px">http://localhost:3000/api</code><br>
+        💡 ถ้าใช้ ngrok: <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px">https://xxxx.ngrok-free.app/api</code>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="
+          const v=document.getElementById('apiUrlInput').value.trim();
+          if(!v){alert('กรุณากรอก URL');return;}
+          setApiBase(v);
+          document.getElementById('apiSetupOverlay').remove();
+          if(window._apiSetupCallback) window._apiSetupCallback();
+        " style="flex:1;padding:10px;background:linear-gradient(135deg,#1a2f4e,#2d5a8e);color:#fff;border:none;border-radius:8px;font-size:1rem;font-family:inherit;cursor:pointer;font-weight:600">
+          ✅ บันทึกและเชื่อมต่อ
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('apiUrlInput').focus();
+  document.getElementById('apiUrlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const v = document.getElementById('apiUrlInput').value.trim();
+      if (!v) return;
+      setApiBase(v);
+      overlay.remove();
+      if (window._apiSetupCallback) window._apiSetupCallback();
+    }
+  });
+  window._apiSetupCallback = onDone || null;
+}
 let _token = sessionStorage.getItem('ttm_token') || '';
 let _publicMode = false;
 let _currentUser = null;   // { id, username, role, full_name }
@@ -861,6 +934,7 @@ async function api(method, path, body) {
 
 // ── Login / Logout ──────────────────────────────
 async function doLogin() {
+  if (!API_BASE) { showApiSetup(doLogin); return; }
   const username = document.getElementById('l_user').value.trim();
   const password = document.getElementById('l_pass').value;
   const errEl    = document.getElementById('loginErr');
@@ -905,6 +979,7 @@ function doLogout() {
 
 // ── Public (read-only) mode ────────────────────
 async function enterPublicMode() {
+  if (!API_BASE) { showApiSetup(enterPublicMode); return; }
   _publicMode = true;
   state.currentView = 'schedule';   // บังคับเปิดหน้าตารางสอนเสมอ
   document.querySelector('.app-shell').classList.add('public-mode');
@@ -2147,6 +2222,14 @@ function renderSettingsView() {
         <input class="form-control" id="cfg_short" value="${esc(state.schoolShort)}" placeholder="เช่น รร.ขส.ขส.ทบ.">
       </div></div>
       <button class="btn btn-primary" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><h3 style="font-size:1rem;margin:0">🔗 API Server</h3></div>
+    <div class="card-body">
+      <div style="font-size:0.85rem;color:#666;margin-bottom:8px">URL ปัจจุบัน:</div>
+      <code id="apiBaseShow" style="background:#f3f4f6;padding:6px 10px;border-radius:6px;font-size:0.85rem;display:block;margin-bottom:12px;word-break:break-all">${API_BASE || '(ยังไม่ได้ตั้งค่า)'}</code>
+      <button class="btn btn-primary btn-sm" onclick="showApiSetup(()=>{ renderSettingsView(); })">🔧 เปลี่ยน API Server URL</button>
     </div>
   </div>
   ${listCard('สถานที่','📍','locationList','DEFAULT_LOCATIONS','addLocation','deleteLocation')}
