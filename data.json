@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "syncedAt": "2026-05-25T09:51:17.422Z",
+  "syncedAt": "2026-05-25T09:55:35.435Z",
   "syncedBy": "admin1",
   "settings": {
     "schoolName": "โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก",
@@ -27,8 +27,8 @@
       "id": "mpl0ihaxh27n",
       "name": "eryserg",
       "run_number": "45",
-      "year": null,
-      "course_type": null,
+      "year": 2570,
+      "course_type": "ช.ต้น",
       "start_date": null,
       "end_date": null,
       "signer_label": "ตรวจถูกต้อง",
