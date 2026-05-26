@@ -2,20 +2,33 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ระบบตารางสอน รร.ขส.ขส.ทบ.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ===== BASE ===== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
 body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; background: #f0f4f8; color: #222; font-size: 15px; }
 
 /* ===== LAYOUT ===== */
-.app-shell { display: flex; flex-direction: column; height: 100vh; width: 100%; }
+.app-shell {
+  display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex;
+  -webkit-box-orient: vertical; -webkit-box-direction: normal;
+  -webkit-flex-direction: column; -ms-flex-direction: column; flex-direction: column;
+  height: 100vh; height: -webkit-fill-available;
+  width: 100%;
+  /* position+z-index: กำหนด stacking context ของ app-shell ไว้ที่ 0
+     เพื่อให้ #loginScreen (z-index:9999) อยู่เหนือเสมอบน Android */
+  position: relative; z-index: 0;
+}
 .topbar {
   background: linear-gradient(135deg, #1a2f4e, #2d5a8e);
-  color: white; padding: 0; display: flex; align-items: stretch; flex-shrink: 0;
+  color: white; padding: 0;
+  display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex;
+  -webkit-align-items: stretch; align-items: stretch;
+  -webkit-flex-shrink: 0; flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.25); z-index: 50; width: 100%;
 }
 .topbar-brand { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-right: 1px solid rgba(255,255,255,0.15); }
@@ -44,7 +57,7 @@ body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; background: #f0f4f8
 .btn-outline-dark:hover { background: #f4f4f4; border-color: #999; }
 
 /* ===== BE CALENDAR PICKER ===== */
-.be-cal-overlay { position: fixed; inset: 0; z-index: 900; }
+.be-cal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 900; }
 .be-cal-popup {
   position: fixed; z-index: 901; background: white; border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.28); width: 280px; overflow: hidden;
@@ -82,10 +95,19 @@ body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; background: #f0f4f8
 .btn-icon { padding: 5px 8px; }
 
 /* ===== MAIN CONTENT ===== */
-.main-content { flex: 1; overflow: hidden; display: flex; }
+.main-content {
+  -webkit-box-flex: 1; -webkit-flex: 1; -ms-flex: 1; flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex;
+}
 .sidebar {
-  width: 300px; flex-shrink: 0; background: white; border-right: 1px solid #e0e0e0;
-  display: flex; flex-direction: column; overflow: hidden;
+  width: 300px; -webkit-flex-shrink: 0; flex-shrink: 0;
+  background: white; border-right: 1px solid #e0e0e0;
+  display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex;
+  -webkit-box-orient: vertical; -webkit-box-direction: normal;
+  -webkit-flex-direction: column; -ms-flex-direction: column; flex-direction: column;
+  overflow: hidden; min-height: 0;
 }
 .sidebar-section { border-bottom: 1px solid #eee; }
 .sidebar-section-header {
@@ -94,7 +116,7 @@ body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; background: #f0f4f8
   font-size: 0.82rem; font-weight: 700; color: #444; user-select: none;
 }
 .sidebar-section-header:hover { background: #eef2f7; }
-.sidebar-section-body { overflow-y: auto; }
+.sidebar-section-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .sidebar-item {
   display: flex; align-items: center; gap: 8px;
   padding: 9px 14px; cursor: pointer; border-left: 3px solid transparent;
@@ -104,7 +126,12 @@ body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; background: #f0f4f8
 .sidebar-item.active { background: #e3f2fd; border-left-color: #1976d2; color: #1565c0; font-weight: 700; }
 .sidebar-item .item-meta { font-size: 0.72rem; color: #888; margin-top: 1px; }
 
-.content-area { flex: 1; overflow-y: auto; padding: 20px; }
+.content-area {
+  -webkit-box-flex: 1; -webkit-flex: 1; -ms-flex: 1; flex: 1;
+  min-height: 0; min-width: 0;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 20px;
+}
 
 /* ===== CARDS ===== */
 .card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; overflow: hidden; }
@@ -136,7 +163,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 #summaryTable td:nth-child(2) { min-width: 90px; white-space: nowrap; }   /* วัน/วันที่ */
 #summaryTable td:nth-child(3) { min-width: 110px; white-space: nowrap; }  /* เวลา */
 #summaryTable td:nth-child(5) { min-width: 120px; white-space: nowrap; }  /* ผู้สอน */
-.is-mobile #summaryTable td:nth-child(5) { white-space: nowrap; }         /* ผู้สอน mobile */
+@media (max-width: 900px) { #summaryTable td:nth-child(5) { white-space: nowrap; } } /* ผู้สอน mobile */
 .data-table th {
   background: #1a2f4e; color: white; padding: 9px 10px;
   text-align: center; font-weight: 600; font-size: 0.8rem; white-space: nowrap;
@@ -155,14 +182,23 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 .badge-hours  { background: #fff3e0; color: #e65100; }
 
 /* ===== MODAL ===== */
-.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
-.modal-backdrop.open { display: flex; }
+.modal-backdrop {
+  display: none; position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: rgba(0,0,0,0.5); z-index: 200;
+  -webkit-align-items: flex-start; align-items: flex-start;
+  -webkit-justify-content: center; justify-content: center;
+  padding: 40px 20px; overflow-y: auto;
+}
+.modal-backdrop.open {
+  display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex;
+}
 .modal { background: white; border-radius: 12px; width: 100%; max-width: 820px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); animation: slideIn 0.2s ease; }
 @keyframes slideIn { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
 .modal-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; background: #1a2f4e; border-radius: 12px 12px 0 0; color: white; }
 .modal-header h3 { font-size: 1rem; }
 .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
-.modal-body { padding: 20px; max-height: 70vh; overflow-y: auto; }
+.modal-body { padding: 20px; max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .modal-footer { padding: 14px 20px; border-top: 1px solid #eee; display: flex; gap: 8px; justify-content: flex-end; }
 
 /* ===== TABS (inner) ===== */
@@ -171,7 +207,12 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 .inner-tab.active { color: #1976d2; border-bottom-color: #1976d2; }
 
 /* ===== SIDEBAR MOBILE NAV ===== */
-.sidebar-mobile-nav { display: none; flex-direction: column; border-bottom: 1px solid #eee; background: #1a2f4e; }
+.sidebar-mobile-nav {
+  display: none;
+  -webkit-box-orient: vertical; -webkit-box-direction: normal;
+  -webkit-flex-direction: column; -ms-flex-direction: column; flex-direction: column;
+  border-bottom: 1px solid #eee; background: #1a2f4e;
+}
 .smn-btn {
   width: 100%; padding: 13px 18px; text-align: left; border: none;
   background: none; color: white; font-family: inherit; font-size: 0.95rem;
@@ -188,49 +229,80 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 /* ===== RESPONSIVE MOBILE ===== */
 #sidebarToggle { display: none; }
 .sidebar-overlay {
-  display: none; position: fixed; inset: 0;
+  display: none; position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
   background: rgba(0,0,0,0.45); z-index: 99;
 }
 .sidebar-overlay.open { display: block; }
 
-/* Mobile layout ควบคุมด้วย JS class .is-mobile บน <body> */
-.is-mobile .topbar        { flex-wrap: nowrap; overflow: visible; }
-.is-mobile #sidebarToggle { display: flex !important; flex-shrink: 0; align-items: center; }
-.is-mobile .topbar-brand  { flex-shrink: 0; padding: 8px 10px; border-right: none; min-width: 0; }
-.is-mobile .topbar-brand h1   { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
-.is-mobile .topbar-brand .sub { display: none; }
-.is-mobile .topbar-nav    { display: none !important; }
-.is-mobile .topbar-actions { flex-shrink: 0; padding: 0 6px; gap: 4px; margin-left: auto; }
+/* ─────────────────────────────────────────────────────────
+   Mobile layout — ใช้ @media query โดยตรง (ไม่พึ่ง JS class)
+   เพื่อให้ทำงานได้ทันทีบน Android ทุก browser/version
+───────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
 
-/* ซ่อนปุ่มที่ไม่จำเป็นบน topbar มือถือ */
-.is-mobile .topbar-actions .btn-outline { display: none !important; }
-.is-mobile .topbar-actions .user-badge  { display: none !important; }
-.is-mobile #syncBtn { display: none !important; }
-/* ปุ่ม print ให้แสดงใน sidebar แทน ซ่อนใน topbar บนมือถือ */
-.is-mobile .topbar-actions .public-badge { display: flex !important; }
-.is-mobile .topbar-actions .public-badge .badge-label { display: none; }
+  /* Topbar */
+  .topbar        { flex-wrap: nowrap; overflow: visible; }
+  #sidebarToggle { display: -webkit-flex !important; display: flex !important; -webkit-flex-shrink: 0; flex-shrink: 0; align-items: center; }
+  .topbar-brand  { -webkit-box-flex: 1; -webkit-flex: 1; -ms-flex: 1; flex: 1; min-width: 0; padding: 8px 10px; border-right: none; }
+  .topbar-brand h1  { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-brand .sub { display: none; }
+  .topbar-nav    { display: none !important; }
+  .topbar-actions { -webkit-flex-shrink: 0; flex-shrink: 0; padding: 0 6px; gap: 4px; margin-left: auto; }
 
-/* Sidebar เป็น drawer */
-.is-mobile .sidebar {
-  position: fixed !important;
-  left: 0; top: 0; bottom: 0;
-  z-index: 100; width: 280px !important;
-  transform: translateX(-100%);
-  transition: transform 0.25s ease;
-  box-shadow: 4px 0 20px rgba(0,0,0,0.25);
+  /* ซ่อนปุ่มที่ไม่จำเป็นบน topbar */
+  .topbar-actions .btn-outline { display: none !important; }
+  #syncBtn   { display: none !important; }
+  #fbSyncBtn { display: none !important; }
+
+  /* user-badge: แสดงเฉพาะปุ่มออกจากระบบ */
+  .topbar-actions .user-badge {
+    display: -webkit-box !important; display: -webkit-flex !important;
+    display: -ms-flexbox !important; display: flex !important;
+    align-items: center; gap: 0;
+  }
+  .topbar-actions .user-badge > span { display: none !important; }
+
+  /* public-badge: แสดงเฉพาะตอน public mode */
+  .app-shell.public-mode .topbar-actions .public-badge { display: -webkit-flex !important; display: flex !important; }
+  .topbar-actions .public-badge .badge-label { display: none; }
+
+  /* Sidebar เป็น drawer */
+  .sidebar {
+    position: fixed !important;
+    left: 0; top: 0; bottom: 0; height: 100%; height: 100vh;
+    z-index: 100; width: 280px !important;
+    -webkit-transform: translateX(-100%); transform: translateX(-100%);
+    -webkit-transition: -webkit-transform 0.25s ease; transition: transform 0.25s ease;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.25);
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .sidebar.open { -webkit-transform: translateX(0); transform: translateX(0); }
+  .sidebar-mobile-nav { display: -webkit-box !important; display: -webkit-flex !important; display: -ms-flexbox !important; display: flex !important; }
+
+  /* Content */
+  .content-area { padding: 10px; overflow-x: auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .form-row { -webkit-flex-direction: column; flex-direction: column; gap: 8px; }
+
+  /* Modal */
+  .modal-backdrop { padding: 0; -webkit-align-items: flex-end; align-items: flex-end; }
+  .modal {
+    border-radius: 16px 16px 0 0; max-height: 92vh;
+    display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex;
+    -webkit-box-orient: vertical; -webkit-box-direction: normal;
+    -webkit-flex-direction: column; -ms-flex-direction: column; flex-direction: column;
+  }
+  .modal-body { max-height: 62vh; -webkit-box-flex: 1; -webkit-flex: 1; -ms-flex: 1; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Tables */
+  .data-table { font-size: 0.75rem; }
+  .data-table th, .data-table td { padding: 5px 6px; }
+
+  /* Cards */
+  .card-header { -webkit-flex-wrap: wrap; flex-wrap: wrap; gap: 8px; }
+  .card-header > div { -webkit-flex-wrap: wrap; flex-wrap: wrap; gap: 6px; }
+
 }
-.is-mobile .sidebar.open { transform: translateX(0); }
-.is-mobile .sidebar-mobile-nav { display: flex !important; }
-
-/* Content */
-.is-mobile .content-area { padding: 10px; overflow-x: auto; }
-.is-mobile .form-row { flex-direction: column; gap: 8px; }
-.is-mobile .modal-backdrop { padding: 0; align-items: flex-end; }
-.is-mobile .modal { border-radius: 16px 16px 0 0; max-height: 92vh; display: flex; flex-direction: column; }
-.is-mobile .modal-body { max-height: 62vh; flex: 1; }
-.is-mobile .data-table { font-size: 0.75rem; }
-.is-mobile .data-table th, .is-mobile .data-table td { padding: 5px 6px; }
-.is-mobile .card-header { flex-wrap: wrap; gap: 8px; }
 
 /* ===== PRINT STYLES ===== */
 @media print {
@@ -295,12 +367,15 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 /* ===== LINE BROWSER WARNING ===== */
 #lineBrowserBanner {
   display: none;
-  position: fixed; inset: 0; z-index: 99999;
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 99999;
   background: rgba(0,0,0,0.7);
-  align-items: center; justify-content: center;
+  -webkit-box-align: center; -webkit-align-items: center; align-items: center;
+  -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center;
   padding: 20px;
 }
-#lineBrowserBanner.show { display: flex; }
+#lineBrowserBanner.show {
+  display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex;
+}
 .line-warn-box {
   background: white; border-radius: 16px; padding: 28px 24px;
   max-width: 360px; width: 100%; text-align: center;
@@ -331,13 +406,14 @@ textarea.form-control { resize: vertical; min-height: 60px; }
 #loginScreen {
   position: fixed;
   top: 0; right: 0; bottom: 0; left: 0;
-  width: 100vw; height: 100vh;
+  /* ไม่ใช้ 100vw/100vh ซ้ำ เพราะ top/right/bottom/left:0 ครอบคลุมแล้ว
+     และ 100vw อาจทำให้ล้นแนวนอนบน Android (นับ scrollbar) */
   z-index: 9999;
   background: linear-gradient(135deg, #0d1f35, #1a3a5c);
-  /* flexbox ทุก version รวม Android WebView เก่า */
+  /* display:flex เพื่อให้ margin:auto บน .login-box ทำงานได้ */
   display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex;
-  -webkit-box-align: center; -webkit-align-items: center; -ms-flex-align: center; align-items: center;
-  -webkit-box-pack: center; -webkit-justify-content: center; -ms-flex-pack: center; justify-content: center;
+  /* ไม่ใช้ align-items/justify-content: center เพราะขัดกับ overflow-y:auto บน Android
+     ใช้ margin:auto บน child แทน (วิธีที่เชื่อถือได้ทุก browser) */
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
   padding: 16px;
@@ -349,6 +425,9 @@ textarea.form-control { resize: vertical; min-height: 60px; }
   width: 100%; max-width: 360px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.4);
   text-align: center; box-sizing: border-box;
+  /* margin:auto ใน flex container = center ทั้ง H และ V
+     ทำงานได้แม้ container มี overflow-y:auto */
+  margin: auto;
   -webkit-flex-shrink: 0; flex-shrink: 0;
   position: relative; z-index: 1;
 }
@@ -510,7 +589,7 @@ textarea.form-control { resize: vertical; min-height: 60px; }
         </select>
         <button class="btn btn-success btn-sm hide-public" style="margin-top:8px;width:100%" onclick="openCourseModal()">+ สร้างหลักสูตรใหม่</button>
       </div>
-      <div id="sidebarContent" style="flex:1;overflow-y:auto;padding:10px 14px">
+      <div id="sidebarContent" style="-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 14px">
         <div class="empty-state" style="padding:20px">
           <div>เลือกหลักสูตรเพื่อดูข้อมูล</div>
         </div>
@@ -3037,7 +3116,9 @@ function applyMobileLayout() {
   document.body.classList.toggle('is-mobile', mobile);
 }
 window.addEventListener('resize', applyMobileLayout);
+window.addEventListener('orientationchange', function() { setTimeout(applyMobileLayout, 200); });
 document.addEventListener('DOMContentLoaded', applyMobileLayout);
+window.addEventListener('load', applyMobileLayout);
 // เรียกทันทีเผื่อ DOMContentLoaded ผ่านไปแล้ว
 applyMobileLayout();
 
