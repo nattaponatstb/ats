@@ -2279,7 +2279,7 @@ function printSummary(type) {
   const course = findCourse(state.currentCourseId);
   if (!course) return;
 
-  const SF = `font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:14pt;font-weight:bold;`;
+  const SF = `font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:14pt;font-weight:normal;`;
 
   // ── entries ที่กรองแล้ว (เหมือนใน renderSummaryView) ──
   const entries = [...(course.entries||[])]
@@ -2394,7 +2394,7 @@ function printSummary(type) {
   const _rank     = course.signerRank||'';
   const _name     = course.signerName||'';
   const _fullName = [_rank, _name].filter(Boolean).join(' ');
-  const SFS = `font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:14pt;font-weight:bold;line-height:1.9;`;
+  const SFS = `font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:14pt;font-weight:normal;line-height:1.9;`;
   const C70 = `margin-left:40%;text-align:center;line-height:1.2`;
   const signerBlock = _fullName ? `<div style="${SFS}margin-top:16px">
     <div style="margin-left:50%;text-align:left">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
@@ -3993,7 +3993,7 @@ async function printTimetable() {
   // ตรวจถูกต้อง : margin-left 50%
   // ยศ          : margin-left 58%
   // ชื่อ-สกุล / ตำแหน่ง / เดือนปี : กึ่งกลางข้อความอยู่ที่ 70% (translateX -50%)
-  const SF  = `font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:14pt;font-weight:bold;line-height:1.9;`;
+  const SF  = `font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:14pt;font-weight:normal;line-height:1.9;`;
   // margin-left:40% + text-align:center → กึ่งกลางข้อความที่ 40%+30% = 70%
   const C70 = `margin-left:40%;text-align:center;line-height:1.2`;
   const signerBlock = _fullName ? `<div style="${SF}">
