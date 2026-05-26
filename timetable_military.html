@@ -2427,7 +2427,7 @@ function openPrintWindow(bodyHtml) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    @page{size:${pSize};margin:0;}
+    @page{size:${pSize};margin:10mm 12mm;}
     /* TH SarabunIT๙ — โหลดจาก GitHub Pages (local() ก่อน ถ้ามีในเครื่องใช้เลย) */
     @font-face{font-family:'TH SarabunIT๙';font-weight:normal;
       src:local('TH SarabunIT๙'),local('THSarabunIT9'),
@@ -2439,7 +2439,7 @@ function openPrintWindow(bodyHtml) {
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:white;width:${vpWidth}px;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:var(--fn);}
     @media print{
-      body{width:auto;padding:8mm 8mm 10mm 8mm;}
+      body{width:auto;padding:0;}
       .print-page{page-break-after:always;}
       .print-page:last-child{page-break-after:avoid;}
       head,header,footer{display:none!important;}
@@ -2462,7 +2462,7 @@ function openPrintWindow(bodyHtml) {
     .print-table td.nobot{border-bottom:none;}
     .print-table td.notop{border-top:none;}
     /* ── summary ── */
-    .ps-wrap{font-family:var(--fn);font-size:14pt;font-weight:bold;color:#000;margin:10mm 12mm;}
+    .ps-wrap{font-family:var(--fn);font-size:14pt;font-weight:bold;color:#000;margin:0;}
     .ps-wrap h2{text-align:center;font-size:14pt;font-weight:bold;margin-bottom:2px;}
     .ps-wrap .sub{text-align:center;font-size:14pt;font-weight:bold;margin-bottom:6px;}
     .ps-wrap table{border-collapse:collapse;width:100%;font-size:13pt;color:#000;}
