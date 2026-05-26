@@ -3443,6 +3443,19 @@ async function pullFromFirebase() {
     lsWrite(LS.settings, settings);
     lsWrite(LS.courses,  courses);
     lsWrite(LS.entries,  entries);
+    // ซิงค์ users (ถ้ามีใน Firebase)
+    if (fb.users) {
+      const users = Object.values(fb.users);
+      // migrate roles
+      let changed = false;
+      users.forEach(u => { if (!u.role) { u.role = 'admin'; changed = true; } });
+      const hasSA = users.some(u => u.role === 'superadmin');
+      if (!hasSA) {
+        const t = users.find(u => u.username === 'admin1') || users[0];
+        if (t) { t.role = 'superadmin'; changed = true; }
+      }
+      lsWrite(LS.users, users);
+    }
     return true;
   } catch { return false; }
 }
@@ -3452,10 +3465,12 @@ async function pushToFirebase() {
     const courses  = lsRead(LS.courses)  || [];
     const entries  = lsRead(LS.entries)  || [];
     const settings = lsRead(LS.settings) || {};
+    const users    = lsRead(LS.users)    || _defaultUsers();
     const fbData = {
       settings,
       courses:  Object.fromEntries(courses.map(c => [c.id, c])),
       entries:  Object.fromEntries(entries.map(e => [e.id, e])),
+      users:    Object.fromEntries(users.map(u => [String(u.id), u])),
       syncedAt: new Date().toISOString(),
     };
     await fbSet('/data', fbData);
