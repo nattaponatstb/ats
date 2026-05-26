@@ -1391,10 +1391,9 @@ async function initApp() {
         }
       }
     } else {
-      // มีข้อมูลใน localStorage → แสดง UI ทันที แล้ว sync Firebase เบื้องหลัง
-      pullFromFirebase().then(fbOk => {
-        if (fbOk) showToast('🔄 ซิงค์ข้อมูลเรียบร้อย');
-      });
+      // มีข้อมูลใน localStorage → แสดง UI ทันที
+      // SSE initial 'put' event จะส่งข้อมูลล่าสุดจาก Firebase มาเองโดยอัตโนมัติ
+      // (ไม่ pull background เพราะ race กับ user ที่กำลังพิมพ์อยู่ → ข้อมูลหาย)
     }
 
     // โหลด settings + หลักสูตรพร้อมกัน
@@ -3439,10 +3438,19 @@ async function testGithubToken() {
 async function manualSyncToFirebase() {
   const btn = document.getElementById('fbSyncBtn');
   const ico = document.getElementById('fbSyncBtnIcon');
-  if (btn) { btn.disabled = true; }
+  if (btn) btn.disabled = true;
   if (ico) ico.textContent = '⏳';
   try {
-    await pushToFirebase();
+    // Granular push — ไม่ replace ทั้งหมด ป้องกันข้อมูลคนอื่นหาย
+    const courses  = lsRead(LS.courses)  || [];
+    const entries  = lsRead(LS.entries)  || [];
+    const settings = lsRead(LS.settings) || {};
+    const users    = lsRead(LS.users)    || _defaultUsers();
+    const tasks = [fbSet('/data/settings', settings)];
+    courses.forEach(c  => tasks.push(fbSet(`/data/courses/${c.id}`, c)));
+    entries.forEach(e  => tasks.push(fbSet(`/data/entries/${e.id}`, e)));
+    users.forEach(u    => tasks.push(fbSet(`/data/users/${String(u.id)}`, u)));
+    await Promise.all(tasks);
     if (ico) ico.textContent = '✅';
     showToast('✅ บันทึกการแก้ไขสำเร็จ — ผู้ใช้อื่นจะเห็นข้อมูลล่าสุดแล้ว');
     writeLog('MANUAL_SYNC', 'บันทึกการแก้ไขขึ้น Firebase');
@@ -3569,18 +3577,17 @@ async function pullFromFirebase() {
     lsWrite(LS.settings, settings);
     lsWrite(LS.courses,  courses);
     lsWrite(LS.entries,  entries);
-    // ซิงค์ users (ถ้ามีใน Firebase)
+    // ซิงค์ users (เฉพาะเมื่อ Firebase มี users จริง — ป้องกันเขียน [] ทับ)
     if (fb.users) {
-      const users = Object.values(fb.users);
-      // migrate roles
-      let changed = false;
-      users.forEach(u => { if (!u.role) { u.role = 'admin'; changed = true; } });
-      const hasSA = users.some(u => u.role === 'superadmin');
-      if (!hasSA) {
-        const t = users.find(u => u.username === 'admin1') || users[0];
-        if (t) { t.role = 'superadmin'; changed = true; }
+      const users = Object.values(fb.users).filter(u => u && u.username);
+      if (users.length) {
+        users.forEach(u => { if (!u.role) u.role = 'admin'; });
+        if (!users.some(u => u.role === 'superadmin')) {
+          const t = users.find(u => u.username === 'admin1') || users[0];
+          if (t) t.role = 'superadmin';
+        }
+        lsWrite(LS.users, users);
       }
-      lsWrite(LS.users, users);
     }
     return true;
   } catch { return false; }
@@ -3591,9 +3598,11 @@ async function pushToFirebase() {
     const courses  = lsRead(LS.courses)  || [];
     const entries  = lsRead(LS.entries)  || [];
     const settings = lsRead(LS.settings) || {};
-    const users    = lsRead(LS.users)    || _defaultUsers();
+    // ป้องกัน: ถ้า users ว่างให้ใช้ default และห้าม push ทับ Firebase ด้วย empty
+    const localUsers = lsRead(LS.users);
+    const users = (localUsers && localUsers.length) ? localUsers : _defaultUsers();
     const syncedAt = new Date().toISOString();
-    _lastFbSyncedAt = syncedAt; // ป้องกัน SSE react กลับมาหาตัวเอง
+    _lastFbSyncedAt = syncedAt;
     const fbData = {
       settings,
       courses:  Object.fromEntries(courses.map(c => [c.id, c])),
