@@ -2445,10 +2445,11 @@ function openPrintWindow(bodyHtml) {
     .print-table thead{display:table-header-group;}
     .print-table th{border:1pt solid #000;padding:2px 4px;vertical-align:middle;text-align:center;
       background:#d0d0d0;font-weight:bold;font-size:10pt;
-      font-family:var(--fn);line-height:1.2;white-space:nowrap;
+      font-family:var(--fn);line-height:1.2;overflow-wrap:break-word;word-break:break-word;
       -webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .print-table td{border:1pt solid #000;padding:2px 4px;vertical-align:top;text-align:center;
       font-size:10pt;font-weight:normal;font-family:var(--fn);line-height:1.2;
+      overflow-wrap:break-word;word-break:break-word;
       -webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .print-table td.left{text-align:left;}
     .print-table td.f12{font-size:10pt;}
@@ -2466,8 +2467,30 @@ function openPrintWindow(bodyHtml) {
 </head><body>
   ${bodyHtml}
   <script>
-    // รอให้ฟอนต์โหลดก่อนสั่งพิมพ์ → layout เหมือนกันทุกเครื่อง
     window.addEventListener('load', function() {
+      // ── Auto-fit: ลดขนาดฟอนต์จนตารางไม่เกินกว้างหน้ากระดาษ ──────────────
+      var body   = document.body;
+      var maxW   = ${vpWidth};   // 1050px (A4 landscape viewport)
+      var minPt  = 6;            // ขนาดต่ำสุด
+
+      function tablesOverflow() {
+        var tbls = document.querySelectorAll('table');
+        for (var i = 0; i < tbls.length; i++) {
+          if (tbls[i].scrollWidth > maxW + 2) return true;
+        }
+        return false;
+      }
+
+      // อ่านขนาดปัจจุบันจาก CSS (px) แล้วแปลงเป็น pt (1pt = 96/72 px)
+      var curPx = parseFloat(window.getComputedStyle(body).fontSize) || (10 * 96/72);
+      var curPt = curPx * 72 / 96;
+
+      while (tablesOverflow() && curPt > minPt) {
+        curPt  -= 0.5;
+        body.style.fontSize = curPt + 'pt';
+      }
+
+      // ── รอฟอนต์โหลดแล้วพิมพ์ ──────────────────────────────────────────────
       var doP = function(){ window.print(); };
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(function(){ setTimeout(doP, 200); });
