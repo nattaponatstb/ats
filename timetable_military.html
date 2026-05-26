@@ -4026,9 +4026,14 @@ async function printTimetable() {
     const dateRange = drDates.length
       ? `${formatDate(drDates[0])}${drDates.length>1?' – '+formatDate(drDates[drDates.length-1]):''}`
       : '';
-    const dateOrder = [...new Set(wEntries.map(e=>e.date))];
+    // เรียง dateOrder ตามวันที่จริง (ISO string เรียง lexicographic = chronologic)
+    const dateOrder = [...new Set(wEntries.map(e=>e.date))].sort();
     const byDate    = {};
     wEntries.forEach(e => { (byDate[e.date]=byDate[e.date]||[]).push(e); });
+    // เรียง entry ภายในแต่ละวันตามเวลาเริ่ม (state ใช้ camelCase: startTime)
+    Object.keys(byDate).forEach(d => {
+      byDate[d].sort((a,b) => (a.startTime||'').localeCompare(b.startTime||''));
+    });
 
     const hdrHtml = makeHeaderRows(dateRange, w);
     const sgnRows = (isLastWeek && signerBlock) ? `
