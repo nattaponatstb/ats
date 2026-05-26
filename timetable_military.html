@@ -1387,6 +1387,15 @@ async function initApp() {
           if (ghData.settings) lsWrite(LS.settings, ghData.settings);
           if (ghData.courses)  lsWrite(LS.courses,  ghData.courses);
           if (ghData.entries)  lsWrite(LS.entries,  ghData.entries);
+          // โหลด users จาก GitHub backup ด้วย (fallback เมื่อ Firebase ไม่มี users)
+          if (ghData.users && ghData.users.length) {
+            ghData.users.forEach(u => { if (!u.role) u.role = 'admin'; });
+            if (!ghData.users.some(u => u.role === 'superadmin')) {
+              const t = ghData.users.find(u => u.username === 'admin1') || ghData.users[0];
+              if (t) t.role = 'superadmin';
+            }
+            lsWrite(LS.users, ghData.users);
+          }
           showToast('📥 โหลดข้อมูลจากเว็บไซท์สำเร็จ');
         }
       }
@@ -3477,6 +3486,16 @@ async function syncToGitHub() {
   const statusEl = document.getElementById('syncStatus');
   if (statusEl) statusEl.textContent = '⏳ กำลังอัพเดทเว็บไซท์…';
 
+  // ดึง users ล่าสุดจาก Firebase ก่อน export (ให้ครบทุก user ทุกเครื่อง)
+  let usersForBackup = lsRead(LS.users) || _defaultUsers();
+  try {
+    const fbUsers = await fbGet('/data/users');
+    if (fbUsers) {
+      const fbList = Object.values(fbUsers).filter(u => u && u.username);
+      if (fbList.length) usersForBackup = fbList;
+    }
+  } catch {}
+
   const data = {
     version: 2,
     syncedAt: new Date().toISOString(),
@@ -3484,6 +3503,7 @@ async function syncToGitHub() {
     settings: lsRead(LS.settings),
     courses:  lsRead(LS.courses),
     entries:  lsRead(LS.entries),
+    users:    usersForBackup,
   };
 
   const owner = 'nattaponatstb', repo = 'ats', filePath = 'data.json';
@@ -4666,24 +4686,40 @@ async function doResetPassword() {
 // ── Pre-login: sync users จาก Firebase ก่อนแสดง login screen ──────────────
 (async function syncUsersBeforeLogin() {
   try {
+    // 1. ลอง Firebase ก่อน
     const fbUsers = await fbGet('/data/users');
-    if (!fbUsers) return;
-    const fbList = Object.values(fbUsers);
-    if (!fbList.length) return;
-    // merge: local เป็นฐาน + Firebase อัพเดตทับ (ไม่ทับลบ local user)
+    let sourceList = fbUsers ? Object.values(fbUsers).filter(u => u && u.username) : [];
+
+    // 2. ถ้า Firebase ไม่มี users → fallback ดึงจาก GitHub backup
+    if (!sourceList.length) {
+      try {
+        const ghData = await loadFromGitHub();
+        if (ghData && ghData.users && ghData.users.length) {
+          sourceList = ghData.users.filter(u => u && u.username);
+        }
+      } catch {}
+    }
+
+    if (!sourceList.length) return;
+
+    // merge: local เป็นฐาน + source อัพเดตทับ
     const local = lsRead(LS.users) || [];
     const merged = [...local];
-    fbList.forEach(fu => {
+    sourceList.forEach(fu => {
       const idx = merged.findIndex(u => u.username === fu.username);
       if (idx >= 0) merged[idx] = fu; else merged.push(fu);
     });
-    // migrate roles
     merged.forEach(u => { if (!u.role) u.role = 'admin'; });
     if (!merged.some(u => u.role === 'superadmin')) {
       const t = merged.find(u => u.username === 'admin1') || merged[0];
       if (t) t.role = 'superadmin';
     }
     lsWrite(LS.users, merged);
+
+    // 3. ถ้า Firebase users ว่าง → restore กลับขึ้นโดยอัตโนมัติ
+    if (!sourceList.length || (fbUsers && !Object.keys(fbUsers).length)) {
+      merged.forEach(u => fbSet(`/data/users/${String(u.id)}`, u).catch(function(){}));
+    }
   } catch {}
 })();
 
