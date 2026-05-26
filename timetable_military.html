@@ -2408,11 +2408,13 @@ function openPrintWindow(bodyHtml, landscape = true) {
     .print-page{font-family:var(--fn);color:black;}
     .print-table{width:100%;border-collapse:collapse;table-layout:fixed;}
     .print-table thead{display:table-header-group;}
-    .print-table th{border:1px solid black;padding:2px 4px;vertical-align:middle;text-align:center;
+    .print-table th{border:1pt solid #000;padding:2px 4px;vertical-align:middle;text-align:center;
       background:#d0d0d0;font-weight:bold;font-size:14pt;
-      font-family:var(--fn);line-height:1.2;white-space:nowrap;}
-    .print-table td{border:1px solid black;padding:2px 4px;vertical-align:top;text-align:center;
-      font-size:14pt;font-family:var(--fn);line-height:1.2;}
+      font-family:var(--fn);line-height:1.2;white-space:nowrap;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .print-table td{border:1pt solid #000;padding:2px 4px;vertical-align:top;text-align:center;
+      font-size:14pt;font-family:var(--fn);line-height:1.2;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .print-table td.left{text-align:left;}
     .print-table td.f12{font-size:12pt;}
     .print-table td.nobot{border-bottom:none;}
@@ -2422,7 +2424,7 @@ function openPrintWindow(bodyHtml, landscape = true) {
     .ps-wrap h2{text-align:center;font-size:18pt;margin-bottom:2px;}
     .ps-wrap .sub{text-align:center;font-size:14pt;margin-bottom:10px;}
     .ps-wrap table{border-collapse:collapse;width:100%;font-size:16pt;color:#000;}
-    .ps-wrap th,.ps-wrap td{border:1px solid #000;padding:3px 5px;vertical-align:middle;color:#000;}
+    .ps-wrap th,.ps-wrap td{border:1pt solid #000;padding:3px 5px;vertical-align:middle;color:#000;}
     .ps-wrap th{background:#fff;text-align:center;font-weight:bold;}
   </style>
 </head><body>
@@ -3939,7 +3941,7 @@ async function printTimetable() {
   function buildDayBody(dayEntries, date) {
     if (dayEntries.length === 1 && dayEntries[0].type === 'holiday') {
       const h = dayEntries[0];
-      const RRED = 'background:#e53935;color:black;font-weight:bold;border:1px solid black;';
+      const RRED = 'background:#e53935;color:black;font-weight:bold;border:1pt solid #000;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
       return `<tr>
         <td style="${RRED}font-family:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif;font-size:14pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
         <td colspan="9" style="${RRED}font-family:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif;font-size:14pt;padding:6px 4px;text-align:center">หยุด ${esc(h.label)}</td>
