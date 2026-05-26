@@ -1021,7 +1021,11 @@ const LS = {
 function lsRead(k)    { try { return JSON.parse(localStorage.getItem(k)||'null'); } catch { return null; } }
 function lsWrite(k,v) { localStorage.setItem(k, JSON.stringify(v)); }
 function _defaultUsers() {
-  return [{ id:'admin1', username:'admin1', password:'admin1234', role:'superadmin', full_name:'ผู้ดูแลระบบ' }];
+  return [
+    { id:'admin1', username:'admin1', password:'admin1234', role:'superadmin', full_name:'ผู้ดูแลระบบ' },
+    { id:'admin2', username:'admin2', password:'123456',    role:'admin',       full_name:'ผตก.รร.ขส.ขส.ทบ.' },
+    { id:'admin3', username:'admin3', password:'123456',    role:'superadmin',  full_name:'กศ.รร.ขส.ขส.ทบ.' },
+  ];
 }
 
 // ── Migration: อัพเกรด role ของ users เดิมใน localStorage ──────────────────
@@ -1272,18 +1276,29 @@ async function doLogin() {
     // ดึง users จาก Firebase ก่อนเสมอ (ให้ใช้ user จากเครื่องอื่นได้)
     try {
       const fbUsers = await fbGet('/data/users');
-      if (fbUsers) {
-        const fbUserList = Object.values(fbUsers);
-        if (fbUserList.length) {
-          // merge: รวม local + firebase (firebase มีสิทธิ์เหนือกว่า)
-          const local = lsRead(LS.users) || [];
-          const merged = [...local];
-          fbUserList.forEach(fu => {
-            const idx = merged.findIndex(u => u.username === fu.username);
-            if (idx >= 0) merged[idx] = fu; else merged.push(fu);
-          });
-          lsWrite(LS.users, merged);
-        }
+      // กรอง null ออกก่อนเสมอ (Firebase อาจคืน null สำหรับ node ที่ถูกลบ)
+      const fbUserList = fbUsers
+        ? Object.values(fbUsers).filter(fu => fu && fu.username)
+        : [];
+      if (fbUserList.length) {
+        // merge: รวม local + firebase (firebase มีสิทธิ์เหนือกว่า)
+        const local = lsRead(LS.users) || [];
+        const merged = [...local];
+        fbUserList.forEach(fu => {
+          const idx = merged.findIndex(u => u.username === fu.username);
+          if (idx >= 0) merged[idx] = fu; else merged.push(fu);
+        });
+        lsWrite(LS.users, merged);
+      } else {
+        // Firebase ไม่มี users → ใช้ defaults แล้ว restore ขึ้น Firebase
+        const defaults = _defaultUsers();
+        const local = lsRead(LS.users) || [];
+        const merged = [...defaults];
+        local.forEach(lu => {
+          if (!merged.find(u => u.username === lu.username)) merged.push(lu);
+        });
+        lsWrite(LS.users, merged);
+        merged.forEach(u => fbSet(`/data/users/${String(u.id)}`, u).catch(function(){}));
       }
     } catch {}
     const data = await api('POST', '/auth/login', { username, password });
@@ -4717,14 +4732,35 @@ async function doResetPassword() {
       } catch {}
     }
 
-    if (!sourceList.length) return;
+    // 3. ถ้ายังไม่มีเลย → ใช้ _defaultUsers() แล้ว restore ขึ้น Firebase
+    if (!sourceList.length) {
+      const defaults = _defaultUsers();
+      const local = lsRead(LS.users) || [];
+      // merge local ทับ defaults (local อาจมี user ที่เพิ่มไว้แล้ว)
+      const merged = [...defaults];
+      local.forEach(lu => {
+        if (!merged.find(u => u.username === lu.username)) merged.push(lu);
+      });
+      lsWrite(LS.users, merged);
+      // restore ขึ้น Firebase
+      merged.forEach(u => fbSet(`/data/users/${String(u.id)}`, u).catch(function(){}));
+      return;
+    }
 
     // merge: local เป็นฐาน + source อัพเดตทับ
+    // แต่ต้องแน่ใจว่า admin2/admin3 มีอยู่เสมอ
     const local = lsRead(LS.users) || [];
     const merged = [...local];
     sourceList.forEach(fu => {
       const idx = merged.findIndex(u => u.username === fu.username);
       if (idx >= 0) merged[idx] = fu; else merged.push(fu);
+    });
+    // ตรวจว่า admin2/admin3 มีครบ ถ้าขาดให้เติม defaults
+    _defaultUsers().forEach(du => {
+      if (!merged.find(u => u.username === du.username)) {
+        merged.push(du);
+        fbSet(`/data/users/${String(du.id)}`, du).catch(function(){});
+      }
     });
     merged.forEach(u => { if (!u.role) u.role = 'admin'; });
     if (!merged.some(u => u.role === 'superadmin')) {
@@ -4733,8 +4769,8 @@ async function doResetPassword() {
     }
     lsWrite(LS.users, merged);
 
-    // 3. ถ้า Firebase users ว่าง → restore กลับขึ้นโดยอัตโนมัติ
-    if (!sourceList.length || (fbUsers && !Object.keys(fbUsers).length)) {
+    // 4. ถ้า Firebase users ว่าง → restore กลับขึ้นโดยอัตโนมัติ
+    if (fbUsers && !Object.keys(fbUsers).length) {
       merged.forEach(u => fbSet(`/data/users/${String(u.id)}`, u).catch(function(){}));
     }
   } catch {}
