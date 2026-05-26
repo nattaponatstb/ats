@@ -3487,6 +3487,11 @@ async function manualSyncToFirebase() {
     const entries  = lsRead(LS.entries)  || [];
     const settings = lsRead(LS.settings) || {};
     const users    = lsRead(LS.users)    || _defaultUsers();
+    // mark ก่อน push เพื่อให้ SSE ของตัวเองไม่ re-render ซ้ำ
+    _markRecentPush('/settings');
+    courses.forEach(c => _markRecentPush(`/courses/${c.id}`));
+    entries.forEach(e => _markRecentPush(`/entries/${e.id}`));
+    users.forEach(u   => _markRecentPush(`/users/${String(u.id)}`));
     const tasks = [fbSet('/data/settings', settings)];
     courses.forEach(c  => tasks.push(fbSet(`/data/courses/${c.id}`, c)));
     entries.forEach(e  => tasks.push(fbSet(`/data/entries/${e.id}`, e)));
