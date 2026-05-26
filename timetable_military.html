@@ -1199,7 +1199,19 @@ async function doLogin() {
   btn.disabled   = true;
   errEl.textContent = '';
   try {
-    const data = await api('POST', '/auth/login', { username, password });
+    // ถ้า login ล้มเหลว → ลอง sync users จาก Firebase ก่อน แล้วลองใหม่
+    let data;
+    try {
+      data = await api('POST', '/auth/login', { username, password });
+    } catch (e1) {
+      // ดึง users ใหม่จาก Firebase
+      const fbUsers = await fbGet('/data/users');
+      if (fbUsers) {
+        const users = Object.values(fbUsers);
+        if (users.length) lsWrite(LS.users, users);
+      }
+      data = await api('POST', '/auth/login', { username, password }); // retry
+    }
     _token = data.token;
     _currentUser = data.user;
     // รีเซต public mode เสมอเมื่อ login สำเร็จ
@@ -4468,6 +4480,24 @@ async function doResetPassword() {
     closeModal('resetPwModal'); renderAdminView(); showToast('✅ ' + res.message);
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
 }
+
+// ── Pre-login: sync users จาก Firebase ก่อนแสดง login screen ──────────────
+(async function syncUsersBeforeLogin() {
+  try {
+    const fbUsers = await fbGet('/data/users');
+    if (!fbUsers) return;
+    const users = Object.values(fbUsers);
+    if (!users.length) return;
+    let changed = false;
+    users.forEach(u => { if (!u.role) { u.role = 'admin'; changed = true; } });
+    const hasSA = users.some(u => u.role === 'superadmin');
+    if (!hasSA) {
+      const t = users.find(u => u.username === 'admin1') || users[0];
+      if (t) { t.role = 'superadmin'; changed = true; }
+    }
+    lsWrite(LS.users, users);
+  } catch {}
+})();
 
 // ข้อมูลที่แสดงก่อน login: ซ่อนหน้าจอหลัก ไม่ต้อง render ล่วงหน้า
 // initApp() จะถูกเรียกหลัง login สำเร็จ หรือหลัง auto-login ผ่าน token
