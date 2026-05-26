@@ -446,9 +446,13 @@ textarea.form-control { resize: vertical; min-height: 60px; }
       <button class="btn btn-outline btn-sm hide-public" onclick="loadSampleData()">🗂️ โหลดตัวอย่าง</button>
       <button class="btn btn-outline btn-sm" onclick="printTimetable()">🖨️ พิมพ์ตาราง</button>
       <button class="btn btn-outline btn-sm" onclick="savePDFTimetable()" style="color:#ff7043;border-color:rgba(255,112,67,0.6)">💾 PDF ตาราง</button>
+      <button class="btn btn-sm hide-public" id="fbSyncBtn" onclick="manualSyncToFirebase()"
+        style="background:#1565c0;color:white;border:none;display:flex;align-items:center;gap:5px;font-weight:600">
+        <span id="fbSyncBtnIcon">☁️</span> บันทึกการแก้ไข
+      </button>
       <button class="btn btn-sm hide-public sa-only" id="syncBtn" onclick="syncToGitHub()"
         style="background:#2e7d32;color:white;border:none;display:flex;align-items:center;gap:5px;font-weight:600">
-        <span id="syncBtnIcon">☁️</span> บันทึกการแก้ไข
+        <span id="syncBtnIcon">🌐</span> อัพเดทเว็บไซท์
       </button>
       <!-- user mode -->
       <div class="user-badge hide-public">
@@ -479,7 +483,8 @@ textarea.form-control { resize: vertical; min-height: 60px; }
         <button onclick="showView('adminmgr');closeSidebar()" class="smn-btn hide-public" id="smn-adminmgr">👑 แอดมิน</button>
         <button onclick="printTimetable();closeSidebar()"     class="smn-btn">🖨️ พิมพ์ตาราง</button>
         <button onclick="savePDFTimetable();closeSidebar()"   class="smn-btn" style="color:#ff7043">💾 PDF ตาราง</button>
-        <button onclick="syncToGitHub();closeSidebar()" class="smn-btn hide-public sa-only" style="color:#80ff80;font-weight:700">☁️ บันทึกการแก้ไข</button>
+        <button onclick="manualSyncToFirebase();closeSidebar()" class="smn-btn hide-public" style="color:#64b5f6;font-weight:700">☁️ บันทึกการแก้ไข</button>
+        <button onclick="syncToGitHub();closeSidebar()" class="smn-btn hide-public sa-only" style="color:#80ff80;font-weight:700">🌐 อัพเดทเว็บไซท์</button>
         <div class="smn-divider"></div>
         <button onclick="doLogout()" class="smn-btn smn-logout hide-public">🔓 ออกจากระบบ</button>
         <button onclick="exitPublicMode();closeSidebar()" class="smn-btn smn-login show-public-only">🔐 เข้าสู่ระบบ</button>
@@ -3428,6 +3433,24 @@ async function testGithubToken() {
     }
   } catch(e) {
     if(el) el.innerHTML = `<span style="color:#c62828">❌ เชื่อมต่อไม่ได้: ${esc(e.message)}</span>`;
+  }
+}
+
+async function manualSyncToFirebase() {
+  const btn = document.getElementById('fbSyncBtn');
+  const ico = document.getElementById('fbSyncBtnIcon');
+  if (btn) { btn.disabled = true; }
+  if (ico) ico.textContent = '⏳';
+  try {
+    await pushToFirebase();
+    if (ico) ico.textContent = '✅';
+    showToast('✅ บันทึกการแก้ไขสำเร็จ — ผู้ใช้อื่นจะเห็นข้อมูลล่าสุดแล้ว');
+    writeLog('MANUAL_SYNC', 'บันทึกการแก้ไขขึ้น Firebase');
+    setTimeout(function() { if (ico) ico.textContent = '☁️'; if (btn) btn.disabled = false; }, 2000);
+  } catch(e) {
+    if (ico) ico.textContent = '❌';
+    showToast('ซิงค์ไม่สำเร็จ: ' + (e.message || 'network error'));
+    setTimeout(function() { if (ico) ico.textContent = '☁️'; if (btn) btn.disabled = false; }, 2000);
   }
 }
 
