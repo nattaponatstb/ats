@@ -242,17 +242,18 @@ textarea.form-control { resize: vertical; min-height: 60px; }
   .print-page:last-child { page-break-after: avoid; }
   head, header, footer { display: none !important; }
   /* summary print */
-  .ps-wrap { font-family:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif; font-size:16pt; color:#000; }
-  .ps-wrap h2 { text-align:center; font-size:18pt; margin-bottom:2px; }
-  .ps-wrap .sub { text-align:center; font-size:14pt; margin-bottom:10px; }
-  .ps-wrap table { border-collapse:collapse; width:100%; font-size:16pt; color:#000; }
+  .ps-wrap { font-family:'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif; font-size:10pt; font-weight:bold; color:#000; }
+  .ps-wrap h2 { text-align:center; font-size:10pt; font-weight:bold; margin-bottom:2px; }
+  .ps-wrap .sub { text-align:center; font-size:10pt; font-weight:bold; margin-bottom:6px; }
+  .ps-wrap table { border-collapse:collapse; width:100%; font-size:10pt; color:#000; }
   .ps-wrap th,.ps-wrap td { border:1px solid #000; padding:3px 5px; vertical-align:middle; color:#000; }
-  .ps-wrap th { background:#fff; text-align:center; font-weight:bold; }
+  .ps-wrap th { background:#d0d0d0; text-align:center; font-weight:bold; }
+  .ps-wrap td { font-weight:normal; }
 }
 #printArea { display: none; }
 
 /* ===== PRINT PAGE CONTENT ===== */
-.print-page { font-family: 'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif; color: black; }
+.print-page { font-family: 'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif; color: black; }
 /* หัวกระดาษ (เฉพาะหน้าแรก) */
 .print-header { text-align: center; margin-bottom: 4px; line-height: 1.3; }
 .print-header .print-title  { font-size: 16pt; font-weight: bold; }
@@ -266,13 +267,13 @@ textarea.form-control { resize: vertical; min-height: 60px; }
   border: 1px solid black;
   padding: 2px 4px; vertical-align: middle; text-align: center;
   background: #d0d0d0; font-weight: bold; font-size: 14pt;
-  font-family: 'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif; line-height: 1.2;
+  font-family: 'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif; line-height: 1.2;
   white-space: nowrap;
 }
 .print-table td {
   border: 1px solid black;
   padding: 2px 4px; vertical-align: top; text-align: center;
-  font-size: 14pt; font-family: 'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif; line-height: 1.2;
+  font-size: 14pt; font-family: 'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif; line-height: 1.2;
 }
 .print-table td.left  { text-align: left; }
 .print-table td.f12   { font-size: 12pt; }
@@ -2278,7 +2279,7 @@ function printSummary(type) {
   const course = findCourse(state.currentCourseId);
   if (!course) return;
 
-  const SF = `font-family:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif;font-size:16pt;`;
+  const SF = `font-family:'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif;font-size:10pt;font-weight:bold;`;
 
   // ── entries ที่กรองแล้ว (เหมือนใน renderSummaryView) ──
   const entries = [...(course.entries||[])]
@@ -2386,20 +2387,39 @@ function printSummary(type) {
     </table>`;
   }
 
-  const courseLine = `${course.name}  รุ่นที่ ${toThai(course.runNumber||'')}  —  ${state.schoolName}`;
+  const schoolLine = `${state.schoolName}`;
+  const courseLine = `หลักสูตร ${course.name}  รุ่นที่ ${toThai(course.runNumber||'')}`;
+
+  // ── signer block (เหมือน printTimetable) ──────────────────────────────────
+  const _rank     = course.signerRank||'';
+  const _name     = course.signerName||'';
+  const _fullName = [_rank, _name].filter(Boolean).join(' ');
+  const SFS = `font-family:'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif;font-size:10pt;font-weight:bold;line-height:1.9;`;
+  const C70 = `margin-left:40%;text-align:center;line-height:1.2`;
+  const signerBlock = _fullName ? `<div style="${SFS}margin-top:16px">
+    <div style="margin-left:50%;text-align:left">${esc(course.signerLabel||'ตรวจถูกต้อง')}</div>
+    ${_rank?`<div style="margin-left:22%">${esc(_rank)}</div>`:''}
+    ${_name?`<div style="${C70}">(${esc(_name)})</div>`:''}
+    ${course.signerPos1?`<div style="${C70}">${esc(course.signerPos1)}</div>`:''}
+    ${course.signerPos2?`<div style="${C70}">${esc(course.signerPos2)}</div>`:''}
+    ${course.signerPos3?`<div style="${C70}">${esc(course.signerPos3)}</div>`:''}
+    ${course.signerDate?`<div style="${C70}">${esc(course.signerDate)}</div>`:''}
+  </div>` : '';
 
   openPrintWindow(`
     <div class="ps-wrap">
       <h2>${esc(title)}</h2>
+      <div class="sub">${esc(schoolLine)}</div>
       <div class="sub">${esc(courseLine)}</div>
       ${tableHtml}
+      ${signerBlock}
     </div>`, true);
 }
 
 // ─── OPEN PRINT WINDOW (เหมือนกันทุกอุปกรณ์) ───
-function openPrintWindow(bodyHtml, landscape = true) {
-  const pSize   = landscape ? 'A4 landscape' : 'A4 portrait';
-  const vpWidth = landscape ? 1050 : 740;
+function openPrintWindow(bodyHtml) {
+  const pSize   = 'A4 landscape';
+  const vpWidth = 1050;
   const html = `<!DOCTYPE html><html lang="th"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=${vpWidth},initial-scale=1">
@@ -2408,11 +2428,11 @@ function openPrintWindow(bodyHtml, landscape = true) {
   <style>
     @page{size:${pSize};margin:0;}
     /* ฟอนต์สำรองถ้าไม่มีอินเทอร์เน็ต */
-    @font-face{font-family:'TH SarabunIT๙';src:local('TH SarabunIT๙'),local('TH Sarabun New'),local('Sarabun');}
-    /* ฟอนต์หลัก: Sarabun (Google Fonts) → เหมือนกันทุกเครื่อง */
-    :root{--fn:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif;}
+    @font-face{font-family:'TH Sarabun New';src:local('TH Sarabun New'),local('TH SarabunIT๙'),local('Sarabun');}
+    /* ฟอนต์หลัก: TH Sarabun New */
+    :root{--fn:'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif;}
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:white;width:${vpWidth}px;font-size:9pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:var(--fn);}
+    body{background:white;width:${vpWidth}px;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:var(--fn);}
     @media print{
       body{width:auto;padding:8mm 8mm 10mm 8mm;}
       .print-page{page-break-after:always;}
@@ -2424,23 +2444,24 @@ function openPrintWindow(bodyHtml, landscape = true) {
     .print-table{width:100%;border-collapse:collapse;table-layout:fixed;}
     .print-table thead{display:table-header-group;}
     .print-table th{border:1pt solid #000;padding:2px 4px;vertical-align:middle;text-align:center;
-      background:#d0d0d0;font-weight:bold;font-size:14pt;
+      background:#d0d0d0;font-weight:bold;font-size:10pt;
       font-family:var(--fn);line-height:1.2;white-space:nowrap;
       -webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .print-table td{border:1pt solid #000;padding:2px 4px;vertical-align:top;text-align:center;
-      font-size:14pt;font-family:var(--fn);line-height:1.2;
+      font-size:10pt;font-weight:normal;font-family:var(--fn);line-height:1.2;
       -webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .print-table td.left{text-align:left;}
-    .print-table td.f12{font-size:12pt;}
+    .print-table td.f12{font-size:10pt;}
     .print-table td.nobot{border-bottom:none;}
     .print-table td.notop{border-top:none;}
     /* ── summary ── */
-    .ps-wrap{font-family:var(--fn);font-size:16pt;color:#000;margin:10mm 12mm;}
-    .ps-wrap h2{text-align:center;font-size:18pt;margin-bottom:2px;}
-    .ps-wrap .sub{text-align:center;font-size:14pt;margin-bottom:10px;}
-    .ps-wrap table{border-collapse:collapse;width:100%;font-size:16pt;color:#000;}
+    .ps-wrap{font-family:var(--fn);font-size:10pt;font-weight:bold;color:#000;margin:10mm 12mm;}
+    .ps-wrap h2{text-align:center;font-size:10pt;font-weight:bold;margin-bottom:2px;}
+    .ps-wrap .sub{text-align:center;font-size:10pt;font-weight:bold;margin-bottom:6px;}
+    .ps-wrap table{border-collapse:collapse;width:100%;font-size:10pt;color:#000;}
     .ps-wrap th,.ps-wrap td{border:1pt solid #000;padding:3px 5px;vertical-align:middle;color:#000;}
-    .ps-wrap th{background:#fff;text-align:center;font-weight:bold;}
+    .ps-wrap th{background:#d0d0d0;text-align:center;font-weight:bold;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .ps-wrap td{font-weight:normal;}
   </style>
 </head><body>
   ${bodyHtml}
@@ -3921,7 +3942,7 @@ async function printTimetable() {
     <col style="width:11%">
   </colgroup>`;
 
-  const HF = "font-family:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif;font-size:16pt;font-weight:bold;text-align:center;background:white;border:none;padding:1px 0;";
+  const HF = "font-family:'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif;font-size:10pt;font-weight:bold;text-align:center;background:white;border:none;padding:1px 0;";
 
   // ── หัวตาราง 4 แถว (สร้างใหม่ทุกหน้า) ────────────────────────────────────
   function makeHeaderRows(dateRange, w) {
@@ -3944,7 +3965,7 @@ async function printTimetable() {
   // ตรวจถูกต้อง : margin-left 50%
   // ยศ          : margin-left 58%
   // ชื่อ-สกุล / ตำแหน่ง / เดือนปี : กึ่งกลางข้อความอยู่ที่ 70% (translateX -50%)
-  const SF  = `font-family:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif;font-size:16pt;line-height:1.9;`;
+  const SF  = `font-family:'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif;font-size:10pt;font-weight:bold;line-height:1.9;`;
   // margin-left:40% + text-align:center → กึ่งกลางข้อความที่ 40%+30% = 70%
   const C70 = `margin-left:40%;text-align:center;line-height:1.2`;
   const signerBlock = _fullName ? `<div style="${SF}">
@@ -3963,8 +3984,8 @@ async function printTimetable() {
       const h = dayEntries[0];
       const RRED = 'background:#e53935;color:black;font-weight:bold;border:1pt solid #000;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
       return `<tr>
-        <td style="${RRED}font-family:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif;font-size:14pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
-        <td colspan="9" style="${RRED}font-family:'Sarabun','TH SarabunIT๙','TH Sarabun New',sans-serif;font-size:14pt;padding:6px 4px;text-align:center">หยุด ${esc(h.label)}</td>
+        <td style="${RRED}font-family:'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif;font-size:10pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
+        <td colspan="9" style="${RRED}font-family:'TH Sarabun New','TH SarabunIT๙','Sarabun',sans-serif;font-size:10pt;padding:6px 4px;text-align:center">หยุด ${esc(h.label)}</td>
       </tr>`;
     }
     const daySpan = dayEntries.length;
