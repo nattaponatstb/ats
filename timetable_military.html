@@ -1357,6 +1357,9 @@ async function initApp() {
     // render ทันที (entries โหลด lazy เมื่อเลือกหลักสูตร)
     renderSidebar(); renderContent();
 
+    // เริ่ม real-time sync ผ่าน Firebase SSE
+    startRealtimeSync();
+
   } catch (e) {
     showToast('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
   }
@@ -3466,15 +3469,120 @@ async function pushToFirebase() {
     const entries  = lsRead(LS.entries)  || [];
     const settings = lsRead(LS.settings) || {};
     const users    = lsRead(LS.users)    || _defaultUsers();
+    const syncedAt = new Date().toISOString();
+    _lastFbSyncedAt = syncedAt; // ป้องกัน SSE react กลับมาหาตัวเอง
     const fbData = {
       settings,
       courses:  Object.fromEntries(courses.map(c => [c.id, c])),
       entries:  Object.fromEntries(entries.map(e => [e.id, e])),
       users:    Object.fromEntries(users.map(u => [String(u.id), u])),
-      syncedAt: new Date().toISOString(),
+      syncedAt,
     };
     await fbSet('/data', fbData);
   } catch {}
+}
+
+// ═══════════════════════════════════════════════
+//  REAL-TIME SYNC  (Firebase SSE)
+// ═══════════════════════════════════════════════
+let _fbStream = null;
+let _lastFbSyncedAt = null;
+
+function startRealtimeSync() {
+  if (typeof EventSource === 'undefined') return;
+  if (_fbStream) { _fbStream.close(); _fbStream = null; }
+  try {
+    _fbStream = new EventSource(`${FB_DB}/data.json`);
+
+    _fbStream.addEventListener('put', function(evt) {
+      try {
+        const msg = JSON.parse(evt.data);
+        const fb  = msg && msg.data;
+        if (!fb || !fb.courses) return;
+        // ข้ามถ้าเป็น push ของตัวเอง
+        if (fb.syncedAt && fb.syncedAt === _lastFbSyncedAt) return;
+        _lastFbSyncedAt = fb.syncedAt || null;
+
+        // อัพเดต localStorage
+        const courses = Object.values(fb.courses);
+        if (!courses.length) return;
+        const entries  = fb.entries ? Object.values(fb.entries) : [];
+        const settings = fb.settings || {};
+        const users    = fb.users    ? Object.values(fb.users)  : null;
+        lsWrite(LS.settings, settings);
+        lsWrite(LS.courses,  courses);
+        lsWrite(LS.entries,  entries);
+        if (users) lsWrite(LS.users, users);
+
+        // ถ้า modal เปิดอยู่ → แจ้งเตือนแต่ไม่ re-render
+        if (document.querySelector('.modal-backdrop.open')) {
+          showToast('📡 มีข้อมูลใหม่ — จะอัพเดตหลังปิดหน้าต่างนี้');
+          return;
+        }
+        _applyFbToState(settings, courses, entries);
+        showToast('📡 ซิงค์ข้อมูล real-time แล้ว');
+      } catch {}
+    });
+
+    _fbStream.onerror = function() {
+      if (_fbStream) { _fbStream.close(); _fbStream = null; }
+      setTimeout(startRealtimeSync, 10000); // reconnect หลัง 10 วิ
+    };
+  } catch {}
+}
+
+function _applyFbToState(settings, courses, entries) {
+  const prevId = state.currentCourseId;
+
+  // settings
+  state.schoolName     = settings.schoolName  || state.schoolName;
+  state.schoolShort    = settings.schoolShort || state.schoolShort;
+  try { state.teachers       = JSON.parse(settings.teachers       || '[]');  } catch {}
+  try { state.subjects       = JSON.parse(settings.subjects       || '[]');  } catch {}
+  try { state.courseTypeList = JSON.parse(settings.courseTypeList || 'null') || [...DEFAULT_COURSE_TYPES]; } catch {}
+  try { state.locationList   = JSON.parse(settings.locationList   || 'null') || [...DEFAULT_LOCATIONS];   } catch {}
+  try { state.evidenceList   = JSON.parse(settings.evidenceList   || 'null') || [...DEFAULT_EVIDENCES];   } catch {}
+
+  // courses
+  state.courses = courses.map(c => ({
+    id:          c.id,
+    name:        c.name,
+    runNumber:   c.run_number,
+    year:        c.year || null,
+    startDate:   c.start_date ? c.start_date.split('T')[0] : '',
+    endDate:     c.end_date   ? c.end_date.split('T')[0]   : '',
+    totalHours:  c.total_hours,
+    courseType:  c.course_type || '',
+    signerLabel: c.signer_label,
+    signerRank:  c.signer_rank,
+    signerName:  c.signer_name,
+    signerPos1:  c.signer_pos1,
+    signerPos2:  c.signer_pos2,
+    signerPos3:  c.signer_pos3,
+    signerDate:  c.signer_date,
+    isPublic:    !!c.is_public,
+    entries:     null,
+  }));
+  state.courses.sort((a, b) => {
+    const yr = (b.year||0) - (a.year||0);
+    if (yr !== 0) return yr;
+    if (a.startDate && b.startDate) return b.startDate.localeCompare(a.startDate);
+    return a.startDate ? -1 : b.startDate ? 1 : 0;
+  });
+
+  // populate entries
+  state.courses.forEach(course => {
+    const ce = entries.filter(e => e.course_id === course.id);
+    course.entries = ce.map(mapEntryRow);
+  });
+
+  // คืน currentCourseId ถ้ายังมีอยู่
+  state.currentCourseId = state.courses.find(c => c.id === prevId)
+    ? prevId
+    : (state.courses[0]?.id || null);
+
+  renderSidebar();
+  renderContent();
 }
 
 async function loadFromGitHub() {
