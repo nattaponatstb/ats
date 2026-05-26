@@ -1199,19 +1199,24 @@ async function doLogin() {
   btn.disabled   = true;
   errEl.textContent = '';
   try {
-    // ถ้า login ล้มเหลว → ลอง sync users จาก Firebase ก่อน แล้วลองใหม่
-    let data;
+    // ดึง users จาก Firebase ก่อนเสมอ (ให้ใช้ user จากเครื่องอื่นได้)
     try {
-      data = await api('POST', '/auth/login', { username, password });
-    } catch (e1) {
-      // ดึง users ใหม่จาก Firebase
       const fbUsers = await fbGet('/data/users');
       if (fbUsers) {
-        const users = Object.values(fbUsers);
-        if (users.length) lsWrite(LS.users, users);
+        const fbUserList = Object.values(fbUsers);
+        if (fbUserList.length) {
+          // merge: รวม local + firebase (firebase มีสิทธิ์เหนือกว่า)
+          const local = lsRead(LS.users) || [];
+          const merged = [...local];
+          fbUserList.forEach(fu => {
+            const idx = merged.findIndex(u => u.username === fu.username);
+            if (idx >= 0) merged[idx] = fu; else merged.push(fu);
+          });
+          lsWrite(LS.users, merged);
+        }
       }
-      data = await api('POST', '/auth/login', { username, password }); // retry
-    }
+    } catch {}
+    const data = await api('POST', '/auth/login', { username, password });
     _token = data.token;
     _currentUser = data.user;
     // รีเซต public mode เสมอเมื่อ login สำเร็จ
@@ -1369,8 +1374,8 @@ async function initApp() {
     // render ทันที (entries โหลด lazy เมื่อเลือกหลักสูตร)
     renderSidebar(); renderContent();
 
-    // บังคับ push ข้อมูลรวม users ขึ้น Firebase (เพื่อให้เครื่องอื่น sync ได้)
-    pushToFirebase();
+    // push ข้อมูลรวม users ขึ้น Firebase ก่อน start SSE (await เพื่อกัน race)
+    await pushToFirebase();
 
     // เริ่ม real-time sync ผ่าน Firebase SSE
     startRealtimeSync();
