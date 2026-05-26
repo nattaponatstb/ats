@@ -1171,14 +1171,79 @@ function schedulePushToFirebase() {
   _fbPushTimer = setTimeout(function() {
     _fbPushTimer = null;
     pushToFirebase();
-  }, 2000); // รอ 2 วิหลังบันทึกครั้งสุดท้ายค่อย push ครั้งเดียว
+  }, 2000);
+}
+
+// Granular Firebase push — เขียนเฉพาะ path ที่เปลี่ยน (ไม่ replace ทั้งหมด)
+async function _fbPushChange(method, path, body, _preIds) {
+  try {
+    const em  = path.match(/^\/entries\/([^\/\?]+)$/);
+    const cm  = path.match(/^\/courses\/([^\/\?]+)$/);
+    const vm  = path.match(/^\/courses\/([^\/]+)\/visibility$/);
+    const uem = path.match(/^\/auth\/users\/([^\/]+)$/);
+    const uim = path.match(/^\/auth\/users\/([^\/]+)\/reset-password$/);
+
+    if (path === '/entries' && method === 'POST') {
+      const entry = (lsRead(LS.entries)||[]).find(e => e.id === body.id);
+      if (entry) { await fbSet(`/data/entries/${body.id}`, entry); _markRecentPush(`/entries/${body.id}`); }
+    } else if (path.startsWith('/entries') && method === 'DELETE' && path.includes('course_id')) {
+      if (_preIds && _preIds.length) {
+        await Promise.all(_preIds.map(function(id) { _markRecentPush(`/entries/${id}`); return fbDelete(`/data/entries/${id}`); }));
+      }
+    } else if (em && method === 'PUT') {
+      const entry = (lsRead(LS.entries)||[]).find(e => e.id === em[1]);
+      if (entry) { await fbSet(`/data/entries/${em[1]}`, entry); _markRecentPush(`/entries/${em[1]}`); }
+    } else if (em && method === 'DELETE') {
+      await fbDelete(`/data/entries/${em[1]}`); _markRecentPush(`/entries/${em[1]}`);
+    } else if (path === '/courses' && method === 'POST') {
+      const course = (lsRead(LS.courses)||[]).find(c => c.id === body.id);
+      if (course) { await fbSet(`/data/courses/${body.id}`, course); _markRecentPush(`/courses/${body.id}`); }
+    } else if (vm && method === 'PATCH') {
+      const id = vm[1];
+      const course = (lsRead(LS.courses)||[]).find(c => c.id === id);
+      if (course) { await fbSet(`/data/courses/${id}`, course); _markRecentPush(`/courses/${id}`); }
+    } else if (cm && method === 'PUT') {
+      const course = (lsRead(LS.courses)||[]).find(c => c.id === cm[1]);
+      if (course) { await fbSet(`/data/courses/${cm[1]}`, course); _markRecentPush(`/courses/${cm[1]}`); }
+    } else if (cm && method === 'DELETE') {
+      await fbDelete(`/data/courses/${cm[1]}`); _markRecentPush(`/courses/${cm[1]}`);
+      if (_preIds && _preIds.length) {
+        await Promise.all(_preIds.map(function(eid) { _markRecentPush(`/entries/${eid}`); return fbDelete(`/data/entries/${eid}`); }));
+      }
+    } else if (path === '/settings' && method === 'PUT') {
+      await fbSet('/data/settings', lsRead(LS.settings)||{}); _markRecentPush('/settings');
+    } else if (path === '/auth/users' && method === 'POST') {
+      const user = (lsRead(LS.users)||[]).find(u => u.username === body.username);
+      if (user) { await fbSet(`/data/users/${String(user.id)}`, user); _markRecentPush(`/users/${String(user.id)}`); }
+    } else if (uem && method === 'PUT') {
+      const user = (lsRead(LS.users)||[]).find(u => String(u.id) === String(uem[1]));
+      if (user) { await fbSet(`/data/users/${uem[1]}`, user); _markRecentPush(`/users/${uem[1]}`); }
+    } else if (uem && method === 'DELETE') {
+      await fbDelete(`/data/users/${uem[1]}`); _markRecentPush(`/users/${uem[1]}`);
+    } else if (uim && method === 'PUT') {
+      const user = (lsRead(LS.users)||[]).find(u => String(u.id) === String(uim[1]));
+      if (user) { await fbSet(`/data/users/${uim[1]}`, user); _markRecentPush(`/users/${uim[1]}`); }
+    } else if (path === '/auth/password' && method === 'PUT') {
+      const user = (lsRead(LS.users)||[]).find(u => u.username === _currentUser?.username);
+      if (user) { await fbSet(`/data/users/${String(user.id)}`, user); _markRecentPush(`/users/${String(user.id)}`); }
+    } else {
+      schedulePushToFirebase();
+    }
+  } catch { schedulePushToFirebase(); }
 }
 
 async function api(method, path, body) {
+  // จับ IDs ก่อนลบ (localApi จะลบ entries พร้อมกับ course)
+  let _preIds = null;
+  if (method === 'DELETE') {
+    const _cm2 = path.match(/^\/courses\/([^\/\?]+)$/);
+    if (_cm2) _preIds = (lsRead(LS.entries)||[]).filter(e => e.course_id === _cm2[1]).map(e => e.id);
+    const _qm = path.match(/\/entries\?.*course_id=([^&]+)/);
+    if (_qm) _preIds = (lsRead(LS.entries)||[]).filter(e => e.course_id === _qm[1]).map(e => e.id);
+  }
   const result = localApi(method, path, body);
-  // push Firebase ทุก write ยกเว้น login และ me (อ่านอย่างเดียว)
   if (method !== 'GET' && path !== '/auth/login' && path !== '/auth/me') {
-    schedulePushToFirebase();
+    _fbPushChange(method, path, body, _preIds);
   }
   return result;
 }
@@ -3467,6 +3532,12 @@ async function fbSet(p, d) {
   } catch {}
 }
 
+async function fbDelete(p) {
+  try {
+    await _fetchWithTimeout(`${FB_DB}${p}.json`, { method: 'DELETE' });
+  } catch {}
+}
+
 async function pullFromFirebase() {
   try {
     const fb = await fbGet('/data');
@@ -3519,6 +3590,11 @@ async function pushToFirebase() {
 // ═══════════════════════════════════════════════
 let _fbStream = null;
 let _lastFbSyncedAt = null;
+const _recentPushPaths = new Set();
+function _markRecentPush(p) {
+  _recentPushPaths.add(p);
+  setTimeout(function() { _recentPushPaths.delete(p); }, 5000);
+}
 
 function startRealtimeSync() {
   if (typeof EventSource === 'undefined') return;
@@ -3529,36 +3605,93 @@ function startRealtimeSync() {
     _fbStream.addEventListener('put', function(evt) {
       try {
         const msg = JSON.parse(evt.data);
-        const fb  = msg && msg.data;
-        if (!fb || !fb.courses) return;
-        // ข้ามถ้าเป็น push ของตัวเอง
-        if (fb.syncedAt && fb.syncedAt === _lastFbSyncedAt) return;
-        _lastFbSyncedAt = fb.syncedAt || null;
+        if (!msg) return;
+        const msgPath = msg.path;
+        const msgData = msg.data;
 
-        // อัพเดต localStorage
-        const courses = Object.values(fb.courses);
-        if (!courses.length) return;
-        const entries  = fb.entries ? Object.values(fb.entries) : [];
-        const settings = fb.settings || {};
-        const users    = fb.users    ? Object.values(fb.users)  : null;
-        lsWrite(LS.settings, settings);
-        lsWrite(LS.courses,  courses);
-        lsWrite(LS.entries,  entries);
-        if (users) lsWrite(LS.users, users);
-
-        // ถ้า modal เปิดอยู่ → แจ้งเตือนแต่ไม่ re-render
-        if (document.querySelector('.modal-backdrop.open')) {
-          showToast('📡 มีข้อมูลใหม่ — จะอัพเดตหลังปิดหน้าต่างนี้');
+        // ── Full data (initial load หรือ fallback full-push) ──
+        if (msgPath === '/') {
+          if (!msgData || !msgData.courses) return;
+          if (msgData.syncedAt && msgData.syncedAt === _lastFbSyncedAt) return;
+          _lastFbSyncedAt = msgData.syncedAt || null;
+          const courses  = Object.values(msgData.courses);
+          if (!courses.length) return;
+          const entries  = msgData.entries  ? Object.values(msgData.entries)  : [];
+          const settings = msgData.settings || {};
+          const users    = msgData.users    ? Object.values(msgData.users)    : null;
+          lsWrite(LS.settings, settings);
+          lsWrite(LS.courses,  courses);
+          lsWrite(LS.entries,  entries);
+          if (users) lsWrite(LS.users, users);
+          if (document.querySelector('.modal-backdrop.open')) {
+            showToast('📡 มีข้อมูลใหม่ — จะอัพเดตหลังปิดหน้าต่างนี้');
+            return;
+          }
+          _applyFbToState(settings, courses, entries);
+          showToast('📡 ซิงค์ข้อมูล real-time แล้ว');
           return;
         }
-        _applyFbToState(settings, courses, entries);
-        showToast('📡 ซิงค์ข้อมูล real-time แล้ว');
+
+        // ── Granular update — ข้ามถ้าเป็น push ของตัวเอง ──
+        if (_recentPushPaths.has(msgPath)) { _recentPushPaths.delete(msgPath); return; }
+
+        let needsRender = false;
+
+        if (msgPath.startsWith('/entries/')) {
+          const id = msgPath.slice(9);
+          const entries = lsRead(LS.entries) || [];
+          if (msgData === null) {
+            lsWrite(LS.entries, entries.filter(e => e.id !== id));
+          } else {
+            const idx = entries.findIndex(e => e.id === id);
+            if (idx >= 0) entries[idx] = msgData; else entries.push(msgData);
+            lsWrite(LS.entries, entries);
+          }
+          needsRender = true;
+        } else if (msgPath.startsWith('/courses/')) {
+          const id = msgPath.slice(9);
+          const courses = lsRead(LS.courses) || [];
+          if (msgData === null) {
+            lsWrite(LS.courses, courses.filter(c => c.id !== id));
+            lsWrite(LS.entries, (lsRead(LS.entries)||[]).filter(e => e.course_id !== id));
+          } else {
+            const idx = courses.findIndex(c => c.id === id);
+            if (idx >= 0) courses[idx] = msgData; else courses.push(msgData);
+            lsWrite(LS.courses, courses);
+          }
+          needsRender = true;
+        } else if (msgPath === '/settings') {
+          if (msgData) lsWrite(LS.settings, msgData);
+          needsRender = true;
+        } else if (msgPath.startsWith('/users/')) {
+          const id = msgPath.slice(7);
+          const users = lsRead(LS.users) || [];
+          if (msgData === null) {
+            lsWrite(LS.users, users.filter(u => String(u.id) !== String(id)));
+          } else {
+            const idx = users.findIndex(u => String(u.id) === String(id));
+            if (idx >= 0) users[idx] = msgData; else users.push(msgData);
+            lsWrite(LS.users, users);
+          }
+        }
+
+        if (needsRender) {
+          if (document.querySelector('.modal-backdrop.open')) {
+            showToast('📡 มีข้อมูลใหม่ — จะอัพเดตหลังปิดหน้าต่างนี้');
+            return;
+          }
+          const s = lsRead(LS.settings) || {};
+          const c = lsRead(LS.courses)  || [];
+          const e = lsRead(LS.entries)  || [];
+          _applyFbToState(s, c, e);
+          showToast('📡 ซิงค์ข้อมูล real-time แล้ว');
+        }
       } catch {}
     });
 
     _fbStream.onerror = function() {
       if (_fbStream) { _fbStream.close(); _fbStream = null; }
-      setTimeout(startRealtimeSync, 10000); // reconnect หลัง 10 วิ
+      setTimeout(startRealtimeSync, 10000);
     };
   } catch {}
 }
