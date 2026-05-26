@@ -2457,6 +2457,7 @@ function openPrintWindow(bodyHtml) {
       -webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .print-table td.left{text-align:left;}
     .print-table td.f12{font-size:10pt;}
+    .print-table td.f16,.print-table th.f16{font-size:16pt;}
     .print-table td.nobot{border-bottom:none;}
     .print-table td.notop{border-top:none;}
     /* ── summary ── */
@@ -3978,8 +3979,8 @@ async function printTimetable() {
       <tr><td colspan="10" style="${HF}">${esc(state.schoolName)}</td></tr>
       <tr><td colspan="10" style="${HF}padding-bottom:3px">ตารางสอน หลักสูตร ${esc(course.name)} รุ่นที่ ${toThai(course.runNumber||'')} &nbsp; ประจำสัปดาห์ที่ ${toThai(w)} &nbsp; วันที่ ${dateRange}</td></tr>
       <tr>
-        <th>วัน , เดือน , ปี</th><th>เวลา</th><th>วิชา</th>
-        <th>ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th><th>ผู้สอน</th>
+        <th class="f16">วัน , เดือน , ปี</th><th class="f16">เวลา</th><th class="f16">วิชา</th>
+        <th class="f16">ชม.ที่ใช้<br>หมดไป/<br>ชม.ทั้งหมด</th><th class="f16">ผู้สอน</th>
         <th>วิธีสอน</th><th>สถานที่</th><th>หลักฐาน</th>
         <th>การแต่งกาย</th><th>หมายเหตุ</th>
       </tr>`;
@@ -4011,8 +4012,8 @@ async function printTimetable() {
       const h = dayEntries[0];
       const RRED = 'background:#e53935;color:black;font-weight:bold;border:1pt solid #000;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
       return `<tr>
-        <td style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:10pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
-        <td colspan="9" style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:10pt;padding:6px 4px;text-align:center">หยุด ${esc(h.label)}</td>
+        <td style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:16pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
+        <td colspan="9" style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:16pt;padding:6px 4px;text-align:center">หยุด ${esc(h.label)}</td>
       </tr>`;
     }
     const daySpan = dayEntries.length;
@@ -4029,7 +4030,7 @@ async function printTimetable() {
       const cls=[topCls,botCls].filter(Boolean).join(' ');
       const teacherHtml=getTeacherText(e).split(/\s*\/\s*/).map(t=>esc(t.trim())).filter(Boolean).join('<br>');
       const cumStr=e.cumHours?`${thaiNum(e.cumHours)}/${thaiNum(e.totalHours||'')}` :'';
-      const dateCell=isFirst?`<td rowspan="${daySpan}" class="left" style="white-space:nowrap;vertical-align:top">${formatDatePrint(date)}</td>`:'';
+      const dateCell=isFirst?`<td rowspan="${daySpan}" class="left f16" style="white-space:nowrap;vertical-align:top">${formatDatePrint(date)}</td>`:'';
       const u=uInfo[idx]; let uniformCell='';
       if(u.show){
         const uIsLastInDay=(idx+u.span-1)===dayEntries.length-1;
@@ -4037,10 +4038,10 @@ async function printTimetable() {
         uniformCell=`<td rowspan="${u.span}" class="${uCls||''}" style="vertical-align:top">${esc(e.uniform||'')}</td>`;
       }
       rows+=`<tr>${dateCell}
-        <td class="${cls}" style="white-space:nowrap;vertical-align:top">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
-        <td class="left ${cls}">${esc(e.subject)}</td>
-        <td class="${cls}">${cumStr}</td>
-        <td class="left ${cls}">${teacherHtml}</td>
+        <td class="f16 ${cls}" style="white-space:nowrap;vertical-align:top">${formatTime(e.startTime)} – ${formatTime(e.endTime)}</td>
+        <td class="left f16 ${cls}">${esc(e.subject)}</td>
+        <td class="f16 ${cls}">${cumStr}</td>
+        <td class="left f16 ${cls}">${teacherHtml}</td>
         <td class="f12 ${cls}">${esc(e.method||'')}</td>
         <td class="f12 ${cls}">${esc(e.location||'')}</td>
         <td class="${cls}">${esc(e.evidence||'')}</td>
