@@ -1369,6 +1369,9 @@ async function initApp() {
     // render ทันที (entries โหลด lazy เมื่อเลือกหลักสูตร)
     renderSidebar(); renderContent();
 
+    // บังคับ push ข้อมูลรวม users ขึ้น Firebase (เพื่อให้เครื่องอื่น sync ได้)
+    pushToFirebase();
+
     // เริ่ม real-time sync ผ่าน Firebase SSE
     startRealtimeSync();
 
