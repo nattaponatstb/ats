@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "syncedAt": "2026-05-26T01:58:48.978Z",
+  "syncedAt": "2026-05-26T02:06:39.191Z",
   "syncedBy": "admin1",
   "settings": {
     "schoolName": "โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก",
@@ -63,6 +63,22 @@
       "signer_pos2": "",
       "signer_pos3": "",
       "signer_rank": ""
+    },
+    {
+      "course_type": "ช.ต้น",
+      "end_date": "2026-07-23",
+      "id": "mplznxb3aewy",
+      "name": "นายสิบชั้นต้น เหล่า ขส. รุ่นที่ ๕ (ผ่านสื่ออิเล็กทรอนิกส์)",
+      "run_number": "5",
+      "signer_date": "พ.ค. ๖๙",
+      "signer_label": "ตรวจถูกต้อง",
+      "signer_name": "ชัยวัฒน์ ภู่ระหงษ์",
+      "signer_pos1": "หน.ผปมส.รร.ขส.ขส.ทบ. ทำการแทน",
+      "signer_pos2": "หน.ผตก.รร.ขส.ขส.ทบ.",
+      "signer_pos3": "",
+      "signer_rank": "พ.อ.",
+      "start_date": "2026-05-29",
+      "year": 2569
     }
   ],
   "entries": [
