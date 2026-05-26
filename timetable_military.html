@@ -4019,7 +4019,7 @@ async function printTimetable() {
   function buildDayBody(dayEntries, date) {
     if (dayEntries.length === 1 && dayEntries[0].type === 'holiday') {
       const h = dayEntries[0];
-      const RRED = 'background:#e53935;color:black;font-weight:bold;border:1pt solid #000;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+      const RRED = 'background:#fff;color:black;font-weight:bold;border:1pt solid #000;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
       return `<tr>
         <td style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:13pt;white-space:nowrap;text-align:left;vertical-align:top;padding:4px 6px">${formatDatePrint(date)}</td>
         <td colspan="9" style="${RRED}font-family:'TH SarabunIT๙','TH Sarabun New','Sarabun',sans-serif;font-size:13pt;padding:6px 4px;text-align:center">หยุด ${esc(h.label)}</td>
