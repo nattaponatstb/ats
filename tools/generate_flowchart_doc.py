@@ -270,6 +270,13 @@ def make_cover_page(doc, title, subtitle, spec_badge):
         r_v._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
         
     doc.add_page_break()
+
+def build_flowchart_doc(out_path):
+    doc = Document()
+    make_cover_page(doc, 
+                    "ระบบตารางสอนประจำสัปดาห์ (Weekly Timetable)", 
+                    "แผนผังแสดงโครงสร้างการจัดระบบและฐานข้อมูลเรียลไทม์", 
+                    "🗺️ 🛠️ แผนผังระบบโปรแกรม  |  💾 แผนผังโครงสร้างข้อมูล JSON  |  📊 ฟังก์ชันการทำงาน")
     
     # ── Section 1 ──
     section_heading(doc, '01', 'แผนผังกระบวนการเริ่มต้นระบบ (App Initialization Flow)', 'ลำดับสเต็ปเมื่อผู้ใช้งานเปิดหน้าตารางสอน')
@@ -438,3 +445,10 @@ def make_cover_page(doc, title, subtitle, spec_badge):
                      color=GREEN, text_color=WHITE)
                      
     save_document(doc, out_path)
+
+if __name__ == '__main__':
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    docs_dir = os.path.join(base_dir, '..', 'docs')
+    out_path = os.path.join(docs_dir, 'programming_layout_diagram.docx')
+    build_flowchart_doc(out_path)
+
