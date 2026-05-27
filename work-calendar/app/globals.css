@@ -1,0 +1,199 @@
+@import "tailwindcss";
+
+/* ── CSS Variables ── */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #3B82F6;
+  --primary-dark: #2563EB;
+  --primary-light: #EFF6FF;
+  --primary-text: #1D4ED8;
+
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --card-shadow: 0 1px 3px 0 rgba(0,0,0,.06), 0 1px 2px -1px rgba(0,0,0,.06);
+  --card-shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ── Base ── */
+html { font-size: 15px; }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Noto Sans Thai", "Inter", "Sarabun", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Selection ── */
+::selection { background: var(--primary-light); color: var(--primary-text); }
+
+/* ── Cards / surfaces ── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: 0.875rem;
+}
+.card-hover { transition: box-shadow .15s ease, transform .15s ease; }
+.card-hover:hover { box-shadow: var(--card-shadow-md); transform: translateY(-1px); }
+
+/* ── Focus rings ── */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ── Theme color overrides (maps Tailwind blue → CSS vars) ── */
+.bg-blue-600  { background-color: var(--primary)       !important; }
+.bg-blue-700  { background-color: var(--primary-dark)  !important; }
+.bg-blue-50   { background-color: var(--primary-light) !important; }
+.hover\:bg-blue-600:hover { background-color: var(--primary)      !important; }
+.hover\:bg-blue-700:hover { background-color: var(--primary-dark) !important; }
+.hover\:bg-blue-50:hover  { background-color: var(--primary-light)!important; }
+.text-blue-600  { color: var(--primary)      !important; }
+.text-blue-700  { color: var(--primary-text) !important; }
+.border-blue-400 { border-color: var(--primary) !important; }
+.border-blue-600 { border-color: var(--primary) !important; }
+.border-blue-200 { border-color: color-mix(in srgb, var(--primary) 30%, white) !important; }
+.focus\:ring-blue-500:focus { --tw-ring-color: var(--primary) !important; }
+.focus\:ring-blue-300:focus { --tw-ring-color: color-mix(in srgb, var(--primary) 50%, white) !important; }
+.ring-blue-500 { --tw-ring-color: var(--primary) !important; }
+.accent-blue-600 { accent-color: var(--primary) !important; }
+.focus\:ring-blue-400:focus { --tw-ring-color: var(--primary) !important; }
+
+/* ── Elevated cards (white on gray bg) ── */
+.bg-white {
+  background-color: #ffffff !important;
+}
+
+/* ── Subtle page surface (main content area) ── */
+main {
+  background: var(--background);
+}
+
+/* ── Inputs — slightly warmer base ── */
+input[type="text"], input[type="date"], input[type="time"], input[type="email"],
+input[type="password"], textarea, select {
+  background-color: #ffffff;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:focus, textarea:focus, select:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* ── Buttons ── */
+button { transition: all .15s ease; }
+
+/* ── FullCalendar weekend colors ── */
+.fc .fc-day-sat:not(.fc-thai-holiday) .fc-daygrid-day-frame,
+.fc .fc-day-sun:not(.fc-thai-holiday) .fc-daygrid-day-frame {
+  background-color: #fff7f0 !important;
+}
+.fc .fc-day-sat:not(.fc-thai-holiday) .fc-daygrid-day-number,
+.fc .fc-day-sun:not(.fc-thai-holiday) .fc-daygrid-day-number {
+  color: #c2410c !important;
+  font-weight: 600;
+}
+.fc .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion,
+.fc .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion {
+  color: #c2410c !important;
+  font-weight: 600;
+}
+
+/* ── Thai public holidays ── */
+.fc .fc-thai-holiday .fc-daygrid-day-frame {
+  background-color: #fef2f2 !important;
+}
+.fc .fc-thai-holiday .fc-daygrid-day-number {
+  color: #b91c1c !important;
+  font-weight: 700;
+}
+
+/* ── FullCalendar — general polish ── */
+.fc .fc-toolbar-title {
+  font-size: 1rem !important;
+  font-weight: 700;
+  color: #1e293b;
+}
+.fc .fc-button {
+  border-radius: 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.35rem 0.75rem !important;
+  box-shadow: none !important;
+  border: 1px solid #e2e8f0 !important;
+  background-color: #ffffff !important;
+  color: #475569 !important;
+  transition: all .15s ease !important;
+}
+.fc .fc-button:hover {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+.fc .fc-button-active,
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+.fc .fc-today-button {
+  background-color: var(--primary-light) !important;
+  border-color: color-mix(in srgb, var(--primary) 30%, white) !important;
+  color: var(--primary-text) !important;
+}
+.fc .fc-day-today .fc-daygrid-day-number {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+}
+.fc .fc-col-header-cell {
+  background-color: #f8fafc !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #64748b !important;
+  padding: 6px 0 !important;
+}
+.fc .fc-daygrid-day-number {
+  font-size: 0.8rem !important;
+  color: #475569;
+}
+.fc .fc-event {
+  border-radius: 5px !important;
+  border: none !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  padding: 1px 4px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.12) !important;
+}
+.fc-theme-standard td, .fc-theme-standard th {
+  border-color: #f1f5f9 !important;
+}
+.fc-theme-standard .fc-scrollgrid {
+  border-color: #e2e8f0 !important;
+}

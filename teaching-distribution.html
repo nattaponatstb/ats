@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบกระจายงานสอน</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f4f8; color: #2d3748; font-size: 14px; }
+
+  header { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: white; padding: 16px 24px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  header h1 { font-size: 20px; font-weight: 700; }
+  header span { font-size: 13px; opacity: 0.8; }
+  .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .year-select { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 4px 10px; border-radius: 6px; font-size: 13px; }
+  .year-select option { color: #2d3748; background: white; }
+
+  nav { background: white; border-bottom: 2px solid #e2e8f0; display: flex; padding: 0 24px; gap: 2px; overflow-x: auto; }
+  .tab { padding: 12px 18px; cursor: pointer; border-bottom: 3px solid transparent; color: #718096; font-weight: 500; transition: all 0.2s; user-select: none; white-space: nowrap; }
+  .tab:hover { color: #2b6cb0; background: #ebf8ff; }
+  .tab.active { color: #2b6cb0; border-bottom-color: #2b6cb0; background: #ebf8ff; }
+
+  main { padding: 20px 24px; max-width: 1300px; margin: 0 auto; }
+
+  .card { background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden; }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background: #f7fafc; }
+  .card-title { font-weight: 700; font-size: 15px; color: #2d3748; }
+  .card-desc { font-size: 12px; color: #718096; margin-top: 2px; }
+  .card-body { padding: 20px; }
+
+  .btn { padding: 7px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: #2b6cb0; color: white; }
+  .btn-primary:hover { background: #2c5282; }
+  .btn-success { background: #276749; color: white; }
+  .btn-success:hover { background: #22543d; }
+  .btn-danger { background: #c53030; color: white; }
+  .btn-danger:hover { background: #9b2c2c; }
+  .btn-warning { background: #c05621; color: white; }
+  .btn-warning:hover { background: #9c4221; }
+  .btn-outline { background: white; border: 1.5px solid #cbd5e0; color: #4a5568; }
+  .btn-outline:hover { background: #f7fafc; border-color: #a0aec0; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-xs { padding: 3px 8px; font-size: 11px; border-radius: 4px; }
+
+  .form-grid { display: grid; gap: 14px; }
+  .form-grid-2 { grid-template-columns: 1fr 1fr; }
+  .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: #4a5568; text-transform: uppercase; letter-spacing: 0.05em; }
+  .form-control { padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 13px; transition: border-color 0.15s; background: white; }
+  .form-control:focus { outline: none; border-color: #2b6cb0; box-shadow: 0 0 0 3px rgba(43,108,176,0.1); }
+  select.form-control { cursor: pointer; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #edf2f7; color: #4a5568; font-weight: 700; text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e8f0; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+  tr:hover td { background: #f7fafc; }
+  tr:last-child td { border-bottom: none; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-blue { background: #bee3f8; color: #2b6cb0; }
+  .badge-green { background: #c6f6d5; color: #276749; }
+  .badge-yellow { background: #fefcbf; color: #744210; }
+  .badge-red { background: #fed7d7; color: #c53030; }
+  .badge-gray { background: #e2e8f0; color: #4a5568; }
+  .badge-purple { background: #e9d8fd; color: #553c9a; }
+
+  .progress-wrap { background: #e2e8f0; border-radius: 99px; height: 8px; min-width: 80px; }
+  .progress-bar { height: 8px; border-radius: 99px; transition: width 0.3s; }
+  .bar-ok { background: #48bb78; }
+  .bar-warn { background: #ed8936; }
+  .bar-over { background: #f56565; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: white; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid; }
+  .stat-card.blue { border-color: #2b6cb0; }
+  .stat-card.green { border-color: #48bb78; }
+  .stat-card.orange { border-color: #ed8936; }
+  .stat-card.red { border-color: #f56565; }
+  .stat-val { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: #718096; font-weight: 500; }
+
+  .alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .alert-info { background: #ebf8ff; color: #2c5282; border: 1px solid #bee3f8; }
+  .alert-warning { background: #fffaf0; color: #744210; border: 1px solid #fbd38d; }
+  .alert-danger { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
+  .alert-success { background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; }
+
+  .empty { text-align: center; padding: 40px 20px; color: #a0aec0; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 12px; width: 500px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-weight: 700; font-size: 16px; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #718096; padding: 4px; border-radius: 4px; }
+  .modal-close:hover { background: #f0f4f8; }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; }
+
+  .sem-tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #e9d8fd; color: #553c9a; margin-right: 3px; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .report-table th { white-space: nowrap; }
+  .report-table td.num { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .total-row td { background: #edf2f7; font-weight: 700; }
+
+  /* Settings specific */
+  .opt-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .opt-card { background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; transition: box-shadow 0.2s; }
+  .opt-card.collapsed .opt-card-body { display: none; }
+  .opt-card.collapsed { box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .opt-card-header { padding: 12px 16px; background: linear-gradient(135deg, #f7fafc, #edf2f7); border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .opt-card-header:hover { background: linear-gradient(135deg, #edf2f7, #e2e8f0); }
+  .opt-card-header-left { display: flex; flex-direction: column; gap: 2px; }
+  .opt-card-title { font-weight: 700; font-size: 14px; color: #2d3748; display: flex; align-items: center; gap: 8px; }
+  .opt-card-desc { font-size: 11px; color: #718096; }
+  .opt-collapse-btn { background: white; border: 1.5px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; font-size: 13px; cursor: pointer; color: #4a5568; transition: all 0.15s; flex-shrink: 0; }
+  .opt-collapse-btn:hover { background: #ebf8ff; border-color: #2b6cb0; color: #2b6cb0; }
+  .opt-card.collapsed .opt-collapse-btn { background: #ebf8ff; border-color: #2b6cb0; color: #2b6cb0; }
+  .opt-card-count { font-size: 11px; font-weight: 700; background: #e2e8f0; color: #4a5568; padding: 1px 7px; border-radius: 10px; margin-left: 4px; }
+  .opt-list { list-style: none; }
+  .opt-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #f0f4f8; }
+  .opt-item:last-child { border-bottom: none; }
+  .opt-item:hover { background: #f7fafc; }
+  .opt-num { font-size: 11px; color: #a0aec0; min-width: 20px; }
+  .opt-label { flex: 1; font-size: 13px; font-weight: 500; }
+  .opt-label-input { flex: 1; padding: 4px 8px; border: 1.5px solid #2b6cb0; border-radius: 5px; font-size: 13px; }
+  .opt-usage { font-size: 11px; color: #718096; min-width: 50px; text-align: right; }
+  .opt-add-row { display: flex; gap: 8px; padding: 12px 16px; background: #f7fafc; border-top: 1px solid #e2e8f0; }
+  .opt-add-input { flex: 1; padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 13px; }
+  .opt-add-input:focus { outline: none; border-color: #2b6cb0; }
+  .drag-handle { cursor: grab; color: #cbd5e0; font-size: 16px; user-select: none; }
+  .drag-handle:hover { color: #718096; }
+
+  /* Multi-select dropdown */
+  .multiselect-wrap { position: relative; }
+  .multiselect-display { padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 6px; cursor: pointer; background: white; display: flex; justify-content: space-between; align-items: center; font-size: 13px; min-height: 38px; transition: border-color 0.15s; }
+  .multiselect-display:hover { border-color: #2b6cb0; }
+  .multiselect-display.open { border-color: #2b6cb0; box-shadow: 0 0 0 3px rgba(43,108,176,0.1); }
+  .multiselect-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1.5px solid #2b6cb0; border-radius: 8px; z-index: 300; max-height: 200px; overflow-y: auto; box-shadow: 0 6px 20px rgba(0,0,0,0.15); display: none; }
+  .multiselect-dropdown.open { display: block; }
+  .multiselect-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f0f4f8; }
+  .multiselect-item:last-child { border-bottom: none; }
+  .multiselect-item:hover { background: #ebf8ff; }
+  .multiselect-item input[type="checkbox"] { accent-color: #2b6cb0; width: 14px; height: 14px; }
+  .multiselect-empty { padding: 14px 12px; color: #a0aec0; font-size: 13px; text-align: center; }
+  .ms-placeholder { color: #a0aec0; }
+  .ms-arrow { color: #718096; font-size: 11px; flex-shrink: 0; }
+
+  /* Calculator Keypad */
+  .calc-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:500; align-items:center; justify-content:center; }
+  .calc-overlay.open { display:flex; }
+  .calc-box { background:white; border-radius:20px; padding:20px; width:260px; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
+  .calc-title { text-align:center; font-size:11px; color:#718096; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+  .calc-display { background:linear-gradient(135deg,#1a365d,#2b6cb0); color:white; border-radius:12px; padding:14px 18px; text-align:right; font-size:32px; font-weight:800; margin-bottom:14px; min-height:64px; display:flex; align-items:center; justify-content:flex-end; letter-spacing:2px; font-variant-numeric:tabular-nums; word-break:break-all; }
+  .calc-unit { font-size:12px; opacity:0.7; margin-left:6px; font-weight:400; align-self:flex-end; padding-bottom:4px; }
+  .calc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .calc-btn { padding:16px 0; border:none; border-radius:10px; font-size:20px; font-weight:700; cursor:pointer; transition:all 0.1s; user-select:none; }
+  .calc-btn:active { transform:scale(0.93); filter:brightness(0.9); }
+  .calc-num { background:#f0f4f8; color:#2d3748; }
+  .calc-num:hover { background:#e2e8f0; }
+  .calc-zero { grid-column:span 1; }
+  .calc-clear { background:#fed7d7; color:#c53030; font-size:14px; font-weight:800; }
+  .calc-clear:hover { background:#feb2b2; }
+  .calc-del { background:#fefcbf; color:#744210; font-size:18px; }
+  .calc-del:hover { background:#faf089; }
+  .calc-ok { background:linear-gradient(135deg,#276749,#48bb78); color:white; grid-column:span 3; padding:14px 0; font-size:15px; border-radius:12px; margin-top:2px; }
+  .calc-ok:hover { filter:brightness(1.08); }
+  .calc-field-display { padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:6px; font-size:13px; background:#f7fafc; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:border-color 0.15s; }
+  .calc-field-display:hover { border-color:#2b6cb0; background:#ebf8ff; }
+  .calc-field-val { font-weight:700; font-size:15px; color:#2b6cb0; }
+  .calc-field-icon { font-size:16px; color:#718096; }
+
+  @media (max-width: 900px) {
+    .opt-groups { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+    main { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>&#127979;</div>
+  <div>
+    <h1>ระบบกระจายงานสอน</h1>
+    <span>Teaching Distribution System</span>
+  </div>
+  <div class="header-right">
+    <label style="color:rgba(255,255,255,0.8);font-size:12px;">ปีการศึกษา</label>
+    <select class="year-select" id="globalYear" onchange="changeYear()">
+      <option value="2567">2567</option>
+      <option value="2568" selected>2568</option>
+      <option value="2569">2569</option>
+      <option value="2570">2570</option>
+      <option value="2571">2571</option>
+      <option value="2572">2572</option>
+      <option value="2573">2573</option>
+      <option value="2574">2574</option>
+      <option value="2575">2575</option>
+      <option value="2576">2576</option>
+      <option value="2577">2577</option>
+      <option value="2578">2578</option>
+      <option value="2579">2579</option>
+      <option value="2580">2580</option>
+      <option value="2581">2581</option>
+      <option value="2582">2582</option>
+      <option value="2583">2583</option>
+      <option value="2584">2584</option>
+      <option value="2585">2585</option>
+      <option value="2586">2586</option>
+      <option value="2587">2587</option>
+      <option value="2588">2588</option>
+      <option value="2589">2589</option>
+      <option value="2590">2590</option>
+    </select>
+    <button class="btn btn-outline" onclick="exportData()" style="font-size:12px;padding:5px 12px;color:white;border-color:rgba(255,255,255,0.5);">&#128190; ส่งออก JSON</button>
+    <button class="btn btn-outline" onclick="importData()" style="font-size:12px;padding:5px 12px;color:white;border-color:rgba(255,255,255,0.5);">&#128228; นำเข้า</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="doImport(event)">
+  </div>
+</header>
+
+<nav>
+  <div class="tab active" onclick="showTab('teachers',this)">&#128100; อาจารย์</div>
+  <div class="tab" onclick="showTab('subjects',this)">&#128218; วิชา/หลักสูตร</div>
+  <div class="tab" onclick="showTab('assign',this)">&#128203; มอบหมายงานสอน</div>
+  <div class="tab" onclick="showTab('report',this)">&#128202; รายงานสรุป</div>
+  <div class="tab" onclick="showTab('settings',this)">&#9881;&#65039; ตั้งค่า Dropdown</div>
+</nav>
+
+<main>
+
+<!-- ===== TAB: TEACHERS ===== -->
+<div class="tab-content active" id="tab-teachers">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">&#128100; ข้อมูลอาจารย์ผู้สอน</span>
+      <button class="btn btn-primary" onclick="openTeacherModal()">+ เพิ่มอาจารย์</button>
+    </div>
+    <div class="card-body">
+      <div class="form-grid form-grid-3" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>ค้นหาชื่ออาจารย์</label>
+          <input class="form-control" id="searchTeacher" placeholder="พิมพ์ชื่อ..." oninput="renderTeachers()">
+        </div>
+        <div class="form-group">
+          <label>กรองตำแหน่ง</label>
+          <select class="form-control" id="filterPosition" onchange="renderTeachers()">
+            <option value="">-- ทั้งหมด --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>กรองประเภท</label>
+          <select class="form-control" id="filterType" onchange="renderTeachers()">
+            <option value="">-- ทั้งหมด --</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>ชื่อ-นามสกุล</th><th>ตำแหน่ง</th><th>วิทยฐานะ</th><th>วุฒิการศึกษาสูงสุด</th><th>ประเภท</th><th>วันเกิด</th><th>วิชาที่เคยสอน</th><th>ภาระปัจจุบัน</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+          <tbody id="teacherTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: SUBJECTS ===== -->
+<div class="tab-content" id="tab-subjects">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">&#128218; รายวิชาและหลักสูตร</span>
+      <button class="btn btn-primary" onclick="openSubjectModal()">+ เพิ่มรายวิชา</button>
+    </div>
+    <div class="card-body">
+      <div class="form-grid form-grid-3" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>ค้นหารายวิชา</label>
+          <input class="form-control" id="searchSubject" placeholder="รหัสวิชา หรือ ชื่อวิชา..." oninput="renderSubjects()">
+        </div>
+        <div class="form-group">
+          <label>กรองหลักสูตร</label>
+          <select class="form-control" id="filterCurriculum" onchange="renderSubjects()"><option value="">-- ทั้งหมด --</option></select>
+        </div>
+        <div class="form-group">
+          <label>กรองภาคการศึกษา</label>
+          <select class="form-control" id="filterSemester" onchange="renderSubjects()">
+            <option value="">-- ทั้งหมด --</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>รหัสวิชา</th><th>ชื่อวิชา</th><th>หลักสูตร</th><th>หน่วยกิต</th><th>ชม.บรรยาย/สัปดาห์</th><th>ชม.ปฏิบัติ/สัปดาห์</th><th>Section</th><th>ภาคการศึกษา</th><th>จัดการ</th></tr></thead>
+          <tbody id="subjectTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: ASSIGN ===== -->
+<div class="tab-content" id="tab-assign">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">&#128203; การมอบหมายงานสอน</span>
+      <button class="btn btn-primary" onclick="openAssignModal()">+ มอบหมายงานสอน</button>
+    </div>
+    <div class="card-body">
+      <div class="form-grid form-grid-3" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>กรองอาจารย์</label>
+          <select class="form-control" id="filterAssignTeacher" onchange="renderAssignments()"><option value="">-- อาจารย์ทั้งหมด --</option></select>
+        </div>
+        <div class="form-group">
+          <label>กรองหลักสูตร</label>
+          <select class="form-control" id="filterAssignCurriculum" onchange="renderAssignments()"><option value="">-- หลักสูตรทั้งหมด --</option></select>
+        </div>
+        <div class="form-group">
+          <label>กรองภาคการศึกษา</label>
+          <select class="form-control" id="filterAssignSem" onchange="renderAssignments()">
+            <option value="">-- ทั้งหมด --</option>
+          </select>
+        </div>
+      </div>
+      <div id="assignAlert"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>อาจารย์</th><th>รหัสวิชา</th><th>ชื่อวิชา</th><th>หลักสูตร</th><th>Section</th><th>ภาคการศึกษา</th><th>ชม.บรรยาย</th><th>ชม.ปฏิบัติ</th><th>ชม.รวม/สัปดาห์</th><th>จำนวนสัปดาห์</th><th>ชม.รวมทั้งสิ้น</th><th>จัดการ</th></tr></thead>
+          <tbody id="assignTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: REPORT ===== -->
+<div class="tab-content" id="tab-report">
+  <div class="stats-grid" id="statsGrid"></div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">&#128100; สรุปภาระงานสอนรายอาจารย์</span>
+      <button class="btn btn-outline btn-sm" onclick="printReport()">&#128438; พิมพ์รายงาน</button>
+    </div>
+    <div class="card-body">
+      <div class="form-grid form-grid-3" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>ภาคการศึกษา</label>
+          <select class="form-control" id="reportSem" onchange="renderReport()"><option value="">-- ทุกภาค --</option></select>
+        </div>
+        <div class="form-group">
+          <label>หลักสูตร</label>
+          <select class="form-control" id="reportCurriculum" onchange="renderReport()"><option value="">-- ทุกหลักสูตร --</option></select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead><tr><th>#</th><th>ชื่ออาจารย์</th><th>ตำแหน่ง</th><th>จำนวนวิชา</th><th>จำนวน Section</th><th>ชม.บรรยาย/สัปดาห์</th><th>ชม.ปฏิบัติ/สัปดาห์</th><th>ชม.รวม/สัปดาห์</th><th>ชม.รวมทั้งสิ้น</th><th>สถานะ</th></tr></thead>
+          <tbody id="reportTeacherTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">&#127979; สรุปภาระงานสอนรายหลักสูตร</span></div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead><tr><th>#</th><th>หลักสูตร</th><th>จำนวนวิชา</th><th>ชม.บรรยาย/สัปดาห์</th><th>ชม.ปฏิบัติ/สัปดาห์</th><th>ชม.รวม/สัปดาห์</th><th>ชม.รวมทั้งปีการศึกษา</th><th>อาจารย์ที่สอน</th></tr></thead>
+          <tbody id="reportCurriculumTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">&#9888;&#65039; รายวิชาที่ยังไม่ได้มอบหมาย</span></div>
+    <div class="card-body" id="unassignedBody"></div>
+  </div>
+</div>
+
+<!-- ===== TAB: SETTINGS ===== -->
+<div class="tab-content" id="tab-settings">
+  <div class="alert alert-info" style="margin-bottom:16px;">
+    &#9881;&#65039; จัดการตัวเลือกในดรอปดาวน์ทุกรายการ — เพิ่ม / แก้ไขชื่อ / เรียงลำดับ / ลบ &nbsp;| &nbsp;การแก้ไขชื่อจะอัปเดตข้อมูลทั้งหมดที่ใช้ชื่อเดิมโดยอัตโนมัติ
+  </div>
+  <div class="opt-groups" id="optGroups"></div>
+</div>
+
+</main>
+
+<!-- ===== MODAL: TEACHER ===== -->
+<div class="modal-overlay" id="teacherModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="teacherModalTitle">เพิ่มอาจารย์</span>
+      <button class="modal-close" onclick="closeModal('teacherModal')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>คำนำหน้า</label>
+            <select class="form-control" id="tPrefix"></select>
+          </div>
+          <div class="form-group">
+            <label>ตำแหน่ง</label>
+            <select class="form-control" id="tPosition"></select>
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>วิทยฐานะระดับ</label>
+            <select class="form-control" id="tAcademicLevel"></select>
+          </div>
+          <div class="form-group">
+            <label>ประเภทอาจารย์</label>
+            <select class="form-control" id="tType"></select>
+          </div>
+        </div>
+        <div style="background:#f0f7ff;border:1.5px solid #bee3f8;border-radius:10px;padding:14px 16px;">
+          <div style="font-size:12px;font-weight:700;color:#2b6cb0;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">&#127979; วุฒิการศึกษาสูงสุด</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label>ระดับการศึกษา</label>
+              <select class="form-control" id="tEduLevel" onchange="onEduLevelChange()"></select>
+            </div>
+            <div class="form-group">
+              <label>สาขาวิชา</label>
+              <input class="form-control" id="tEduMajor" placeholder="พิมพ์สาขาวิชา เช่น วิทยาการคอมพิวเตอร์">
+            </div>
+          </div>
+          <div id="tEduPreview" style="display:none;margin-top:8px;padding:6px 10px;background:white;border-radius:6px;font-size:13px;color:#2b6cb0;border:1px solid #bee3f8;"></div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group"><label>ชื่อ *</label><input class="form-control" id="tFirstName" placeholder="ชื่อ"></div>
+          <div class="form-group"><label>นามสกุล *</label><input class="form-control" id="tLastName" placeholder="นามสกุล"></div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>วันเดือนปีเกิด</label>
+            <input class="form-control" id="tBirthDate" type="date">
+          </div>
+          <div class="form-group">
+            <label>ภาระงานที่สอนขั้นต่ำต่อปีงบประมาณ (ชม.)</label>
+            <div class="calc-field-display" onclick="openCalc()">
+              <span id="tMaxLoadDisplay">15</span>
+              <span class="calc-field-icon">&#128290;</span>
+            </div>
+            <input type="hidden" id="tMaxLoad" value="15">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>วิชาที่เคยสอน</label>
+          <div class="multiselect-wrap">
+            <div class="multiselect-display" id="tPrevSubjectsDisplay" onclick="toggleMS()">
+              <span class="ms-placeholder" id="tPrevSubjectsText">-- เลือกวิชาที่เคยสอน --</span>
+              <span class="ms-arrow">&#9660;</span>
+            </div>
+            <div class="multiselect-dropdown" id="tPrevSubjectsDropdown"></div>
+          </div>
+        </div>
+        <div class="form-group"><label>ความเชี่ยวชาญ / หมายเหตุ</label><input class="form-control" id="tNote" placeholder="เช่น วิทยาการคอมพิวเตอร์, เครือข่าย..."></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('teacherModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveTeacher()">&#128190; บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: SUBJECT ===== -->
+<div class="modal-overlay" id="subjectModal">
+  <div class="modal" style="width:600px;">
+    <div class="modal-header">
+      <span class="modal-title" id="subjectModalTitle">เพิ่มรายวิชา</span>
+      <button class="modal-close" onclick="closeModal('subjectModal')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-grid form-grid-2">
+          <div class="form-group"><label>รหัสวิชา *</label><input class="form-control" id="sCode" placeholder="เช่น CS101"></div>
+          <div class="form-group"><label>หน่วยกิต *</label><input class="form-control" id="sCredits" type="number" min="0" max="9" step="0.5" value="3"></div>
+        </div>
+        <div class="form-group"><label>ชื่อวิชา (ภาษาไทย) *</label><input class="form-control" id="sNameTH" placeholder="ชื่อวิชาภาษาไทย"></div>
+        <div class="form-group"><label>ชื่อวิชา (ภาษาอังกฤษ)</label><input class="form-control" id="sNameEN" placeholder="Subject Name in English"></div>
+        <div class="form-group">
+          <label>หลักสูตร *</label>
+          <select class="form-control" id="sCurriculum">
+            <option value="">-- เลือกหลักสูตร --</option>
+          </select>
+          <small style="color:#718096;margin-top:3px;display:block;">&#9998; เพิ่ม/จัดการหลักสูตรได้ที่แท็บ <strong>ตั้งค่า Dropdown → หลักสูตร</strong></small>
+        </div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group"><label>ชม.บรรยาย/สัปดาห์</label><input class="form-control" id="sLectureHr" type="number" min="0" step="0.5" value="3"></div>
+          <div class="form-group"><label>ชม.ปฏิบัติ/สัปดาห์</label><input class="form-control" id="sLabHr" type="number" min="0" step="0.5" value="0"></div>
+          <div class="form-group"><label>จำนวน Section</label><input class="form-control" id="sSections" type="number" min="1" value="1"></div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>ภาคการศึกษา</label>
+            <select class="form-control" id="sSemester"></select>
+          </div>
+          <div class="form-group"><label>จำนวนสัปดาห์</label><input class="form-control" id="sWeeks" type="number" min="1" max="20" value="15"></div>
+        </div>
+        <div class="form-group"><label>หมายเหตุ</label><input class="form-control" id="sNote" placeholder="หมายเหตุเพิ่มเติม"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('subjectModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveSubject()">&#128190; บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: ASSIGN ===== -->
+<div class="modal-overlay" id="assignModal">
+  <div class="modal" style="width:580px;">
+    <div class="modal-header">
+      <span class="modal-title" id="assignModalTitle">มอบหมายงานสอน</span>
+      <button class="modal-close" onclick="closeModal('assignModal')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>อาจารย์ผู้สอน *</label>
+          <select class="form-control" id="aTeacher" onchange="updateAssignInfo()"><option value="">-- เลือกอาจารย์ --</option></select>
+        </div>
+        <div id="teacherLoadInfo" style="display:none;" class="alert alert-info"></div>
+        <div class="form-group">
+          <label>ภาคการศึกษา</label>
+          <select class="form-control" id="aSemFilter" onchange="filterAssignSubjects()">
+            <option value="">-- ทุกภาค --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>รายวิชา *</label>
+          <select class="form-control" id="aSubject" onchange="updateAssignSubjectInfo()"><option value="">-- เลือกรายวิชา --</option></select>
+        </div>
+        <div id="subjectInfo" style="display:none;" class="alert alert-info"></div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Section ที่สอน *</label>
+            <select class="form-control" id="aSection"><option value="1">Section 1</option></select>
+          </div>
+          <div class="form-group">
+            <label>บทบาท</label>
+            <select class="form-control" id="aRole"></select>
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group"><label>ชม.บรรยายที่รับผิดชอบ/สัปดาห์</label><input class="form-control" id="aLectureHr" type="number" min="0" step="0.5" value="0"></div>
+          <div class="form-group"><label>ชม.ปฏิบัติที่รับผิดชอบ/สัปดาห์</label><input class="form-control" id="aLabHr" type="number" min="0" step="0.5" value="0"></div>
+        </div>
+        <div class="form-group"><label>จำนวนสัปดาห์</label><input class="form-control" id="aWeeks" type="number" min="1" max="20" value="15"></div>
+        <div id="assignWarning" style="display:none;" class="alert alert-warning"></div>
+        <div class="form-group"><label>หมายเหตุ</label><input class="form-control" id="aNote" placeholder="หมายเหตุ"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('assignModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveAssignment()">&#128190; บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CALCULATOR MODAL ===== -->
+<div class="calc-overlay" id="calcOverlay" onclick="calcOutsideClick(event)">
+  <div class="calc-box">
+    <div class="calc-title">&#128290; ภาระงานที่สอนขั้นต่ำต่อปีงบประมาณ</div>
+    <div class="calc-display">
+      <span id="calcDisplay">0</span>
+      <span class="calc-unit">ชม.</span>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-btn calc-num" onclick="calcInput('7')">7</button>
+      <button class="calc-btn calc-num" onclick="calcInput('8')">8</button>
+      <button class="calc-btn calc-num" onclick="calcInput('9')">9</button>
+      <button class="calc-btn calc-num" onclick="calcInput('4')">4</button>
+      <button class="calc-btn calc-num" onclick="calcInput('5')">5</button>
+      <button class="calc-btn calc-num" onclick="calcInput('6')">6</button>
+      <button class="calc-btn calc-num" onclick="calcInput('1')">1</button>
+      <button class="calc-btn calc-num" onclick="calcInput('2')">2</button>
+      <button class="calc-btn calc-num" onclick="calcInput('3')">3</button>
+      <button class="calc-btn calc-clear" onclick="calcInput('C')">C</button>
+      <button class="calc-btn calc-num calc-zero" onclick="calcInput('0')">0</button>
+      <button class="calc-btn calc-del" onclick="calcInput('⌫')">&#9003;</button>
+      <button class="calc-btn calc-ok" onclick="calcConfirm()">&#10003; ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =================== DEFAULT OPTIONS ===================
+const DEFAULT_OPTIONS = {
+  prefixes: ['ผศ.ดร.','รศ.ดร.','ศ.ดร.','ดร.','อ.','อ.ดร.','ผศ.','รศ.','ศ.'],
+  positions: ['อาจารย์','ผู้ช่วยศาสตราจารย์','รองศาสตราจารย์','ศาสตราจารย์'],
+  teacherTypes: ['ประจำ','พิเศษ'],
+  roles: ['ผู้รับผิดชอบหลัก','ผู้ร่วมสอน'],
+  academicLevels: ['ปริญญาตรี','ปริญญาโท','ปริญญาเอก','หลังปริญญาเอก (Post-doc)'],
+  educationLevels: ['ม.6','ปวช.','ปวส.','ปริญญาตรี','ปริญญาโท','ปริญญาเอก'],
+  curricula: [],
+  semesters: [
+    { id:'1', label:'ภาคการศึกษาที่ 1' },
+    { id:'2', label:'ภาคการศึกษาที่ 2' },
+    { id:'3', label:'ภาคฤดูร้อน' }
+  ]
+};
+
+const OPT_META = [
+  { key:'prefixes',       icon:'&#128218;', title:'คำนำหน้าชื่อ',        desc:'ใช้ในฟอร์มเพิ่ม/แก้ไขอาจารย์',     type:'string' },
+  { key:'positions',      icon:'&#127970;', title:'ตำแหน่งทางวิชาการ',   desc:'ใช้ในฟอร์มอาจารย์และการกรอง',     type:'string' },
+  { key:'academicLevels',  icon:'&#127891;', title:'วิทยฐานะระดับ',         desc:'ระดับวิทยฐานะทางวิชาการ',           type:'string' },
+  { key:'educationLevels', icon:'&#127979;', title:'วุฒิการศึกษาสูงสุด',    desc:'ระดับการศึกษาสูงสุด (ม.6 ถึง เอก)', type:'string' },
+  { key:'teacherTypes',   icon:'&#128100;', title:'ประเภทอาจารย์',       desc:'ใช้แยกประเภทอาจารย์ประจำ/พิเศษ', type:'string' },
+  { key:'roles',          icon:'&#128203;', title:'บทบาทการสอน',        desc:'ใช้ในการมอบหมายงานสอน',               type:'string' },
+  { key:'curricula',      icon:'&#127979;', title:'หลักสูตร',           desc:'ชื่อหลักสูตรที่เปิดสอน ใช้ในฟอร์มวิชาและการกรอง', type:'string' }
+];
+
+// =================== DATA STORE ===================
+let db = { year:'2568', teachers:[], subjects:[], assignments:[], options:{} };
+let editTeacherId = null;
+let editSubjectId = null;
+let editAssignId = null;
+
+// =================== INIT ===================
+function init() {
+  const saved = localStorage.getItem('teachingDB');
+  if (saved) db = JSON.parse(saved);
+  // ensure options exist with defaults
+  if (!db.options) db.options = {};
+  OPT_META.forEach(m => {
+    if (!db.options[m.key]) db.options[m.key] = JSON.parse(JSON.stringify(DEFAULT_OPTIONS[m.key]));
+  });
+  document.getElementById('globalYear').value = db.year || '2568';
+  refreshAll();
+}
+
+function save() { localStorage.setItem('teachingDB', JSON.stringify(db)); }
+
+function refreshAll() {
+  populateAllSelects();
+  renderTeachers();
+  renderSubjects();
+  renderAssignments();
+  renderReport();
+  updateFilterDropdowns();
+  renderSettings();
+}
+
+function changeYear() { db.year = document.getElementById('globalYear').value; save(); }
+
+// =================== POPULATE DYNAMIC SELECTS ===================
+function populateCurriculumSelect() {
+  const el = document.getElementById('sCurriculum');
+  if (!el) return;
+  const cur = el.value;
+  // รวม: หลักสูตรจาก settings + ที่มีอยู่แล้วใน subjects (backward compat)
+  const fromSettings = db.options.curricula || [];
+  const fromSubjects = db.subjects.map(s => s.curriculum).filter(Boolean);
+  const all = [...new Set([...fromSettings, ...fromSubjects])].sort((a,b) => a.localeCompare(b,'th'));
+  el.innerHTML = '<option value="">-- เลือกหลักสูตร --</option>';
+  all.forEach(c => el.innerHTML += `<option value="${c}" ${c===cur?'selected':''}>${c}</option>`);
+}
+
+function semLabel(id) {
+  const s = db.options.semesters.find(x => x.id === id);
+  return s ? s.label : ('ภาค ' + id);
+}
+
+function populateSelect(elId, opts, valueField, labelField, blank) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const cur = el.value;
+  el.innerHTML = blank ? `<option value="">${blank}</option>` : '';
+  opts.forEach(o => {
+    const val = valueField ? o[valueField] : o;
+    const lbl = labelField ? o[labelField] : o;
+    el.innerHTML += `<option value="${val}" ${val===cur?'selected':''}>${lbl}</option>`;
+  });
+}
+
+function populateAllSelects() {
+  const opts = db.options;
+  // Teacher modal
+  populateSelect('tPrefix', opts.prefixes, null, null, null);
+  populateSelect('tPosition', opts.positions, null, null, null);
+  populateSelect('tAcademicLevel', opts.academicLevels, null, null, '-- เลือกวิทยฐานะ --');
+  populateSelect('tEduLevel', opts.educationLevels, null, null, '-- เลือกระดับการศึกษา --');
+  populateSelect('tType', opts.teacherTypes, null, null, null);
+  // Subject modal - curriculum select
+  populateCurriculumSelect();
+  // Subject modal
+  populateSelect('sSemester', opts.semesters, 'id', 'label', null);
+  // Assign modal
+  populateSelect('aRole', opts.roles, null, null, null);
+  populateSelect('aSemFilter', opts.semesters, 'id', 'label', '-- ทุกภาค --');
+  // Filter dropdowns with semester
+  populateSelect('filterSemester', opts.semesters, 'id', 'label', '-- ทั้งหมด --');
+  populateSelect('filterAssignSem', opts.semesters, 'id', 'label', '-- ทั้งหมด --');
+  populateSelect('reportSem', opts.semesters, 'id', 'label', '-- ทุกภาค --');
+  // Position & type filters
+  populateSelect('filterPosition', opts.positions, null, null, '-- ทั้งหมด --');
+  populateSelect('filterType', opts.teacherTypes, null, null, '-- ทั้งหมด --');
+}
+
+// =================== TABS ===================
+function showTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'report') renderReport();
+  if (name === 'settings') renderSettings();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// =================== FILTER DROPDOWNS ===================
+function updateFilterDropdowns() {
+  // รวมหลักสูตรจาก settings + ที่มีอยู่ใน subjects
+  const fromSettings = db.options.curricula || [];
+  const fromSubjects = db.subjects.map(s => s.curriculum).filter(Boolean);
+  const curricula = [...new Set([...fromSettings, ...fromSubjects])].sort((a,b) => a.localeCompare(b,'th'));
+
+  const fc = document.getElementById('filterCurriculum');
+  const cur1 = fc.value;
+  fc.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+  curricula.forEach(c => fc.innerHTML += `<option ${c===cur1?'selected':''}>${c}</option>`);
+
+  const fac = document.getElementById('filterAssignCurriculum');
+  const cur2 = fac.value;
+  fac.innerHTML = '<option value="">-- หลักสูตรทั้งหมด --</option>';
+  curricula.forEach(c => fac.innerHTML += `<option ${c===cur2?'selected':''}>${c}</option>`);
+
+  const fat = document.getElementById('filterAssignTeacher');
+  const cur3 = fat.value;
+  fat.innerHTML = '<option value="">-- อาจารย์ทั้งหมด --</option>';
+  db.teachers.forEach(t => fat.innerHTML += `<option value="${t.id}" ${t.id===cur3?'selected':''}>${t.prefix}${t.firstName} ${t.lastName}</option>`);
+
+  const rc = document.getElementById('reportCurriculum');
+  const cur4 = rc.value;
+  rc.innerHTML = '<option value="">-- ทุกหลักสูตร --</option>';
+  curricula.forEach(c => rc.innerHTML += `<option ${c===cur4?'selected':''}>${c}</option>`);
+
+  // อัปเดต curriculum select ในฟอร์มวิชาด้วย
+  populateCurriculumSelect();
+}
+
+// =================== TEACHERS ===================
+function openTeacherModal(id = null) {
+  editTeacherId = id;
+  const t = id ? db.teachers.find(x => x.id === id) : null;
+  document.getElementById('teacherModalTitle').textContent = t ? 'แก้ไขข้อมูลอาจารย์' : 'เพิ่มอาจารย์';
+  populateAllSelects();
+  document.getElementById('tPrefix').value = t?.prefix || db.options.prefixes[0] || '';
+  document.getElementById('tPosition').value = t?.position || db.options.positions[0] || '';
+  document.getElementById('tAcademicLevel').value = t?.academicLevel || '';
+  document.getElementById('tFirstName').value = t?.firstName || '';
+  document.getElementById('tLastName').value = t?.lastName || '';
+  document.getElementById('tBirthDate').value = t?.birthDate || '';
+  document.getElementById('tEduLevel').value = t?.eduLevel || '';
+  document.getElementById('tEduMajor').value = t?.eduMajor || '';
+  document.getElementById('tType').value = t?.type || db.options.teacherTypes[0] || '';
+  updateEduPreview();
+  const maxVal = t?.maxLoad || 15;
+  document.getElementById('tMaxLoad').value = maxVal;
+  document.getElementById('tMaxLoadDisplay').textContent = maxVal;
+  document.getElementById('tNote').value = t?.note || '';
+  // Multi-select prev subjects
+  selectedPrevSubjects = t?.prevSubjects ? [...t.prevSubjects] : [];
+  renderMSDropdown();
+  updateMSDisplay();
+  openModal('teacherModal');
+}
+
+function saveTeacher() {
+  const firstName = document.getElementById('tFirstName').value.trim();
+  const lastName = document.getElementById('tLastName').value.trim();
+  if (!firstName || !lastName) return alert('กรุณากรอกชื่อและนามสกุล');
+  const data = {
+    prefix: document.getElementById('tPrefix').value,
+    position: document.getElementById('tPosition').value,
+    academicLevel: document.getElementById('tAcademicLevel').value,
+    firstName, lastName,
+    birthDate: document.getElementById('tBirthDate').value,
+    eduLevel: document.getElementById('tEduLevel').value,
+    eduMajor: document.getElementById('tEduMajor').value.trim(),
+    type: document.getElementById('tType').value,
+    maxLoad: parseFloat(document.getElementById('tMaxLoad').value) || 15,
+    prevSubjects: [...selectedPrevSubjects],
+    note: document.getElementById('tNote').value.trim()
+  };
+  if (editTeacherId) {
+    const i = db.teachers.findIndex(x => x.id === editTeacherId);
+    db.teachers[i] = { ...db.teachers[i], ...data };
+  } else {
+    data.id = 'T' + Date.now();
+    db.teachers.push(data);
+  }
+  save(); closeModal('teacherModal'); refreshAll();
+}
+
+function deleteTeacher(id) {
+  const used = db.assignments.some(a => a.teacherId === id);
+  if (used && !confirm('อาจารย์นี้มีการมอบหมายงานสอนอยู่ ต้องการลบทั้งหมดใช่ไหม?')) return;
+  db.teachers = db.teachers.filter(x => x.id !== id);
+  db.assignments = db.assignments.filter(a => a.teacherId !== id);
+  save(); refreshAll();
+}
+
+function getTeacherLoad(teacherId) {
+  return db.assignments
+    .filter(a => a.teacherId === teacherId)
+    .reduce((sum, a) => sum + (parseFloat(a.lectureHr)||0) + (parseFloat(a.labHr)||0), 0);
+}
+
+function renderTeachers() {
+  const search = document.getElementById('searchTeacher').value.toLowerCase();
+  const pos = document.getElementById('filterPosition').value;
+  const type = document.getElementById('filterType').value;
+  const list = db.teachers.filter(t => {
+    const name = `${t.prefix}${t.firstName} ${t.lastName}`.toLowerCase();
+    return name.includes(search) && (pos===''||t.position===pos) && (type===''||t.type===type);
+  });
+  const tbody = document.getElementById('teacherTable');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="empty-icon">&#128100;</div><p>ยังไม่มีข้อมูลอาจารย์</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map((t,i) => {
+    const load = getTeacherLoad(t.id);
+    const pct = Math.min((load/t.maxLoad)*100, 100);
+    const barClass = pct>=100?'bar-over':pct>=80?'bar-warn':'bar-ok';
+    const status = load>t.maxLoad?'<span class="badge badge-red">เกินภาระ</span>':load>=t.maxLoad*0.8?'<span class="badge badge-yellow">เต็มเกือบแล้ว</span>':'<span class="badge badge-green">ปกติ</span>';
+    // Birth date display
+    const bd = t.birthDate ? new Date(t.birthDate) : null;
+    const bdStr = bd ? `${bd.getDate()}/${bd.getMonth()+1}/${bd.getFullYear()+543}` : '-';
+    // Prev subjects
+    const prevSubs = (t.prevSubjects||[]).map(sid => {
+      const s = db.subjects.find(x => x.id === sid);
+      return s ? `<span class="sem-tag" style="background:#e2e8f0;color:#4a5568;">${s.code}</span>` : '';
+    }).filter(Boolean).join('') || '-';
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${t.prefix}${t.firstName} ${t.lastName}</strong>${t.note?`<br><small style="color:#718096">${t.note}</small>`:''}</td>
+      <td>${t.position}</td>
+      <td>${t.academicLevel ? `<span class="badge badge-green">${t.academicLevel}</span>` : '-'}</td>
+      <td>${t.eduLevel ? `<span class="badge badge-purple">${t.eduLevel}</span>${t.eduMajor ? `<br><small style="color:#718096">${t.eduMajor}</small>` : ''}` : '-'}</td>
+      <td><span class="badge ${t.type==='ประจำ'?'badge-blue':'badge-purple'}">${t.type}</span></td>
+      <td style="white-space:nowrap">${bdStr}</td>
+      <td style="max-width:180px">${prevSubs}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;"><div class="progress-wrap" style="flex:1"><div class="progress-bar ${barClass}" style="width:${pct}%"></div></div><span style="min-width:60px;font-weight:600">${load}/${t.maxLoad} ชม.</span></div></td>
+      <td>${status}</td>
+      <td class="actions">
+        <button class="btn btn-warning btn-xs" onclick="openTeacherModal('${t.id}')">&#9998; แก้ไข</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteTeacher('${t.id}')">&#128465;</button>
+      </td></tr>`;
+  }).join('');
+}
+
+// =================== SUBJECTS ===================
+function openSubjectModal(id = null) {
+  editSubjectId = id;
+  const s = id ? db.subjects.find(x => x.id === id) : null;
+  document.getElementById('subjectModalTitle').textContent = s ? 'แก้ไขรายวิชา' : 'เพิ่มรายวิชา';
+  populateAllSelects();
+  updateFilterDropdowns();
+  document.getElementById('sCode').value = s?.code || '';
+  document.getElementById('sCredits').value = s?.credits || 3;
+  document.getElementById('sNameTH').value = s?.nameTH || '';
+  document.getElementById('sNameEN').value = s?.nameEN || '';
+  // ต้อง populate ก่อนแล้วค่อย set
+  populateCurriculumSelect();
+  document.getElementById('sCurriculum').value = s?.curriculum || '';
+  document.getElementById('sLectureHr').value = s?.lectureHr || 3;
+  document.getElementById('sLabHr').value = s?.labHr || 0;
+  document.getElementById('sSections').value = s?.sections || 1;
+  document.getElementById('sSemester').value = s?.semester || (db.options.semesters[0]?.id || '1');
+  document.getElementById('sWeeks').value = s?.weeks || 15;
+  document.getElementById('sNote').value = s?.note || '';
+  openModal('subjectModal');
+}
+
+function saveSubject() {
+  const code = document.getElementById('sCode').value.trim();
+  const nameTH = document.getElementById('sNameTH').value.trim();
+  const curriculum = document.getElementById('sCurriculum').value;
+  if (!code || !nameTH || !curriculum) return alert('กรุณากรอกรหัสวิชา ชื่อวิชา และเลือกหลักสูตร');
+  const data = { code, nameTH, nameEN:document.getElementById('sNameEN').value.trim(), curriculum,
+    credits:parseFloat(document.getElementById('sCredits').value)||3,
+    lectureHr:parseFloat(document.getElementById('sLectureHr').value)||0,
+    labHr:parseFloat(document.getElementById('sLabHr').value)||0,
+    sections:parseInt(document.getElementById('sSections').value)||1,
+    semester:document.getElementById('sSemester').value,
+    weeks:parseInt(document.getElementById('sWeeks').value)||15,
+    note:document.getElementById('sNote').value.trim()
+  };
+  if (editSubjectId) {
+    const i = db.subjects.findIndex(x => x.id === editSubjectId);
+    db.subjects[i] = { ...db.subjects[i], ...data };
+  } else { data.id = 'S'+Date.now(); db.subjects.push(data); }
+  save(); closeModal('subjectModal'); refreshAll();
+}
+
+function deleteSubject(id) {
+  const used = db.assignments.some(a => a.subjectId === id);
+  if (used && !confirm('วิชานี้มีการมอบหมายงานสอนอยู่ ต้องการลบทั้งหมดใช่ไหม?')) return;
+  db.subjects = db.subjects.filter(x => x.id !== id);
+  db.assignments = db.assignments.filter(a => a.subjectId !== id);
+  save(); refreshAll();
+}
+
+function renderSubjects() {
+  const search = document.getElementById('searchSubject').value.toLowerCase();
+  const cur = document.getElementById('filterCurriculum').value;
+  const sem = document.getElementById('filterSemester').value;
+  const list = db.subjects.filter(s =>
+    (`${s.code} ${s.nameTH} ${s.nameEN||''}`).toLowerCase().includes(search)
+    && (cur===''||s.curriculum===cur) && (sem===''||s.semester===sem)
+  );
+  const tbody = document.getElementById('subjectTable');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-icon">&#128218;</div><p>ยังไม่มีข้อมูลรายวิชา</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map((s,i) => {
+    const assigned = db.assignments.filter(a => a.subjectId === s.id).length;
+    const totalSec = s.sections||1;
+    const badge = assigned>=totalSec?'badge-green':assigned>0?'badge-yellow':'badge-gray';
+    return `<tr>
+      <td>${i+1}</td><td><strong>${s.code}</strong></td>
+      <td>${s.nameTH}${s.nameEN?`<br><small style="color:#718096">${s.nameEN}</small>`:''}</td>
+      <td><span class="badge badge-blue">${s.curriculum}</span></td>
+      <td style="text-align:center">${s.credits}</td>
+      <td style="text-align:center">${s.lectureHr}</td>
+      <td style="text-align:center">${s.labHr}</td>
+      <td style="text-align:center"><span class="badge ${badge}">${assigned}/${totalSec}</span></td>
+      <td><span class="sem-tag">${semLabel(s.semester)}</span></td>
+      <td class="actions">
+        <button class="btn btn-warning btn-xs" onclick="openSubjectModal('${s.id}')">&#9998;</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteSubject('${s.id}')">&#128465;</button>
+      </td></tr>`;
+  }).join('');
+}
+
+// =================== ASSIGNMENTS ===================
+function openAssignModal(id = null) {
+  editAssignId = id;
+  const a = id ? db.assignments.find(x => x.id === id) : null;
+  document.getElementById('assignModalTitle').textContent = a ? 'แก้ไขการมอบหมาย' : 'มอบหมายงานสอน';
+  populateAllSelects();
+  const at = document.getElementById('aTeacher');
+  at.innerHTML = '<option value="">-- เลือกอาจารย์ --</option>';
+  db.teachers.forEach(t => at.innerHTML += `<option value="${t.id}" ${a?.teacherId===t.id?'selected':''}>${t.prefix}${t.firstName} ${t.lastName}</option>`);
+  document.getElementById('aSemFilter').value = a?.semester || '';
+  filterAssignSubjects(a?.subjectId);
+  document.getElementById('aSection').value = a?.section || 1;
+  document.getElementById('aRole').value = a?.role || db.options.roles[0] || '';
+  document.getElementById('aLectureHr').value = a?.lectureHr || 0;
+  document.getElementById('aLabHr').value = a?.labHr || 0;
+  document.getElementById('aWeeks').value = a?.weeks || 15;
+  document.getElementById('aNote').value = a?.note || '';
+  document.getElementById('teacherLoadInfo').style.display = 'none';
+  document.getElementById('subjectInfo').style.display = 'none';
+  document.getElementById('assignWarning').style.display = 'none';
+  if (a?.teacherId) updateAssignInfo();
+  openModal('assignModal');
+}
+
+function filterAssignSubjects(selectId = null) {
+  const sem = document.getElementById('aSemFilter').value;
+  const as = document.getElementById('aSubject');
+  const prev = selectId || as.value;
+  as.innerHTML = '<option value="">-- เลือกรายวิชา --</option>';
+  db.subjects.filter(s => sem===''||s.semester===sem).forEach(s => {
+    const lbl = `${s.code} - ${s.nameTH} [${s.curriculum}] ${semLabel(s.semester)}`;
+    as.innerHTML += `<option value="${s.id}" ${s.id===prev?'selected':''}>${lbl}</option>`;
+  });
+  if (prev) { as.value = prev; updateAssignSubjectInfo(); }
+}
+
+function updateAssignInfo() {
+  const tid = document.getElementById('aTeacher').value;
+  if (!tid) { document.getElementById('teacherLoadInfo').style.display='none'; return; }
+  const t = db.teachers.find(x => x.id === tid);
+  if (!t) return;
+  const currentLoad = getTeacherLoad(tid);
+  const remaining = t.maxLoad - currentLoad;
+  const el = document.getElementById('teacherLoadInfo');
+  el.style.display = 'flex';
+  el.innerHTML = `&#128100; <strong>${t.prefix}${t.firstName} ${t.lastName}</strong> &nbsp;| ภาระปัจจุบัน: <strong>${currentLoad} ชม.</strong> | เหลือรับได้: <strong style="color:${remaining<0?'#c53030':'#276749'}">${remaining} ชม.</strong>`;
+  checkAssignWarning();
+}
+
+function updateAssignSubjectInfo() {
+  const sid = document.getElementById('aSubject').value;
+  if (!sid) { document.getElementById('subjectInfo').style.display='none'; return; }
+  const s = db.subjects.find(x => x.id === sid);
+  if (!s) return;
+  document.getElementById('aLectureHr').value = s.lectureHr||0;
+  document.getElementById('aLabHr').value = s.labHr||0;
+  document.getElementById('aWeeks').value = s.weeks||15;
+  const sec = document.getElementById('aSection');
+  sec.innerHTML = '';
+  for (let i=1; i<=(s.sections||1); i++) sec.innerHTML += `<option value="${i}">Section ${i}</option>`;
+  const el = document.getElementById('subjectInfo');
+  el.style.display = 'flex';
+  el.innerHTML = `&#128218; <strong>${s.code}</strong> ${s.nameTH} | ${s.credits} หน่วยกิต | บรรยาย ${s.lectureHr} ชม. + ปฏิบัติ ${s.labHr} ชม.`;
+  checkAssignWarning();
+}
+
+function checkAssignWarning() {
+  const tid = document.getElementById('aTeacher').value;
+  const lh = parseFloat(document.getElementById('aLectureHr').value)||0;
+  const lb = parseFloat(document.getElementById('aLabHr').value)||0;
+  if (!tid) return;
+  const t = db.teachers.find(x => x.id === tid);
+  if (!t) return;
+  const existing = db.assignments.filter(a => a.teacherId===tid && a.id!==editAssignId)
+    .reduce((s,a) => s+(parseFloat(a.lectureHr)||0)+(parseFloat(a.labHr)||0), 0);
+  const newTotal = existing + lh + lb;
+  const warn = document.getElementById('assignWarning');
+  if (newTotal > t.maxLoad) {
+    warn.style.display = 'flex';
+    warn.innerHTML = `&#9888; ภาระงานสอนรวม <strong>${newTotal} ชม./สัปดาห์</strong> จะต่ำกว่าภาระขั้นต่ำ <strong>${t.maxLoad} ชม.</strong> ต่อปีงบประมาณ`;
+  } else { warn.style.display = 'none'; }
+}
+
+function saveAssignment() {
+  const teacherId = document.getElementById('aTeacher').value;
+  const subjectId = document.getElementById('aSubject').value;
+  const section = parseInt(document.getElementById('aSection').value);
+  if (!teacherId || !subjectId) return alert('กรุณาเลือกอาจารย์และรายวิชา');
+  const dup = db.assignments.find(a => a.teacherId===teacherId && a.subjectId===subjectId && a.section===section && a.id!==editAssignId);
+  if (dup) return alert('อาจารย์ท่านนี้ได้รับมอบหมายวิชานี้ Section นี้แล้ว');
+  const sub = db.subjects.find(x => x.id === subjectId);
+  const data = { teacherId, subjectId, section,
+    semester: sub?.semester || document.getElementById('aSemFilter').value || (db.options.semesters[0]?.id||'1'),
+    role: document.getElementById('aRole').value,
+    lectureHr: parseFloat(document.getElementById('aLectureHr').value)||0,
+    labHr: parseFloat(document.getElementById('aLabHr').value)||0,
+    weeks: parseInt(document.getElementById('aWeeks').value)||15,
+    note: document.getElementById('aNote').value.trim()
+  };
+  if (editAssignId) {
+    const i = db.assignments.findIndex(x => x.id === editAssignId);
+    db.assignments[i] = { ...db.assignments[i], ...data };
+  } else { data.id = 'A'+Date.now(); db.assignments.push(data); }
+  save(); closeModal('assignModal'); refreshAll();
+}
+
+function deleteAssignment(id) {
+  if (!confirm('ต้องการลบการมอบหมายนี้ใช่ไหม?')) return;
+  db.assignments = db.assignments.filter(x => x.id !== id);
+  save(); refreshAll();
+}
+
+function renderAssignments() {
+  const filterT = document.getElementById('filterAssignTeacher').value;
+  const filterC = document.getElementById('filterAssignCurriculum').value;
+  const filterS = document.getElementById('filterAssignSem').value;
+  const list = db.assignments.filter(a => {
+    const sub = db.subjects.find(x => x.id === a.subjectId);
+    return (filterT===''||a.teacherId===filterT) && (filterC===''||sub?.curriculum===filterC) && (filterS===''||a.semester===filterS);
+  });
+  const tbody = document.getElementById('assignTable');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty"><div class="empty-icon">&#128203;</div><p>ยังไม่มีการมอบหมายงานสอน</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map((a,i) => {
+    const t = db.teachers.find(x => x.id === a.teacherId);
+    const s = db.subjects.find(x => x.id === a.subjectId);
+    const totalPerWeek = (parseFloat(a.lectureHr)||0)+(parseFloat(a.labHr)||0);
+    const totalAll = totalPerWeek*(parseInt(a.weeks)||15);
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${t?t.prefix+t.firstName+' '+t.lastName:'?'}</strong></td>
+      <td>${s?.code||'?'}</td><td>${s?.nameTH||'?'}</td>
+      <td>${s?`<span class="badge badge-blue">${s.curriculum}</span>`:''}</td>
+      <td style="text-align:center">Sec.${a.section}</td>
+      <td><span class="sem-tag">${semLabel(a.semester)}</span></td>
+      <td class="num">${a.lectureHr}</td><td class="num">${a.labHr}</td>
+      <td class="num">${totalPerWeek}</td><td class="num">${a.weeks}</td>
+      <td class="num" style="color:#276749;font-size:15px;">${totalAll}</td>
+      <td class="actions">
+        <button class="btn btn-warning btn-xs" onclick="openAssignModal('${a.id}')">&#9998;</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteAssignment('${a.id}')">&#128465;</button>
+      </td></tr>`;
+  }).join('');
+  const alertDiv = document.getElementById('assignAlert');
+  const overloaded = db.teachers.filter(t => getTeacherLoad(t.id) > t.maxLoad);
+  alertDiv.innerHTML = overloaded.map(t =>
+    `<div class="alert alert-danger">&#9888; <strong>${t.prefix}${t.firstName} ${t.lastName}</strong> มีภาระงานสอน ${getTeacherLoad(t.id)} ชม. ต่ำกว่าภาระขั้นต่ำ ${t.maxLoad} ชม./ปีงบประมาณ</div>`
+  ).join('');
+}
+
+// =================== REPORT ===================
+function renderReport() {
+  const sem = document.getElementById('reportSem')?.value||'';
+  const cur = document.getElementById('reportCurriculum')?.value||'';
+  const filtered = db.assignments.filter(a => {
+    const s = db.subjects.find(x => x.id === a.subjectId);
+    return (sem===''||a.semester===sem) && (cur===''||s?.curriculum===cur);
+  });
+  const totalHours = filtered.reduce((sum,a) => sum+((parseFloat(a.lectureHr)||0)+(parseFloat(a.labHr)||0))*(parseInt(a.weeks)||15), 0);
+  const sg = document.getElementById('statsGrid');
+  if (sg) sg.innerHTML = `
+    <div class="stat-card blue"><div class="stat-val" style="color:#2b6cb0">${db.teachers.length}</div><div class="stat-label">&#128100; อาจารย์ทั้งหมด</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:#48bb78">${db.subjects.length}</div><div class="stat-label">&#128218; รายวิชาทั้งหมด</div></div>
+    <div class="stat-card orange"><div class="stat-val" style="color:#ed8936">${filtered.length}</div><div class="stat-label">&#128203; การมอบหมายทั้งหมด</div></div>
+    <div class="stat-card red"><div class="stat-val" style="color:#f56565">${totalHours.toLocaleString()}</div><div class="stat-label">&#9200; ชั่วโมงสอนรวมทั้งสิ้น</div></div>
+  `;
+  updateFilterDropdowns();
+  const tbody = document.getElementById('reportTeacherTable');
+  if (!tbody) return;
+  if (!db.teachers.length) { tbody.innerHTML = `<tr><td colspan="11"><div class="empty"><p>ยังไม่มีข้อมูล</p></div></td></tr>`; return; }
+  let grandTotal = 0;
+  tbody.innerHTML = db.teachers.map((t,i) => {
+    const myAssigns = filtered.filter(a => a.teacherId===t.id);
+    const subjects = [...new Set(myAssigns.map(a => a.subjectId))];
+    const lectureHr = myAssigns.reduce((s,a) => s+(parseFloat(a.lectureHr)||0), 0);
+    const labHr = myAssigns.reduce((s,a) => s+(parseFloat(a.labHr)||0), 0);
+    const totalWeek = lectureHr+labHr;
+    const totalAll = myAssigns.reduce((s,a) => s+((parseFloat(a.lectureHr)||0)+(parseFloat(a.labHr)||0))*(parseInt(a.weeks)||15), 0);
+    grandTotal += totalAll;
+    const status = totalWeek>t.maxLoad?'<span class="badge badge-red">เกินภาระ</span>':totalWeek>=t.maxLoad*0.8?'<span class="badge badge-yellow">เกือบเต็ม</span>':totalWeek>0?'<span class="badge badge-green">ปกติ</span>':'<span class="badge badge-gray">ยังไม่มีงาน</span>';
+    return `<tr>
+      <td>${i+1}</td><td><strong>${t.prefix}${t.firstName} ${t.lastName}</strong></td><td>${t.position}</td>
+      <td class="num">${subjects.length} วิชา</td><td class="num">${myAssigns.length} sec.</td>
+      <td class="num">${lectureHr}</td><td class="num">${labHr}</td><td class="num">${totalWeek}</td>
+      <td class="num" style="color:#276749;font-weight:700">${totalAll.toLocaleString()}</td>
+      <td>${status}</td></tr>`;
+  }).join('') + `<tr class="total-row"><td colspan="7" style="text-align:right">รวมทั้งหมด</td><td></td><td class="num" style="color:#2b6cb0;font-size:15px">${grandTotal.toLocaleString()}</td><td></td></tr>`;
+
+  const curricula = [...new Set(db.subjects.map(s => s.curriculum).filter(Boolean))];
+  const ct = document.getElementById('reportCurriculumTable');
+  if (!curricula.length) { ct.innerHTML = `<tr><td colspan="8"><div class="empty"><p>ยังไม่มีข้อมูลหลักสูตร</p></div></td></tr>`; return; }
+  ct.innerHTML = curricula.map((c,i) => {
+    const subs = db.subjects.filter(s => s.curriculum===c && (sem===''||s.semester===sem));
+    const assigns = filtered.filter(a => db.subjects.find(x => x.id===a.subjectId)?.curriculum===c);
+    const lh = assigns.reduce((s,a) => s+(parseFloat(a.lectureHr)||0), 0);
+    const lb = assigns.reduce((s,a) => s+(parseFloat(a.labHr)||0), 0);
+    const total = assigns.reduce((s,a) => s+((parseFloat(a.lectureHr)||0)+(parseFloat(a.labHr)||0))*(parseInt(a.weeks)||15), 0);
+    const teachers = [...new Set(assigns.map(a => a.teacherId))].map(tid => { const t=db.teachers.find(x=>x.id===tid); return t?`${t.prefix}${t.firstName} ${t.lastName}`:''; }).filter(Boolean);
+    return `<tr><td>${i+1}</td><td><strong>${c}</strong></td><td class="num">${subs.length} วิชา</td><td class="num">${lh}</td><td class="num">${lb}</td><td class="num">${lh+lb}</td><td class="num" style="color:#276749;font-weight:700">${total.toLocaleString()}</td><td style="font-size:12px">${teachers.join(', ')||'-'}</td></tr>`;
+  }).join('');
+
+  const unassigned = db.subjects.filter(s => db.assignments.filter(a => a.subjectId===s.id).length < (s.sections||1));
+  const ub = document.getElementById('unassignedBody');
+  if (!unassigned.length) {
+    ub.innerHTML = '<div class="alert alert-success">&#10003; รายวิชาทั้งหมดได้รับการมอบหมายครบแล้ว</div>';
+  } else {
+    ub.innerHTML = `<div class="alert alert-warning" style="margin-bottom:12px">&#9888; มี ${unassigned.length} รายวิชาที่ยังไม่ครบ Section</div>
+    <div class="table-wrap"><table><thead><tr><th>#</th><th>รหัสวิชา</th><th>ชื่อวิชา</th><th>หลักสูตร</th><th>ภาคการศึกษา</th><th>Section ที่ต้องการ</th><th>มอบหมายแล้ว</th></tr></thead><tbody>
+    ${unassigned.map((s,i) => { const asg=db.assignments.filter(a=>a.subjectId===s.id).length; return `<tr><td>${i+1}</td><td>${s.code}</td><td>${s.nameTH}</td><td><span class="badge badge-blue">${s.curriculum}</span></td><td>${semLabel(s.semester)}</td><td class="num">${s.sections}</td><td class="num"><span class="badge badge-yellow">${asg}</span></td></tr>`; }).join('')}
+    </tbody></table></div>`;
+  }
+}
+
+// =================== EDUCATION LEVEL PREVIEW ===================
+function onEduLevelChange() {
+  updateEduPreview();
+}
+function updateEduPreview() {
+  const lvl = document.getElementById('tEduLevel')?.value;
+  const major = document.getElementById('tEduMajor')?.value.trim();
+  const preview = document.getElementById('tEduPreview');
+  if (!preview) return;
+  if (lvl || major) {
+    preview.style.display = 'block';
+    preview.innerHTML = `&#127891; <strong>${lvl || '-'}</strong>${major ? ` &nbsp;สาขา <strong>${major}</strong>` : ''}`;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+// =================== CALCULATOR KEYPAD ===================
+let calcVal = '';
+
+function openCalc() {
+  calcVal = document.getElementById('tMaxLoad').value || '';
+  document.getElementById('calcDisplay').textContent = calcVal || '0';
+  document.getElementById('calcOverlay').classList.add('open');
+}
+
+function calcInput(v) {
+  if (v === 'C') {
+    calcVal = '';
+  } else if (v === '⌫') {
+    calcVal = calcVal.slice(0, -1);
+  } else {
+    if (calcVal.length >= 5) return; // max 5 digits
+    calcVal += v;
+    // remove leading zeros
+    calcVal = String(parseInt(calcVal) || 0);
+  }
+  document.getElementById('calcDisplay').textContent = calcVal || '0';
+}
+
+function calcConfirm() {
+  const val = parseInt(calcVal) || 0;
+  document.getElementById('tMaxLoad').value = val;
+  document.getElementById('tMaxLoadDisplay').textContent = val;
+  document.getElementById('calcOverlay').classList.remove('open');
+}
+
+function calcOutsideClick(e) {
+  if (e.target === document.getElementById('calcOverlay')) {
+    document.getElementById('calcOverlay').classList.remove('open');
+  }
+}
+
+// keyboard support for calculator
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('calcOverlay').classList.contains('open')) return;
+  if (e.key >= '0' && e.key <= '9') calcInput(e.key);
+  else if (e.key === 'Backspace') calcInput('⌫');
+  else if (e.key === 'Escape') document.getElementById('calcOverlay').classList.remove('open');
+  else if (e.key === 'Enter') calcConfirm();
+  else if (e.key.toLowerCase() === 'c') calcInput('C');
+});
+
+// =================== MULTI-SELECT (วิชาที่เคยสอน) ===================
+let selectedPrevSubjects = [];
+
+function toggleMS() {
+  const dd = document.getElementById('tPrevSubjectsDropdown');
+  const disp = document.getElementById('tPrevSubjectsDisplay');
+  const isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open');
+  disp.classList.toggle('open');
+  if (!isOpen) renderMSDropdown();
+}
+
+function renderMSDropdown() {
+  const dd = document.getElementById('tPrevSubjectsDropdown');
+  if (!db.subjects.length) {
+    dd.innerHTML = '<div class="multiselect-empty">ยังไม่มีรายวิชาในระบบ<br><small>กรุณาเพิ่มวิชาในแท็บ วิชา/หลักสูตร ก่อน</small></div>';
+    return;
+  }
+  dd.innerHTML = db.subjects.map(s => `
+    <label class="multiselect-item">
+      <input type="checkbox" value="${s.id}" ${selectedPrevSubjects.includes(s.id)?'checked':''}
+        onchange="togglePrevSubject('${s.id}')">
+      <span><strong>${s.code}</strong> — ${s.nameTH} <span style="color:#718096;font-size:11px;">[${s.curriculum}]</span></span>
+    </label>
+  `).join('');
+}
+
+function togglePrevSubject(sid) {
+  if (selectedPrevSubjects.includes(sid)) {
+    selectedPrevSubjects = selectedPrevSubjects.filter(x => x !== sid);
+  } else {
+    selectedPrevSubjects.push(sid);
+  }
+  updateMSDisplay();
+}
+
+function updateMSDisplay() {
+  const el = document.getElementById('tPrevSubjectsText');
+  if (!selectedPrevSubjects.length) {
+    el.textContent = '-- เลือกวิชาที่เคยสอน --';
+    el.className = 'ms-placeholder';
+  } else {
+    const names = selectedPrevSubjects.map(id => {
+      const s = db.subjects.find(x => x.id === id);
+      return s ? s.code : '?';
+    });
+    el.textContent = names.join(', ') + ` (${names.length} วิชา)`;
+    el.className = '';
+  }
+}
+
+// Close multiselect when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.multiselect-wrap')) {
+    document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.multiselect-display').forEach(d => d.classList.remove('open'));
+  }
+});
+
+// =================== SETTINGS / OPTIONS MANAGER ===================
+function countUsage(key, value) {
+  if (key === 'prefixes') return db.teachers.filter(t => t.prefix === value).length;
+  if (key === 'positions') return db.teachers.filter(t => t.position === value).length;
+  if (key === 'academicLevels') return db.teachers.filter(t => t.academicLevel === value).length;
+  if (key === 'educationLevels') return db.teachers.filter(t => t.eduLevel === value).length;
+  if (key === 'curricula') return db.subjects.filter(s => s.curriculum === value).length;
+  if (key === 'teacherTypes') return db.teachers.filter(t => t.type === value).length;
+  if (key === 'roles') return db.assignments.filter(a => a.role === value).length;
+  if (key === 'semesters') {
+    const id = typeof value === 'object' ? value.id : value;
+    return db.subjects.filter(s => s.semester === id).length + db.assignments.filter(a => a.semester === id).length;
+  }
+  return 0;
+}
+
+// ติดตามกลุ่มที่ย่อ
+const collapsedGroups = new Set();
+
+function toggleOptCard(key, e) {
+  e.stopPropagation();
+  if (collapsedGroups.has(key)) {
+    collapsedGroups.delete(key);
+  } else {
+    collapsedGroups.add(key);
+  }
+  const card = document.getElementById('optCard_' + key);
+  if (!card) return;
+  card.classList.toggle('collapsed', collapsedGroups.has(key));
+  const btn = document.getElementById('optCollapseBtn_' + key);
+  if (btn) btn.textContent = collapsedGroups.has(key) ? '▶ ขยาย' : '▼ ย่อ';
+}
+
+function collapseAllOpts() {
+  OPT_META.forEach(m => collapsedGroups.add(m.key));
+  renderSettings();
+}
+
+function expandAllOpts() {
+  collapsedGroups.clear();
+  renderSettings();
+}
+
+function renderSettings() {
+  const container = document.getElementById('optGroups');
+  // ปุ่ม ย่อ/ขยาย ทั้งหมด
+  const allCollapsed = OPT_META.every(m => collapsedGroups.has(m.key));
+  const controlBar = `
+    <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-bottom:-4px;">
+      <button class="btn btn-outline btn-sm" onclick="collapseAllOpts()">&#9660;&#9660; ย่อทั้งหมด</button>
+      <button class="btn btn-outline btn-sm" onclick="expandAllOpts()">&#9650;&#9650; ขยายทั้งหมด</button>
+    </div>`;
+  container.innerHTML = controlBar + OPT_META.map(m => {
+    const isCollapsed = collapsedGroups.has(m.key);
+    const count = (db.options[m.key] || []).length;
+    return `
+    <div class="opt-card ${isCollapsed ? 'collapsed' : ''}" id="optCard_${m.key}">
+      <div class="opt-card-header" onclick="toggleOptCard('${m.key}', event)">
+        <div class="opt-card-header-left">
+          <div class="opt-card-title">
+            ${m.icon} ${m.title}
+            <span class="opt-card-count">${count} รายการ</span>
+          </div>
+          <div class="opt-card-desc">${m.desc}</div>
+        </div>
+        <button class="opt-collapse-btn" id="optCollapseBtn_${m.key}" onclick="toggleOptCard('${m.key}', event)">
+          ${isCollapsed ? '&#9654; ขยาย' : '&#9660; ย่อ'}
+        </button>
+      </div>
+      <div class="opt-card-body">
+        <ul class="opt-list" id="optList_${m.key}">
+          ${renderOptItems(m)}
+        </ul>
+        <div class="opt-add-row">
+          ${m.type === 'semester'
+            ? `<input class="opt-add-input" id="optAddId_${m.key}" placeholder="รหัส (เช่น 4)" style="max-width:80px">
+               <input class="opt-add-input" id="optAddLabel_${m.key}" placeholder="ชื่อ (เช่น ภาคพิเศษ)">`
+            : `<input class="opt-add-input" id="optAddLabel_${m.key}" placeholder="พิมพ์รายการใหม่...">`}
+          <button class="btn btn-success btn-sm" onclick="addOption('${m.key}','${m.type}')">+ เพิ่ม</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderOptItems(m) {
+  const opts = db.options[m.key];
+  if (!opts || !opts.length) return `<li style="padding:12px 16px;color:#a0aec0;font-size:13px;">ยังไม่มีรายการ</li>`;
+  return opts.map((o, idx) => {
+    const value = m.type === 'semester' ? o.id : o;
+    const label = m.type === 'semester' ? o.label : o;
+    const usage = countUsage(m.key, o);
+    return `<li class="opt-item" id="optItem_${m.key}_${idx}">
+      <span class="opt-num">${idx+1}</span>
+      <span class="opt-label" id="optLabel_${m.key}_${idx}">${m.type==='semester'?`<span style="color:#718096;font-size:11px;margin-right:6px;">[${value}]</span>`:''} ${label}</span>
+      <span class="opt-usage">${usage > 0 ? `<span class="badge badge-blue">${usage} ใช้</span>` : '<span class="badge badge-gray">ว่าง</span>'}</span>
+      <div class="actions" style="margin-left:4px;">
+        <button class="btn btn-warning btn-xs" onclick="startEditOpt('${m.key}','${m.type}',${idx})">&#9998;</button>
+        <button class="btn btn-xs" style="background:#edf2f7;color:#4a5568;" onclick="moveOpt('${m.key}',${idx},-1)" ${idx===0?'disabled':''}>&#8679;</button>
+        <button class="btn btn-xs" style="background:#edf2f7;color:#4a5568;" onclick="moveOpt('${m.key}',${idx},1)" ${idx===opts.length-1?'disabled':''}>&#8681;</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteOpt('${m.key}','${m.type}',${idx},${usage})">&#128465;</button>
+      </div>
+    </li>`;
+  }).join('');
+}
+
+function startEditOpt(key, type, idx) {
+  const o = db.options[key][idx];
+  const label = type === 'semester' ? o.label : o;
+  const value = type === 'semester' ? o.id : o;
+  const li = document.getElementById(`optItem_${key}_${idx}`);
+  const labelEl = document.getElementById(`optLabel_${key}_${idx}`);
+  labelEl.innerHTML = type === 'semester'
+    ? `<input class="opt-label-input" id="editId_${key}_${idx}" value="${value}" style="max-width:70px;margin-right:6px;">
+       <input class="opt-label-input" id="editLabel_${key}_${idx}" value="${label}">`
+    : `<input class="opt-label-input" id="editLabel_${key}_${idx}" value="${label}">`;
+  // replace edit button with save/cancel
+  const actDiv = li.querySelector('.actions');
+  actDiv.innerHTML = `
+    <button class="btn btn-success btn-xs" onclick="saveEditOpt('${key}','${type}',${idx})">&#10003; บันทึก</button>
+    <button class="btn btn-outline btn-xs" onclick="renderSettings()">ยกเลิก</button>
+  `;
+  document.getElementById(`editLabel_${key}_${idx}`)?.focus();
+}
+
+function saveEditOpt(key, type, idx) {
+  const newLabel = document.getElementById(`editLabel_${key}_${idx}`)?.value.trim();
+  if (!newLabel) return alert('กรุณากรอกชื่อ');
+
+  if (type === 'semester') {
+    const newId = document.getElementById(`editId_${key}_${idx}`)?.value.trim();
+    if (!newId) return alert('กรุณากรอกรหัส');
+    const oldId = db.options[key][idx].id;
+    const dupId = db.options[key].find((x,i) => i!==idx && x.id===newId);
+    if (dupId) return alert('รหัสนี้มีอยู่แล้ว');
+    // cascade update
+    if (oldId !== newId) {
+      db.subjects.forEach(s => { if (s.semester===oldId) s.semester=newId; });
+      db.assignments.forEach(a => { if (a.semester===oldId) a.semester=newId; });
+    }
+    db.options[key][idx] = { id: newId, label: newLabel };
+  } else {
+    const oldVal = db.options[key][idx];
+    const dup = db.options[key].find((x,i) => i!==idx && x===newLabel);
+    if (dup) return alert('รายการนี้มีอยู่แล้ว');
+    // cascade update
+    if (key === 'prefixes') db.teachers.forEach(t => { if (t.prefix===oldVal) t.prefix=newLabel; });
+    if (key === 'positions') db.teachers.forEach(t => { if (t.position===oldVal) t.position=newLabel; });
+    if (key === 'teacherTypes') db.teachers.forEach(t => { if (t.type===oldVal) t.type=newLabel; });
+    if (key === 'roles') db.assignments.forEach(a => { if (a.role===oldVal) a.role=newLabel; });
+    db.options[key][idx] = newLabel;
+  }
+  save(); refreshAll();
+}
+
+function addOption(key, type) {
+  const labelEl = document.getElementById(`optAddLabel_${key}`);
+  const label = labelEl?.value.trim();
+  if (!label) return alert('กรุณากรอกชื่อรายการ');
+
+  if (type === 'semester') {
+    const idEl = document.getElementById(`optAddId_${key}`);
+    const id = idEl?.value.trim();
+    if (!id) return alert('กรุณากรอกรหัสภาคการศึกษา');
+    if (db.options[key].find(x => x.id === id)) return alert('รหัสนี้มีอยู่แล้ว');
+    if (db.options[key].find(x => x.label === label)) return alert('ชื่อนี้มีอยู่แล้ว');
+    db.options[key].push({ id, label });
+    if (idEl) idEl.value = '';
+  } else {
+    if (db.options[key].includes(label)) return alert('รายการนี้มีอยู่แล้ว');
+    db.options[key].push(label);
+  }
+  if (labelEl) labelEl.value = '';
+  save(); refreshAll();
+}
+
+function deleteOpt(key, type, idx, usage) {
+  const o = db.options[key][idx];
+  const label = type === 'semester' ? o.label : o;
+  if (usage > 0) {
+    if (!confirm(`"${label}" ถูกใช้งานอยู่ ${usage} รายการ\nหากลบจะทำให้ข้อมูลที่ใช้งานค่านี้ไม่สามารถแสดงผลได้ถูกต้อง\n\nต้องการลบต่อไปหรือไม่?`)) return;
+  } else {
+    if (!confirm(`ต้องการลบ "${label}" ออกจากรายการใช่ไหม?`)) return;
+  }
+  db.options[key].splice(idx, 1);
+  save(); refreshAll();
+}
+
+function moveOpt(key, idx, dir) {
+  const arr = db.options[key];
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  save(); renderSettings();
+}
+
+// =================== IMPORT / EXPORT ===================
+function exportData() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `teaching-data-${db.year}.json`;
+  a.click();
+}
+function importData() { document.getElementById('importFile').click(); }
+function doImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.teachers || !data.subjects) return alert('ไฟล์ไม่ถูกต้อง');
+      if (confirm('นำเข้าข้อมูลจะแทนที่ข้อมูลปัจจุบัน ต้องการดำเนินการต่อ?')) {
+        db = data;
+        if (!db.options) db.options = {};
+        OPT_META.forEach(m => { if (!db.options[m.key]) db.options[m.key] = JSON.parse(JSON.stringify(DEFAULT_OPTIONS[m.key])); });
+        save(); document.getElementById('globalYear').value = db.year||'2568';
+        refreshAll(); alert('นำเข้าสำเร็จ');
+      }
+    } catch { alert('ไม่สามารถอ่านไฟล์ได้'); }
+  };
+  reader.readAsText(file); e.target.value = '';
+}
+
+function printReport() { window.print(); }
+
+['aLectureHr','aLabHr'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', checkAssignWarning);
+});
+
+// live preview สาขาวิชา
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('tEduMajor')?.addEventListener('input', updateEduPreview);
+});
+
+init();
+</script>
+</body>
+</html>
