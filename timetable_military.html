@@ -1955,6 +1955,7 @@ function renderScheduleView() {
         </td>
         <td style="white-space:nowrap" class="hide-public">
           <button class="btn btn-gray btn-sm btn-icon" title="แก้ไข" onclick="editHoliday('${e.id}')">✏️</button>
+          <button class="btn btn-primary btn-sm btn-icon" title="คัดลอก" onclick="duplicateEntry('${e.id}')">📋</button>
           <button class="btn btn-danger btn-sm btn-icon" title="ลบ" onclick="deleteHoliday('${e.id}')">🗑️</button>
         </td>
       </tr>`;
