@@ -1950,7 +1950,7 @@ function renderScheduleView() {
     if (e.type === 'holiday') {
       rows += `<tr>
         <td style="white-space:nowrap;font-size:0.8rem;vertical-align:middle">${dayName(e.date)}<br>${formatDate(e.date)}</td>
-        <td colspan="10" style="background:#e53935;color:white;text-align:center;font-weight:700;font-size:1rem;letter-spacing:0.03em">
+        <td colspan="9" style="background:#e53935;color:white;text-align:center;font-weight:700;font-size:1rem;letter-spacing:0.03em;vertical-align:middle">
           หยุด ${esc(e.label)}
         </td>
         <td style="white-space:nowrap" class="hide-public">
