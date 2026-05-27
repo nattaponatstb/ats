@@ -1976,7 +1976,7 @@ function renderScheduleView() {
       <td style="white-space:nowrap;font-size:0.8rem">${formatTime(e.startTime)}<br>– ${formatTime(e.endTime)}</td>
       <td class="left">${esc(e.subject)}</td>
       <td class="text-center" style="font-size:0.78rem">${cumStr}</td>
-      <td style="font-size:0.8rem;white-space:nowrap">${esc(teacherText)}</td>
+      <td style="font-size:0.8rem">${teacherText ? teacherText.split(' / ').filter(Boolean).map(t=>`<span style="white-space:nowrap;display:block">${esc(t)}</span>`).join('') : ''}</td>
       <td class="text-center"><span class="badge badge-method">${esc(e.method||'')}</span></td>
       <td style="font-size:0.78rem">${esc(e.location||'')}</td>
       <td style="font-size:0.78rem">${esc(e.evidence||'')}</td>
