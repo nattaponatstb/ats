@@ -18,48 +18,42 @@ section.bottom_margin = Cm(2.0)
 section.left_margin   = Cm(2.5)
 section.right_margin  = Cm(2.5)
 
-# ── Color palette ─────────────────────────────────────────────────────────────
-NAVY      = RGBColor(0x1a, 0x2f, 0x4e)
-BLUE_MED  = RGBColor(0x2d, 0x5a, 0x8e)
-BLUE_LT   = RGBColor(0xd0, 0xe4, 0xf8)
-GOLD      = RGBColor(0xc8, 0x9f, 0x2e)
-GREEN     = RGBColor(0x1b, 0x6b, 0x2e)
-GREEN_LT  = RGBColor(0xd4, 0xed, 0xda)
-RED_D     = RGBColor(0x8b, 0x1a, 0x1a)
-RED_LT    = RGBColor(0xf8, 0xd7, 0xd7)
-ORANGE    = RGBColor(0xc4, 0x6a, 0x00)
-ORANGE_LT = RGBColor(0xff, 0xf0, 0xcc)
-GRAY_LT   = RGBColor(0xf4, 0xf6, 0xf9)
-GRAY_MED  = RGBColor(0xd0, 0xd8, 0xe4)
+# ── Color palette (Dummy for compatibility) ───────────────────────────────────
+NAVY      = RGBColor(0x00, 0x00, 0x00)
+BLUE_MED  = RGBColor(0x00, 0x00, 0x00)
+BLUE_LT   = RGBColor(0x00, 0x00, 0x00)
+GOLD      = RGBColor(0x00, 0x00, 0x00)
+GREEN     = RGBColor(0x00, 0x00, 0x00)
+GREEN_LT  = RGBColor(0x00, 0x00, 0x00)
+RED_D     = RGBColor(0x00, 0x00, 0x00)
+RED_LT    = RGBColor(0x00, 0x00, 0x00)
+ORANGE    = RGBColor(0x00, 0x00, 0x00)
+ORANGE_LT = RGBColor(0x00, 0x00, 0x00)
+GRAY_LT   = RGBColor(0x00, 0x00, 0x00)
+GRAY_MED  = RGBColor(0x00, 0x00, 0x00)
 WHITE     = RGBColor(0xff, 0xff, 0xff)
 BLACK     = RGBColor(0x00, 0x00, 0x00)
 
 FONT_TH = 'TH Sarabun New'
 
-# ── Helper: set cell background ───────────────────────────────────────────────
+# ── Helper Styling Functions ──
+def set_table_borders(table):
+    tblPr = table._tbl.tblPr
+    tblBorders = OxmlElement('w:tblBorders')
+    for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
+        border = OxmlElement(f'w:{border_name}')
+        border.set(qn('w:val'), 'single')
+        border.set(qn('w:sz'), '4')  # thin border
+        border.set(qn('w:space'), '0')
+        border.set(qn('w:color'), '000000')  # black
+        tblBorders.append(border)
+    tblPr.append(tblBorders)
+
 def set_cell_bg(cell, color: RGBColor):
-    tc   = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    shd  = OxmlElement('w:shd')
-    hex_color = str(color)  # RGBColor.__str__ returns hex e.g. '1A2F4E'
-    shd.set(qn('w:val'),   'clear')
-    shd.set(qn('w:color'), 'auto')
-    shd.set(qn('w:fill'),  hex_color)
-    tcPr.append(shd)
+    pass
 
 def set_cell_border(cell, top=None, bottom=None, left=None, right=None):
-    tc   = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    tcBorders = OxmlElement('w:tcBorders')
-    for side, val in [('top',top),('bottom',bottom),('left',left),('right',right)]:
-        if val:
-            el = OxmlElement(f'w:{side}')
-            el.set(qn('w:val'),   val.get('val','single'))
-            el.set(qn('w:sz'),    str(val.get('sz', 4)))
-            el.set(qn('w:space'),'0')
-            el.set(qn('w:color'), val.get('color','000000'))
-            tcBorders.append(el)
-    tcPr.append(tcBorders)
+    pass
 
 # ── Helper: paragraph ─────────────────────────────────────────────────────────
 def add_para(doc_or_cell, text='', size=14, bold=False, italic=False,
@@ -81,7 +75,7 @@ def add_para(doc_or_cell, text='', size=14, bold=False, italic=False,
         run.italic = italic
         run.font.name      = font_name
         run.font.size      = Pt(size)
-        run.font.color.rgb = color
+        run.font.color.rgb = RGBColor(0x00, 0x00, 0x00) # strictly black text
         run._element.rPr.rFonts.set(qn('w:eastAsia'), font_name)
     return p
 
@@ -92,51 +86,47 @@ def add_run(para, text, size=14, bold=False, italic=False,
     run.italic = italic
     run.font.name      = font_name
     run.font.size      = Pt(size)
-    run.font.color.rgb = color
+    run.font.color.rgb = RGBColor(0x00, 0x00, 0x00) # strictly black text
     run._element.rPr.rFonts.set(qn('w:eastAsia'), font_name)
     return run
 
 # ── Helper: section heading ───────────────────────────────────────────────────
 def section_heading(doc, num, title, subtitle=''):
-    tbl = doc.add_table(rows=1, cols=1)
-    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    tbl.style = 'Table Grid'
-    cell = tbl.cell(0,0)
-    set_cell_bg(cell, NAVY)
-    set_cell_border(cell,
-        top={'val':'single','sz':6,'color':'C89F2E'},
-        bottom={'val':'single','sz':6,'color':'C89F2E'})
-    cell._tc.get_or_add_tcPr()
-    p = cell.paragraphs[0]
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_before = Pt(6)
-    p.paragraph_format.space_after  = Pt(6)
-    r1 = p.add_run(f'{num}  {title}')
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.space_before = Pt(14)
+    p.paragraph_format.space_after = Pt(4)
+    p.paragraph_format.keep_with_next = True
+    
+    r1 = p.add_run(f'{num}. {title}')
     r1.bold = True
     r1.font.name = FONT_TH
-    r1.font.size = Pt(18)
-    r1.font.color.rgb = WHITE
+    r1.font.size = Pt(16)
+    r1.font.color.rgb = RGBColor(0, 0, 0)
     r1._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
+    
     if subtitle:
-        p2 = cell.add_paragraph()
-        p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p2 = doc.add_paragraph()
+        p2.alignment = WD_ALIGN_PARAGRAPH.LEFT
         p2.paragraph_format.space_before = Pt(0)
-        p2.paragraph_format.space_after  = Pt(4)
-        r2 = p2.add_run(subtitle)
+        p2.paragraph_format.space_after = Pt(6)
+        p2.paragraph_format.keep_with_next = True
+        r2 = p2.add_run(f"({subtitle})")
+        r2.italic = True
         r2.font.name = FONT_TH
         r2.font.size = Pt(13)
-        r2.font.color.rgb = GRAY_MED
+        r2.font.color.rgb = RGBColor(0, 0, 0)
         r2._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-    doc.add_paragraph()
 
 # ── Helper: info box ──────────────────────────────────────────────────────────
-def info_box(doc, title, items, bg=BLUE_LT, title_bg=BLUE_MED):
+def info_box(doc, title, items, bg=None, title_bg=None):
     tbl = doc.add_table(rows=1+len(items), cols=1)
     tbl.style = 'Table Grid'
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tbl)
+    
     # title row
     tc = tbl.cell(0,0)
-    set_cell_bg(tc, title_bg)
     p = tc.paragraphs[0]
     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
     p.paragraph_format.space_before = Pt(4)
@@ -145,120 +135,78 @@ def info_box(doc, title, items, bg=BLUE_LT, title_bg=BLUE_MED):
     r.bold = True
     r.font.name = FONT_TH
     r.font.size = Pt(14)
-    r.font.color.rgb = WHITE
+    r.font.color.rgb = RGBColor(0, 0, 0)
     r._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     for i, item in enumerate(items):
         cell = tbl.cell(i+1, 0)
-        set_cell_bg(cell, bg)
         p2 = cell.paragraphs[0]
         p2.paragraph_format.space_before = Pt(3)
         p2.paragraph_format.space_after  = Pt(3)
         r2 = p2.add_run(f'   {item}')
         r2.font.name = FONT_TH
         r2.font.size = Pt(13)
-        r2.font.color.rgb = BLACK
+        r2.font.color.rgb = RGBColor(0, 0, 0)
         r2._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     doc.add_paragraph()
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  COVER PAGE
+#  COVER PAGE (Plain)
 # ══════════════════════════════════════════════════════════════════════════════
-# Top gold bar
-tbl_top = doc.add_table(rows=1, cols=1)
-tbl_top.style = 'Table Grid'
-cell_top = tbl_top.cell(0,0)
-set_cell_bg(cell_top, GOLD)
-p_top = cell_top.paragraphs[0]
-p_top.paragraph_format.space_before = Pt(4)
-p_top.paragraph_format.space_after  = Pt(4)
+# Title
+p_title = doc.add_paragraph()
+p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+p_title.paragraph_format.space_before = Pt(40)
+p_title.paragraph_format.space_after = Pt(10)
+r_t = p_title.add_run("ระบบตารางสอนประจำสัปดาห์")
+r_t.bold = True
+r_t.font.name = FONT_TH
+r_t.font.size = Pt(20)
+r_t.font.color.rgb = RGBColor(0, 0, 0)
+r_t._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
 
-doc.add_paragraph()
-doc.add_paragraph()
+# Subtitle
+p_sub = doc.add_paragraph()
+p_sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
+p_sub.paragraph_format.space_before = Pt(0)
+p_sub.paragraph_format.space_after = Pt(10)
+r_sub = p_sub.add_run("Weekly Timetable Management System")
+r_sub.font.name = FONT_TH
+r_sub.font.size = Pt(15)
+r_sub.font.color.rgb = RGBColor(0, 0, 0)
+r_sub._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
 
-# Main title block
-tbl_cover = doc.add_table(rows=1, cols=1)
-tbl_cover.style = 'Table Grid'
-cell_cv = tbl_cover.cell(0,0)
-set_cell_bg(cell_cv, NAVY)
-set_cell_border(cell_cv,
-    top={'val':'single','sz':12,'color':'C89F2E'},
-    bottom={'val':'single','sz':12,'color':'C89F2E'},
-    left={'val':'single','sz':12,'color':'C89F2E'},
-    right={'val':'single','sz':12,'color':'C89F2E'})
+# Organization
+p_org = doc.add_paragraph()
+p_org.alignment = WD_ALIGN_PARAGRAPH.CENTER
+p_org.paragraph_format.space_before = Pt(0)
+p_org.paragraph_format.space_after = Pt(15)
+r_org = p_org.add_run("โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก")
+r_org.font.name = FONT_TH
+r_org.font.size = Pt(15)
+r_org.font.color.rgb = RGBColor(0, 0, 0)
+r_org._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
 
-p_icon = cell_cv.paragraphs[0]
-p_icon.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p_icon.paragraph_format.space_before = Pt(20)
-p_icon.paragraph_format.space_after  = Pt(8)
-r_icon = p_icon.add_run('⚔️')
-r_icon.font.size = Pt(40)
-
-p_t1 = cell_cv.add_paragraph()
-p_t1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p_t1.paragraph_format.space_before = Pt(4)
-p_t1.paragraph_format.space_after  = Pt(4)
-r_t1 = p_t1.add_run('ระบบตารางสอนประจำสัปดาห์')
-r_t1.bold = True
-r_t1.font.name = FONT_TH
-r_t1.font.size = Pt(28)
-r_t1.font.color.rgb = WHITE
-r_t1._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-
-p_t2 = cell_cv.add_paragraph()
-p_t2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p_t2.paragraph_format.space_before = Pt(2)
-p_t2.paragraph_format.space_after  = Pt(4)
-r_t2 = p_t2.add_run('Weekly Timetable Management System')
-r_t2.bold = True
-r_t2.font.name = FONT_TH
-r_t2.font.size = Pt(16)
-r_t2.font.color.rgb = GOLD
-r_t2._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-
-p_t3 = cell_cv.add_paragraph()
-p_t3.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p_t3.paragraph_format.space_before = Pt(4)
-p_t3.paragraph_format.space_after  = Pt(6)
-r_t3 = p_t3.add_run('โรงเรียนทหารขนส่ง  กรมการขนส่งทหารบก')
-r_t3.font.name = FONT_TH
-r_t3.font.size = Pt(15)
-r_t3.font.color.rgb = GRAY_MED
-r_t3._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-
-# divider line
-p_div = cell_cv.add_paragraph()
-p_div.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p_div.paragraph_format.space_before = Pt(4)
-p_div.paragraph_format.space_after  = Pt(8)
-r_div = p_div.add_run('─' * 40)
-r_div.font.color.rgb = GOLD
-r_div.font.size = Pt(10)
-
-# Badge row: 3 badges in one paragraph
-p_badge = cell_cv.add_paragraph()
+# Badge / Spec info
+p_badge = doc.add_paragraph()
 p_badge.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p_badge.paragraph_format.space_before = Pt(2)
-p_badge.paragraph_format.space_after  = Pt(20)
-for badge in ['🌐  Web Application', '   ☁️  Cloud Database', '   📡  Real-Time Sync']:
-    rb = p_badge.add_run(badge)
-    rb.font.name = FONT_TH
-    rb.font.size = Pt(13)
-    rb.font.color.rgb = GRAY_MED
-    rb._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-
-doc.add_paragraph()
-doc.add_paragraph()
+p_badge.paragraph_format.space_before = Pt(0)
+p_badge.paragraph_format.space_after = Pt(40)
+r_b = p_badge.add_run("🌐 Web Application  |  ☁️ Cloud Database  |  📡 Real-Time Sync")
+r_b.font.name = FONT_TH
+r_b.font.size = Pt(12)
+r_b.font.color.rgb = RGBColor(0, 0, 0)
+r_b._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
 
 # Bottom info table
 tbl_bot = doc.add_table(rows=1, cols=3)
 tbl_bot.style = 'Table Grid'
 tbl_bot.alignment = WD_TABLE_ALIGNMENT.CENTER
+set_table_borders(tbl_bot)
+
 labels = ['URL', 'ฐานข้อมูล', 'Hosting']
 values = ['nattaponatstb.github.io/ats/', 'Firebase Realtime DB', 'GitHub Pages']
-bgs    = [BLUE_LT, GREEN_LT, ORANGE_LT]
-for i, (lbl, val, bg) in enumerate(zip(labels, values, bgs)):
+for i, (lbl, val) in enumerate(zip(labels, values)):
     c = tbl_bot.cell(0, i)
-    set_cell_bg(c, bg)
     p_lbl = c.paragraphs[0]
     p_lbl.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_lbl.paragraph_format.space_before = Pt(4)
@@ -267,8 +215,9 @@ for i, (lbl, val, bg) in enumerate(zip(labels, values, bgs)):
     r_lbl.bold = True
     r_lbl.font.name = FONT_TH
     r_lbl.font.size = Pt(11)
-    r_lbl.font.color.rgb = NAVY
+    r_lbl.font.color.rgb = RGBColor(0, 0, 0)
     r_lbl._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
+    
     p_val = c.add_paragraph()
     p_val.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_val.paragraph_format.space_before = Pt(0)
@@ -276,7 +225,7 @@ for i, (lbl, val, bg) in enumerate(zip(labels, values, bgs)):
     r_val = p_val.add_run(val)
     r_val.font.name = FONT_TH
     r_val.font.size = Pt(11)
-    r_val.font.color.rgb = BLACK
+    r_val.font.color.rgb = RGBColor(0, 0, 0)
     r_val._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
 
 # page break

@@ -6,47 +6,42 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
-# ── Color Palette Definitions ──
-NAVY      = RGBColor(0x1a, 0x2f, 0x4e)
-BLUE_MED  = RGBColor(0x2d, 0x5a, 0x8e)
-BLUE_LT   = RGBColor(0xd0, 0xe4, 0xf8)
-GOLD      = RGBColor(0xc8, 0x9f, 0x2e)
-GREEN     = RGBColor(0x1b, 0x6b, 0x2e)
-GREEN_LT  = RGBColor(0xd4, 0xed, 0xda)
-RED_D     = RGBColor(0x8b, 0x1a, 0x1a)
-RED_LT    = RGBColor(0xf8, 0xd7, 0xd7)
-ORANGE    = RGBColor(0xc4, 0x6a, 0x00)
-ORANGE_LT = RGBColor(0xff, 0xf0, 0xcc)
-GRAY_LT   = RGBColor(0xf4, 0xf6, 0xf9)
-GRAY_MED  = RGBColor(0xd0, 0xd8, 0xe4)
+# ── Color Palette Definitions (Dummy for compatibility) ──
+NAVY      = RGBColor(0x00, 0x00, 0x00)
+BLUE_MED  = RGBColor(0x00, 0x00, 0x00)
+BLUE_LT   = RGBColor(0x00, 0x00, 0x00)
+GOLD      = RGBColor(0x00, 0x00, 0x00)
+GREEN     = RGBColor(0x00, 0x00, 0x00)
+GREEN_LT  = RGBColor(0x00, 0x00, 0x00)
+RED_D     = RGBColor(0x00, 0x00, 0x00)
+RED_LT    = RGBColor(0x00, 0x00, 0x00)
+ORANGE    = RGBColor(0x00, 0x00, 0x00)
+ORANGE_LT = RGBColor(0x00, 0x00, 0x00)
+GRAY_LT   = RGBColor(0x00, 0x00, 0x00)
+GRAY_MED  = RGBColor(0x00, 0x00, 0x00)
 WHITE     = RGBColor(0xff, 0xff, 0xff)
 BLACK     = RGBColor(0x00, 0x00, 0x00)
 
 FONT_TH = 'TH Sarabun New'
 
 # ── Helper Styling Functions ──
+def set_table_borders(table):
+    tblPr = table._tbl.tblPr
+    tblBorders = OxmlElement('w:tblBorders')
+    for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
+        border = OxmlElement(f'w:{border_name}')
+        border.set(qn('w:val'), 'single')
+        border.set(qn('w:sz'), '4')  # thin border
+        border.set(qn('w:space'), '0')
+        border.set(qn('w:color'), '000000')  # black
+        tblBorders.append(border)
+    tblPr.append(tblBorders)
+
 def set_cell_bg(cell, color):
-    tc = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    shd = OxmlElement('w:shd')
-    shd.set(qn('w:val'), 'clear')
-    shd.set(qn('w:color'), 'auto')
-    shd.set(qn('w:fill'), str(color))
-    tcPr.append(shd)
+    pass
 
 def set_cell_border(cell, top=None, bottom=None, left=None, right=None):
-    tc = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    tcBorders = OxmlElement('w:tcBorders')
-    for side, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
-        if val:
-            el = OxmlElement(f'w:{side}')
-            el.set(qn('w:val'), val.get('val', 'single'))
-            el.set(qn('w:sz'), str(val.get('sz', 4)))
-            el.set(qn('w:space'), '0')
-            el.set(qn('w:color'), val.get('color', '000000'))
-            tcBorders.append(el)
-    tcPr.append(tcBorders)
+    pass
 
 def add_para(container, text='', size=15, bold=False, italic=False,
              color=BLACK, align=WD_ALIGN_PARAGRAPH.LEFT,
@@ -67,7 +62,7 @@ def add_para(container, text='', size=15, bold=False, italic=False,
         run.italic = italic
         run.font.name = FONT_TH
         run.font.size = Pt(size)
-        run.font.color.rgb = color
+        run.font.color.rgb = RGBColor(0x00, 0x00, 0x00) # strictly black text
         run._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     return p
 
@@ -77,55 +72,43 @@ def add_run(para, text, size=15, bold=False, italic=False, color=BLACK):
     run.italic = italic
     run.font.name = FONT_TH
     run.font.size = Pt(size)
-    run.font.color.rgb = color
+    run.font.color.rgb = RGBColor(0x00, 0x00, 0x00) # strictly black text
     run._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     return run
 
 def section_heading(doc, num, title, subtitle=''):
-    tbl = doc.add_table(rows=1, cols=1)
-    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    tbl.style = 'Table Grid'
-    cell = tbl.cell(0, 0)
-    set_cell_bg(cell, NAVY)
-    set_cell_border(cell,
-                    top={'val': 'single', 'sz': 6, 'color': 'C89F2E'},
-                    bottom={'val': 'single', 'sz': 6, 'color': 'C89F2E'})
-    p = cell.paragraphs[0]
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_before = Pt(8)
-    p.paragraph_format.space_after = Pt(8)
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.space_before = Pt(14)
+    p.paragraph_format.space_after = Pt(4)
+    p.paragraph_format.keep_with_next = True
     
-    r1 = p.add_run(f'{num}  {title}')
+    r1 = p.add_run(f'{num}. {title}')
     r1.bold = True
     r1.font.name = FONT_TH
-    r1.font.size = Pt(18)
-    r1.font.color.rgb = WHITE
+    r1.font.size = Pt(16)
+    r1.font.color.rgb = RGBColor(0, 0, 0)
     r1._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     
     if subtitle:
-        p2 = cell.add_paragraph()
-        p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p2 = doc.add_paragraph()
+        p2.alignment = WD_ALIGN_PARAGRAPH.LEFT
         p2.paragraph_format.space_before = Pt(0)
-        p2.paragraph_format.space_after = Pt(4)
-        r2 = p2.add_run(subtitle)
+        p2.paragraph_format.space_after = Pt(6)
+        p2.paragraph_format.keep_with_next = True
+        r2 = p2.add_run(f"({subtitle})")
+        r2.italic = True
         r2.font.name = FONT_TH
-        r2.font.size = Pt(12)
-        r2.font.color.rgb = GRAY_MED
+        r2.font.size = Pt(13)
+        r2.font.color.rgb = RGBColor(0, 0, 0)
         r2._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-    
-    doc.add_paragraph()
 
-def draw_diagram_box(doc, title, lines, color=BLUE_MED, text_color=WHITE):
+def draw_diagram_box(doc, title, lines, color=None, text_color=BLACK):
     tbl = doc.add_table(rows=1, cols=1)
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl.style = 'Table Grid'
+    set_table_borders(tbl)
     cell = tbl.cell(0, 0)
-    set_cell_bg(cell, color)
-    set_cell_border(cell,
-                    top={'val': 'single', 'sz': 6, 'color': 'C89F2E'},
-                    bottom={'val': 'single', 'sz': 6, 'color': 'C89F2E'},
-                    left={'val': 'single', 'sz': 6, 'color': 'C89F2E'},
-                    right={'val': 'single', 'sz': 6, 'color': 'C89F2E'})
     
     p = cell.paragraphs[0]
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -135,7 +118,7 @@ def draw_diagram_box(doc, title, lines, color=BLUE_MED, text_color=WHITE):
     r.bold = True
     r.font.name = FONT_TH
     r.font.size = Pt(14)
-    r.font.color.rgb = text_color
+    r.font.color.rgb = RGBColor(0, 0, 0)
     r._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     
     for l in lines:
@@ -146,7 +129,7 @@ def draw_diagram_box(doc, title, lines, color=BLUE_MED, text_color=WHITE):
         r_l = p_l.add_run(l)
         r_l.font.name = FONT_TH
         r_l.font.size = Pt(11)
-        r_l.font.color.rgb = GRAY_LT if text_color == WHITE else BLACK
+        r_l.font.color.rgb = RGBColor(0, 0, 0)
         r_l._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     
     doc.add_paragraph()
@@ -159,7 +142,7 @@ def add_arrow(doc):
     r = p.add_run('│\n▼')
     r.bold = True
     r.font.size = Pt(14)
-    r.font.color.rgb = GOLD
+    r.font.color.rgb = RGBColor(0, 0, 0)
 
 def apply_margins(doc):
     for sec in doc.sections:
@@ -170,118 +153,84 @@ def apply_margins(doc):
         sec.left_margin = Cm(2.5)
         sec.right_margin = Cm(2.5)
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  MAIN BUILDER
-# ══════════════════════════════════════════════════════════════════════════════
-if __name__ == '__main__':
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    out_path = os.path.join(base_dir, '..', 'docs', 'programming_layout_diagram.docx')
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    
-    doc = Document()
+def make_cover_page(doc, title, subtitle, spec_badge):
     apply_margins(doc)
     
-    # ── Top Gold Bar ──
-    tbl_top = doc.add_table(rows=1, cols=1)
-    tbl_top.style = 'Table Grid'
-    set_cell_bg(tbl_top.cell(0,0), GOLD)
-    tbl_top.cell(0,0).paragraphs[0].paragraph_format.space_before = Pt(4)
-    tbl_top.cell(0,0).paragraphs[0].paragraph_format.space_after = Pt(4)
+    # Title
+    p_title = doc.add_paragraph()
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_title.paragraph_format.space_before = Pt(40)
+    p_title.paragraph_format.space_after = Pt(10)
+    r_t = p_title.add_run(title)
+    r_t.bold = True
+    r_t.font.name = FONT_TH
+    r_t.font.size = Pt(20)
+    r_t.font.color.rgb = RGBColor(0, 0, 0)
+    r_t._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     
-    doc.add_paragraph()
-    doc.add_paragraph()
+    # Subtitle
+    p_sub = doc.add_paragraph()
+    p_sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_sub.paragraph_format.space_before = Pt(0)
+    p_sub.paragraph_format.space_after = Pt(10)
+    r_sub = p_sub.add_run(subtitle)
+    r_sub.font.name = FONT_TH
+    r_sub.font.size = Pt(15)
+    r_sub.font.color.rgb = RGBColor(0, 0, 0)
+    r_sub._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     
-    # ── Main Box ──
-    tbl_cover = doc.add_table(rows=1, cols=1)
-    tbl_cover.style = 'Table Grid'
-    cell_cv = tbl_cover.cell(0, 0)
-    set_cell_bg(cell_cv, NAVY)
-    set_cell_border(cell_cv,
-                    top={'val': 'single', 'sz': 12, 'color': 'C89F2E'},
-                    bottom={'val': 'single', 'sz': 12, 'color': 'C89F2E'},
-                    left={'val': 'single', 'sz': 12, 'color': 'C89F2E'},
-                    right={'val': 'single', 'sz': 12, 'color': 'C89F2E'})
+    # Organization
+    p_org = doc.add_paragraph()
+    p_org.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_org.paragraph_format.space_before = Pt(0)
+    p_org.paragraph_format.space_after = Pt(15)
+    r_org = p_org.add_run("โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก")
+    r_org.font.name = FONT_TH
+    r_org.font.size = Pt(15)
+    r_org.font.color.rgb = RGBColor(0, 0, 0)
+    r_org._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     
-    p_icon = cell_cv.paragraphs[0]
-    p_icon.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_icon.paragraph_format.space_before = Pt(25)
-    p_icon.paragraph_format.space_after = Pt(10)
-    r_icon = p_icon.add_run('⚙️')
-    r_icon.font.size = Pt(45)
-    
-    p_t1 = cell_cv.add_paragraph()
-    p_t1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_t1.paragraph_format.space_before = Pt(5)
-    p_t1.paragraph_format.space_after = Pt(5)
-    r_t1 = p_t1.add_run('แผนผังโครงสร้างและการไหลของข้อมูลโปรแกรม')
-    r_t1.bold = True
-    r_t1.font.name = FONT_TH
-    r_t1.font.size = Pt(22)
-    r_t1.font.color.rgb = WHITE
-    r_t1._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-    
-    p_t2 = cell_cv.add_paragraph()
-    p_t2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_t2.paragraph_format.space_before = Pt(2)
-    p_t2.paragraph_format.space_after = Pt(5)
-    r_t2 = p_t2.add_run('Weekly Timetable Data-Flow & Function Maps')
-    r_t2.bold = True
-    r_t2.font.name = FONT_TH
-    r_t2.font.size = Pt(14)
-    r_t2.font.color.rgb = GOLD
-    r_t2._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-    
-    p_t3 = cell_cv.add_paragraph()
-    p_t3.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_t3.paragraph_format.space_before = Pt(4)
-    p_t3.paragraph_format.space_after = Pt(6)
-    r_t3 = p_t3.add_run('โรงเรียนทหารขนส่ง กรมการขนส่งทหารบก')
-    r_t3.font.name = FONT_TH
-    r_t3.font.size = Pt(15)
-    r_t3.font.color.rgb = GRAY_MED
-    r_t3._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
-    
-    p_div = cell_cv.add_paragraph()
-    p_div.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_div.paragraph_format.space_before = Pt(4)
-    p_div.paragraph_format.space_after = Pt(10)
-    r_div = p_div.add_run('─' * 45)
-    r_div.font.color.rgb = GOLD
-    r_div.font.size = Pt(10)
-    
-    p_badge = cell_cv.add_paragraph()
+    # Badge / Spec info
+    p_badge = doc.add_paragraph()
     p_badge.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_badge.paragraph_format.space_before = Pt(2)
-    p_badge.paragraph_format.space_after = Pt(25)
-    r_b = p_badge.add_run("🗺️ 🛠️ แผนผังระบบโปรแกรม  |  💾 แผนผังโครงสร้างข้อมูล JSON  |  📊 ฟังก์ชันการทำงาน")
+    p_badge.paragraph_format.space_before = Pt(0)
+    p_badge.paragraph_format.space_after = Pt(40)
+    r_b = p_badge.add_run(spec_badge)
     r_b.font.name = FONT_TH
     r_b.font.size = Pt(12)
-    r_b.font.color.rgb = GRAY_MED
+    r_b.font.color.rgb = RGBColor(0, 0, 0)
     r_b._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
     
-    doc.add_paragraph()
-    doc.add_paragraph()
-    
-    # Metadata info table
+    # Simple plain metadata table with no shading, just standard black borders
     tbl_bot = doc.add_table(rows=1, cols=3)
     tbl_bot.style = 'Table Grid'
     tbl_bot.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tbl_bot)
+    
     labels = ['ประเภทเอกสาร', 'ระดับความสำคัญ', 'ซอฟต์แวร์สนับสนุน']
     values = ['แผนผังซอฟต์แวร์', 'คู่มือนักพัฒนาซอฟต์แวร์', 'Microsoft Word (DOCX)']
-    bgs = [BLUE_LT, GREEN_LT, GRAY_LT]
-    for idx, (lbl, val, bg) in enumerate(zip(labels, values, bgs)):
+    for idx, (lbl, val) in enumerate(zip(labels, values)):
         c = tbl_bot.cell(0, idx)
-        set_cell_bg(c, bg)
         p_lbl = c.paragraphs[0]
         p_lbl.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p_lbl.paragraph_format.space_before = Pt(4)
         p_lbl.paragraph_format.space_after = Pt(0)
-        add_run(p_lbl, lbl, size=11, bold=True, color=NAVY)
+        r_l = p_lbl.add_run(lbl)
+        r_l.bold = True
+        r_l.font.name = FONT_TH
+        r_l.font.size = Pt(11)
+        r_l.font.color.rgb = RGBColor(0, 0, 0)
+        r_l._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
+        
         p_val = c.add_paragraph()
         p_val.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p_val.paragraph_format.space_before = Pt(0)
         p_val.paragraph_format.space_after = Pt(4)
-        add_run(p_val, val, size=11, color=BLACK)
+        r_v = p_val.add_run(val)
+        r_v.font.name = FONT_TH
+        r_v.font.size = Pt(11)
+        r_v.font.color.rgb = RGBColor(0, 0, 0)
+        r_v._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_TH)
         
     doc.add_page_break()
     
@@ -330,20 +279,17 @@ if __name__ == '__main__':
     tbl_branch = doc.add_table(rows=1, cols=2)
     tbl_branch.style = 'Table Grid'
     tbl_branch.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tbl_branch)
     
     # Left Branch: Hashed
     c_left = tbl_branch.cell(0, 0)
-    set_cell_bg(c_left, GREEN_LT)
-    set_cell_border(c_left, left={'val':'single','sz':8,'color':'1B6B2E'})
-    add_para(c_left, "กรณี 1: รหัสเป็น SHA-256 แล้ว", size=12, bold=True, color=GREEN)
+    add_para(c_left, "กรณี 1: รหัสเป็น SHA-256 แล้ว", size=12, bold=True, color=BLACK)
     add_para(c_left, "1) แฮชรหัสผ่านที่ผู้ใช้ป้อนมาด้วย Web Crypto API: hashPassword(body.password)\n"
                      "2) เปรียบเทียบแฮชตรงกัน -> เข้าสู่ระบบสำเร็จ", size=11, color=BLACK)
                      
     # Right Branch: Plaintext
     c_right = tbl_branch.cell(0, 1)
-    set_cell_bg(c_right, RED_LT)
-    set_cell_border(c_right, left={'val':'single','sz':8,'color':'8B1A1A'})
-    add_para(c_right, "กรณี 2: รหัสเป็นตัวอักษรปกติ (Plaintext)", size=12, bold=True, color=RED_D)
+    add_para(c_right, "กรณี 2: รหัสเป็นตัวอักษรปกติ (Plaintext)", size=12, bold=True, color=BLACK)
     add_para(c_right, "1) เปรียบเทียบรหัสตรงๆ กับที่กรอก\n"
                       "2) หากตรงกัน เข้าสู่ระบบสำเร็จ และแปลงรหัสผ่านเป็นแฮช SHA-256 ทันที\n"
                       "3) บันทึกทับ Local และยิง fbSet ไปอัพเดททับใน Firebase DB คลาวด์กลาง (Auto-Upgrade)", size=11, color=BLACK)
@@ -353,7 +299,7 @@ if __name__ == '__main__':
     
     draw_diagram_box(doc, "4. เข้าสู่ระบบสำเร็จ (Login Success)", 
                      ["• บันทึก Token: ttm_session เก็บในเบราว์เซอร์", 
-                      "• รีเฟรชสิทธิ์สกรีนและ UI: เปิดการทำงานของหน้าแก้ไข หรือเปิดตารางสอนหลักสูตรตามสิทธิ์"], color=NAVY, text_color=WHITE)
+                      "• รีเฟรชสิทธิ์สกรีนและ UI: เปิดการทำงานของหน้าแก้ไข หรือเปิดตารางสอนหลักสูตรตามสิทธิ์"])
                       
     doc.add_page_break()
     
@@ -366,9 +312,8 @@ if __name__ == '__main__':
     tbl_schema = doc.add_table(rows=1, cols=1)
     tbl_schema.style = 'Table Grid'
     tbl_schema.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tbl_schema)
     c_sch = tbl_schema.cell(0, 0)
-    set_cell_bg(c_sch, GRAY_LT)
-    set_cell_border(c_sch, left={'val': 'single', 'sz': 12, 'color': '1B6B2E'})
     p_sch = c_sch.paragraphs[0]
     p_sch.paragraph_format.space_before = Pt(6)
     p_sch.paragraph_format.space_after = Pt(6)
