@@ -1142,7 +1142,7 @@ function writeLog(action, detail) {
   lsWrite(LS.logs, logs);
 }
 
-function localApi(method, path, body) {
+async function localApi(method, path, body) {
   // ── /settings ──────────────────────────────────
   if (path === '/settings') {
     if (method === 'GET') return lsRead(LS.settings) || {};
@@ -1202,8 +1202,26 @@ function localApi(method, path, body) {
   // ── /auth/login ────────────────────────────────
   if (path === '/auth/login' && method === 'POST') {
     const users = lsRead(LS.users) || _defaultUsers();
-    const u = users.find(x => x.username === body.username && x.password === body.password);
+    const u = users.find(x => x.username === body.username);
     if (!u) throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    
+    let isMatch = false;
+    if (isSha256(u.password)) {
+      const inputHash = await hashPassword(body.password);
+      isMatch = (u.password === inputHash);
+    } else {
+      isMatch = (u.password === body.password);
+      if (isMatch) {
+        // Auto-upgrade legacy plaintext password to SHA-256
+        const hashed = await hashPassword(body.password);
+        u.password = hashed;
+        lsWrite(LS.users, users);
+        await fbSet(`/data/users/${u.id}`, u);
+        writeLog('UPGRADE_PASSWORD', `อัพเกรดรหัสผ่านบัญชี "${u.username}" เป็น SHA-256`);
+      }
+    }
+    
+    if (!isMatch) throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     const sess = { token:'ls_'+u.id, user:{ id:u.id, username:u.username, role:u.role, full_name:u.full_name } };
     lsWrite(LS.session, sess);
     return sess;
@@ -1221,7 +1239,8 @@ function localApi(method, path, body) {
   if (path === '/auth/users' && method === 'POST') {
     const users = lsRead(LS.users) || _defaultUsers();
     if (users.find(u => u.username === body.username)) throw new Error('username นี้มีอยู่แล้ว');
-    const newUser = { ...body, id: Date.now(), created_at: new Date().toISOString() };
+    const hashedPassword = await hashPassword(body.password);
+    const newUser = { ...body, password: hashedPassword, id: Date.now(), created_at: new Date().toISOString() };
     users.push(newUser); lsWrite(LS.users, users);
     return { id: newUser.id };
   }
@@ -1229,7 +1248,11 @@ function localApi(method, path, body) {
   if (uim && method === 'PUT') {
     const users = lsRead(LS.users) || _defaultUsers();
     const i = users.findIndex(u => String(u.id) === String(uim[1]));
-    if (i >= 0) { users[i].password = body.newPassword; lsWrite(LS.users, users); }
+    if (i >= 0) { 
+      const hashedPassword = await hashPassword(body.newPassword);
+      users[i].password = hashedPassword; 
+      lsWrite(LS.users, users); 
+    }
     return { ok:true, message: 'รีเซตรหัสผ่านสำเร็จ' };
   }
   const uem = path.match(/^\/auth\/users\/([^\/]+)$/);
@@ -1250,8 +1273,10 @@ function localApi(method, path, body) {
     const users = lsRead(LS.users) || _defaultUsers();
     const u = users.find(x => x.username === (_currentUser?.username));
     if (!u) throw new Error('ไม่พบผู้ใช้');
-    if (u.password !== body.oldPassword) throw new Error('รหัสผ่านเดิมไม่ถูกต้อง');
-    u.password = body.newPassword; lsWrite(LS.users, users);
+    const oldInputHash = await hashPassword(body.oldPassword);
+    const oldStoredMatch = isSha256(u.password) ? (u.password === oldInputHash) : (u.password === body.oldPassword);
+    if (!oldStoredMatch) throw new Error('รหัสผ่านเดิมไม่ถูกต้อง');
+    u.password = await hashPassword(body.newPassword); lsWrite(LS.users, users);
     return { ok:true };
   }
   // ── /auth/logs ─────────────────────────────────
@@ -1339,7 +1364,7 @@ async function api(method, path, body) {
     const _qm = path.match(/\/entries\?.*course_id=([^&]+)/);
     if (_qm) _preIds = (lsRead(LS.entries)||[]).filter(e => e.course_id === _qm[1]).map(e => e.id);
   }
-  const result = localApi(method, path, body);
+  const result = await localApi(method, path, body);
   if (method !== 'GET' && path !== '/auth/login' && path !== '/auth/me') {
     _fbPushChange(method, path, body, _preIds);
   }
@@ -1431,10 +1456,11 @@ async function createFirstTimeAdmin() {
   btn.disabled   = true;
   errEl.textContent = '';
   try {
+    const hashedPassword = await hashPassword(password);
     const newUser = {
       id: 'admin_' + Date.now(),
       username,
-      password, // บันทึกและเทียบใช้งาน
+      password: hashedPassword, // บันทึกและเทียบใช้งาน
       role: 'superadmin',
       full_name: 'ผู้ดูแลระบบหลัก'
     };
@@ -2861,7 +2887,32 @@ function renderSettingsView() {
         <input class="form-control" id="cfg_short" value="${esc(state.schoolShort)}" placeholder="เช่น รร.ขส.ขส.ทบ.">
       </div></div>
       <button class="btn btn-primary" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button>
-      <button class="btn btn-gray" onclick="changePassword()" style="margin-left:8px">🔑 เปลี่ยนรหัสผ่าน</button>
+      <button class="btn btn-gray" onclick="openPwModal()" style="margin-left:8px">🔑 เปลี่ยนรหัสผ่าน</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><h3 style="font-size:1rem;margin:0">🔥 ตั้งค่าความปลอดภัย Firebase Realtime Database</h3></div>
+    <div class="card-body">
+      <div class="form-row" style="margin-bottom:10px">
+        <div class="form-group" style="flex:1">
+          <label>Firebase RTDB URL</label>
+          <input class="form-control" type="text" id="cfg_firebase_url"
+            value="${esc(lsRead('ttm_firebase_url') || 'https://timetable-ats-default-rtdb.firebaseio.com')}"
+            placeholder="https://example.firebaseio.com"
+            style="font-family:monospace;font-size:0.85rem">
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group" style="flex:1">
+          <label>Firebase Database Secret / Token <small style="color:#888">(เก็บในเครื่องนี้เท่านั้น)</small></label>
+          <input class="form-control" type="password" id="cfg_firebase_secret"
+            value="${esc(lsRead('ttm_firebase_secret') || '')}"
+            placeholder="กรอก Firebase Database Secret สำหรับความปลอดภัย"
+            style="font-family:monospace;font-size:0.85rem">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveFirebaseConfig()">💾 บันทึกการเชื่อมต่อ Firebase</button>
     </div>
   </div>
   ${isSuperAdmin() ? `<div class="card" style="margin-bottom:16px">
@@ -3645,6 +3696,17 @@ function saveGithubToken() {
   showToast(token ? '✅ บันทึก Token แล้ว' : 'ล้าง Token แล้ว');
 }
 
+function saveFirebaseConfig() {
+  const url = document.getElementById('cfg_firebase_url').value.trim();
+  const secret = document.getElementById('cfg_firebase_secret').value.trim();
+  if (!url) { showToast('❌ กรุณากรอก Firebase URL'); return; }
+  lsWrite('ttm_firebase_url', url);
+  lsWrite('ttm_firebase_secret', secret);
+  FB_DB = url;
+  showToast('✅ บันทึกการตั้งค่า Firebase สำเร็จ');
+  startRealtimeSync();
+}
+
 async function testGithubToken() {
   const token = document.getElementById('cfg_github_token')?.value.trim() || lsRead('ttm_github_token') || '';
   const el = document.getElementById('tokenTestResult');
@@ -3782,7 +3844,19 @@ async function syncToGitHub() {
 // ═══════════════════════════════════════════════
 //  FIREBASE REALTIME DATABASE  (multi-device sync)
 // ═══════════════════════════════════════════════
-const FB_DB = 'https://timetable-ats-default-rtdb.firebaseio.com';
+let FB_DB = lsRead('ttm_firebase_url') || 'https://timetable-ats-default-rtdb.firebaseio.com';
+
+async function hashPassword(password) {
+  if (!password) return '';
+  const msgUint8 = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function isSha256(str) {
+  return typeof str === 'string' && /^[a-f0-9]{64}$/i.test(str);
+}
 
 function _fetchWithTimeout(url, opts, ms = 8000) {
   const ctrl = new AbortController();
@@ -3793,14 +3867,18 @@ function _fetchWithTimeout(url, opts, ms = 8000) {
 
 async function fbGet(p) {
   try {
-    const r = await _fetchWithTimeout(`${FB_DB}${p}.json`, { cache: 'no-store' });
+    const secret = lsRead('ttm_firebase_secret') || '';
+    const authQuery = secret ? `?auth=${encodeURIComponent(secret)}` : '';
+    const r = await _fetchWithTimeout(`${FB_DB}${p}.json${authQuery}`, { cache: 'no-store' });
     return r.ok ? await r.json() : null;
   } catch { return null; }
 }
 
 async function fbSet(p, d) {
   try {
-    await _fetchWithTimeout(`${FB_DB}${p}.json`, {
+    const secret = lsRead('ttm_firebase_secret') || '';
+    const authQuery = secret ? `?auth=${encodeURIComponent(secret)}` : '';
+    await _fetchWithTimeout(`${FB_DB}${p}.json${authQuery}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(d),
@@ -3810,7 +3888,9 @@ async function fbSet(p, d) {
 
 async function fbDelete(p) {
   try {
-    await _fetchWithTimeout(`${FB_DB}${p}.json`, { method: 'DELETE' });
+    const secret = lsRead('ttm_firebase_secret') || '';
+    const authQuery = secret ? `?auth=${encodeURIComponent(secret)}` : '';
+    await _fetchWithTimeout(`${FB_DB}${p}.json${authQuery}`, { method: 'DELETE' });
   } catch {}
 }
 
@@ -3877,7 +3957,9 @@ function startRealtimeSync() {
   if (typeof EventSource === 'undefined') return;
   if (_fbStream) { _fbStream.close(); _fbStream = null; }
   try {
-    _fbStream = new EventSource(`${FB_DB}/data.json`);
+    const secret = lsRead('ttm_firebase_secret') || '';
+    const authQuery = secret ? `?auth=${encodeURIComponent(secret)}` : '';
+    _fbStream = new EventSource(`${FB_DB}/data.json${authQuery}`);
 
     _fbStream.addEventListener('put', function(evt) {
       try {
@@ -4080,16 +4162,7 @@ function importAllData() {
   inp.click();
 }
 
-function changePassword() {
-  const oldP = prompt('รหัสผ่านเดิม:'); if (oldP === null) return;
-  const newP = prompt('รหัสผ่านใหม่ (อย่างน้อย 4 ตัวอักษร):'); if (!newP || newP.length < 4) { showToast('รหัสผ่านสั้นเกินไป'); return; }
-  const users = lsRead(LS.users) || _defaultUsers();
-  const u = users.find(x => x.username === _currentUser?.username);
-  if (!u || u.password !== oldP) { showToast('รหัสผ่านเดิมไม่ถูกต้อง'); return; }
-  u.password = newP;
-  lsWrite(LS.users, users);
-  showToast('เปลี่ยนรหัสผ่านแล้ว');
-}
+// changePassword() has been replaced by openPwModal() and changeMyPassword() using API.
 
 // ═══════════════════════════════════════════════
 //  PRINT  (JS-split: วัด height จริง แบ่งหน้าเอง ใส่หัวทุกหน้า)
