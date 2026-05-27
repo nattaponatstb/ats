@@ -1,5 +1,6 @@
 import os
 import sys
+import pythainlp
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -8,6 +9,36 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 FONT_TH = 'TH Sarabun New'
+
+def insert_zwsp(text):
+    if not text:
+        return text
+    try:
+        tokens = pythainlp.word_tokenize(text)
+        res = []
+        for i, token in enumerate(tokens):
+            res.append(token)
+            if i < len(tokens) - 1:
+                next_token = tokens[i+1]
+                if (token.isspace() or next_token.isspace() or
+                    '\u200b' in token or '\u200b' in next_token or
+                    token in ['\n', '\r', '\t', ' ', '-', '_', '(', ')', '[', ']', '{', '}', '/', '\\', ':', ';', '.', ',', '"', "'"] or
+                    next_token in ['\n', '\r', '\t', ' ', '-', '_', '(', ')', '[', ']', '{', '}', '/', '\\', ':', ';', '.', ',', '"', "'"]):
+                    continue
+                res.append('\u200b')
+        return "".join(res)
+    except Exception:
+        return text
+
+def save_document(doc, out_path):
+    try:
+        doc.save(out_path)
+        print("SAVED: " + out_path)
+    except PermissionError:
+        fallback = out_path.replace('.docx', '_justified.docx')
+        print(f"WARNING: Permission denied on '{out_path}'. It might be open in MS Word.")
+        doc.save(fallback)
+        print("SAVED FALLBACK: " + fallback)
 
 # ── Helper Styling Functions for Plain Documents ──
 def set_table_borders(table):
@@ -31,12 +62,17 @@ def add_para(container, text='', size=15, bold=False, italic=False,
         p.clear()
     else:
         p = container.add_paragraph()
+    
+    if align == WD_ALIGN_PARAGRAPH.LEFT:
+        align = WD_ALIGN_PARAGRAPH.JUSTIFY
+        
     p.alignment = align
     pf = p.paragraph_format
     pf.space_before = Pt(space_before)
     pf.space_after = Pt(space_after)
     pf.line_spacing = 1.15
     if text:
+        text = insert_zwsp(text)
         run = p.add_run(text)
         run.bold = bold
         run.italic = italic
@@ -47,6 +83,7 @@ def add_para(container, text='', size=15, bold=False, italic=False,
     return p
 
 def add_run(para, text, size=15, bold=False, italic=False):
+    text = insert_zwsp(text)
     run = para.add_run(text)
     run.bold = bold
     run.italic = italic
@@ -239,8 +276,7 @@ def build_ca002_proposal(out_path):
     add_run(p_sig2, "( นุรักษ์ ราชรักษ์ )\n", size=14, bold=True)
     add_run(p_sig2, "ตำแหน่ง อจ.หน.แผนกวิชาการขนส่ง รร.ขส.ขส.ทบ.", size=13)
 
-    doc.save(out_path)
-    print("SAVED: " + out_path)
+    save_document(doc, out_path)
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  DOCUMENT 2: แบบเสนอผลงานนวัตกรรม (01_educational_innovation_proposal_timetable.docx)
@@ -396,8 +432,7 @@ def build_innovation_proposal(out_path):
     add_run(p_sig, "ตำแหน่ง อจ.รร.ขส.ขส.ทบ.\n", size=13)
     add_run(p_sig, "วันที ๒๗ กรกฎาคม พ.ศ. ๒๕๖๗", size=13)
 
-    doc.save(out_path)
-    print("SAVED: " + out_path)
+    save_document(doc, out_path)
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MAIN EXECUTION

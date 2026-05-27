@@ -1,4 +1,5 @@
 import os
+import pythainlp
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -23,6 +24,36 @@ WHITE     = RGBColor(0xff, 0xff, 0xff)
 BLACK     = RGBColor(0x00, 0x00, 0x00)
 
 FONT_TH = 'TH Sarabun New'
+
+def insert_zwsp(text):
+    if not text:
+        return text
+    try:
+        tokens = pythainlp.word_tokenize(text)
+        res = []
+        for i, token in enumerate(tokens):
+            res.append(token)
+            if i < len(tokens) - 1:
+                next_token = tokens[i+1]
+                if (token.isspace() or next_token.isspace() or
+                    '\u200b' in token or '\u200b' in next_token or
+                    token in ['\n', '\r', '\t', ' ', '-', '_', '(', ')', '[', ']', '{', '}', '/', '\\', ':', ';', '.', ',', '"', "'"] or
+                    next_token in ['\n', '\r', '\t', ' ', '-', '_', '(', ')', '[', ']', '{', '}', '/', '\\', ':', ';', '.', ',', '"', "'"]):
+                    continue
+                res.append('\u200b')
+        return "".join(res)
+    except Exception:
+        return text
+
+def save_document(doc, out_path):
+    try:
+        doc.save(out_path)
+        print("SAVED: " + out_path)
+    except PermissionError:
+        fallback = out_path.replace('.docx', '_justified.docx')
+        print(f"WARNING: Permission denied on '{out_path}'. It might be open in MS Word.")
+        doc.save(fallback)
+        print("SAVED FALLBACK: " + fallback)
 
 # ── Helper Styling Functions ──
 def set_table_borders(table):
@@ -51,12 +82,17 @@ def add_para(container, text='', size=15, bold=False, italic=False,
         p.clear()
     else:
         p = container.add_paragraph()
+    
+    if align == WD_ALIGN_PARAGRAPH.LEFT:
+        align = WD_ALIGN_PARAGRAPH.JUSTIFY
+        
     p.alignment = align
     pf = p.paragraph_format
     pf.space_before = Pt(space_before)
     pf.space_after = Pt(space_after)
     pf.line_spacing = 1.15
     if text:
+        text = insert_zwsp(text)
         run = p.add_run(text)
         run.bold = bold
         run.italic = italic
@@ -67,6 +103,7 @@ def add_para(container, text='', size=15, bold=False, italic=False,
     return p
 
 def add_run(para, text, size=15, bold=False, italic=False, color=BLACK):
+    text = insert_zwsp(text)
     run = para.add_run(text)
     run.bold = bold
     run.italic = italic
@@ -400,5 +437,4 @@ def make_cover_page(doc, title, subtitle, spec_badge):
                       "4) ตารางตารางเรียนบนจอของนักเรียนเปลี่ยนห้องเรียนใหม่ทันทีเรียลไทม์"], 
                      color=GREEN, text_color=WHITE)
                      
-    doc.save(out_path)
-    print("SAVED: " + out_path)
+    save_document(doc, out_path)
