@@ -1114,16 +1114,7 @@ const LS = {
 function lsRead(k)    { try { return JSON.parse(localStorage.getItem(k)||'null'); } catch { return null; } }
 function lsWrite(k,v) { localStorage.setItem(k, JSON.stringify(v)); }
 function _defaultUsers() {
-  return [
-    { id: 'admin1', username: 'admin1', password: 'ac9689e2272427085e35b9d3e3e8bed88cb3434828b43b86fc0596cad4c6e270', role: 'superadmin', full_name: 'ผู้ดูแลระบบหลัก' },
-    { id: 'admin2', username: 'admin2', password: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role: 'admin',      full_name: 'ผตก.รร.ขส.ขส.ทบ.' },
-    { id: 'admin3', username: 'admin3', password: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role: 'superadmin', full_name: 'กศ.รร.ขส.ขส.ทบ.' }
-  ];
-}
-
-function getActiveUsers() {
-  const u = lsRead(LS.users);
-  return (u && u.length) ? u : _defaultUsers();
+  return [];
 }
 
 // ── Migration: อัพเกรด role ของ users เดิมใน localStorage ──────────────────
@@ -1210,7 +1201,7 @@ async function localApi(method, path, body) {
   }
   // ── /auth/login ────────────────────────────────
   if (path === '/auth/login' && method === 'POST') {
-    const users = getActiveUsers();
+    const users = lsRead(LS.users) || _defaultUsers();
     const u = users.find(x => x.username === body.username);
     if (!u) throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     
@@ -1243,12 +1234,10 @@ async function localApi(method, path, body) {
   }
   // ── /auth/users ────────────────────────────────
   if (path === '/auth/users' && method === 'GET') {
-    if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
-    return getActiveUsers();
+    return lsRead(LS.users) || _defaultUsers();
   }
   if (path === '/auth/users' && method === 'POST') {
-    if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
-    const users = getActiveUsers();
+    const users = lsRead(LS.users) || _defaultUsers();
     if (users.find(u => u.username === body.username)) throw new Error('username นี้มีอยู่แล้ว');
     const hashedPassword = await hashPassword(body.password);
     const newUser = { ...body, password: hashedPassword, id: Date.now(), created_at: new Date().toISOString() };
@@ -1257,8 +1246,7 @@ async function localApi(method, path, body) {
   }
   const uim = path.match(/^\/auth\/users\/([^\/]+)\/reset-password$/);
   if (uim && method === 'PUT') {
-    if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
-    const users = getActiveUsers();
+    const users = lsRead(LS.users) || _defaultUsers();
     const i = users.findIndex(u => String(u.id) === String(uim[1]));
     if (i >= 0) { 
       const hashedPassword = await hashPassword(body.newPassword);
@@ -1269,8 +1257,7 @@ async function localApi(method, path, body) {
   }
   const uem = path.match(/^\/auth\/users\/([^\/]+)$/);
   if (uem) {
-    if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
-    const users = getActiveUsers();
+    const users = lsRead(LS.users) || _defaultUsers();
     const i = users.findIndex(u => String(u.id) === String(uem[1]));
     if (method === 'PUT') {
       if (i >= 0) { users[i] = { ...users[i], ...body }; lsWrite(LS.users, users); }
@@ -1283,7 +1270,7 @@ async function localApi(method, path, body) {
   }
   // ── /auth/password ─────────────────────────────
   if (path === '/auth/password' && method === 'PUT') {
-    const users = getActiveUsers();
+    const users = lsRead(LS.users) || _defaultUsers();
     const u = users.find(x => x.username === (_currentUser?.username));
     if (!u) throw new Error('ไม่พบผู้ใช้');
     const oldInputHash = await hashPassword(body.oldPassword);
@@ -1386,6 +1373,7 @@ async function api(method, path, body) {
 
 let _token = lsRead(LS.session)?.token || '';
 let _publicMode = false;
+let _isFirstTimeSetup = false;
 let _currentUser = null;   // { id, username, role, full_name }
 function isSuperAdmin() { return _currentUser?.role === 'superadmin'; }
 
@@ -1400,7 +1388,6 @@ async function doLogin() {
   btn.disabled   = true;
   errEl.textContent = '';
   try {
-    let dbWasEmpty = false;
     // ดึง users จาก Firebase ก่อนเสมอ (ให้ใช้ user จากเครื่องอื่นได้)
     try {
       const fbUsers = await fbGet('/data/users');
@@ -1418,19 +1405,12 @@ async function doLogin() {
         });
         lsWrite(LS.users, merged);
       } else {
-        dbWasEmpty = true;
+        // Firebase ไม่มี users → เข้าสู่โหมดตั้งค่าแอดมินแรก
+        _isFirstTimeSetup = true;
+        showFirstTimeSetupUI();
+        return;
       }
     } catch {}
-
-    if (dbWasEmpty) {
-      const defaults = _defaultUsers();
-      for (const du of defaults) {
-        await fbSet(`/data/users/${du.id}`, du).catch(()=>{});
-      }
-      lsWrite(LS.users, defaults);
-      throw new Error('ไม่พบข้อมูลผู้ใช้ในระบบ จึงทำการสร้างผู้ดูแลระบบเริ่มต้นใหม่แล้ว กรุณาลองเข้าสู่ระบบด้วยบัญชีเริ่มต้นอีกครั้ง');
-    }
-
     const data = await api('POST', '/auth/login', { username, password });
     _token = data.token;
     _currentUser = data.user;
@@ -1452,7 +1432,69 @@ async function doLogin() {
   }
 }
 
+function showFirstTimeSetupUI() {
+  const boxTitle = document.querySelector('.login-box h2');
+  if (boxTitle) boxTitle.textContent = '⚔️ ตั้งค่าระบบครั้งแรก';
+  const boxSub = document.querySelector('.login-sub');
+  if (boxSub) boxSub.innerHTML = '<span style="color:#c62828;font-weight:700">⚠️ ไม่พบผู้ดูแลระบบในคลาวด์</span><br>กรุณาสร้างบัญชี Super Admin แรกเพื่อเริ่มต้น';
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) {
+    loginBtn.textContent = '➕ สร้างบัญชีและเข้าใช้งาน';
+    loginBtn.onclick = createFirstTimeAdmin;
+  }
+}
 
+async function createFirstTimeAdmin() {
+  const username = document.getElementById('l_user').value.trim();
+  const password = document.getElementById('l_pass').value;
+  const errEl    = document.getElementById('loginErr');
+  const btn      = document.getElementById('loginBtn');
+  if (!username || !password) { errEl.textContent = 'กรุณากรอก username และ password'; return; }
+  if (password.length < 6) { errEl.textContent = 'รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร'; return; }
+
+  btn.innerHTML  = '<span class="api-spinner"></span>กำลังบันทึกแอดมินแรก…';
+  btn.disabled   = true;
+  errEl.textContent = '';
+  try {
+    const hashedPassword = await hashPassword(password);
+    const newUser = {
+      id: 'admin_' + Date.now(),
+      username,
+      password: hashedPassword, // บันทึกและเทียบใช้งาน
+      role: 'superadmin',
+      full_name: 'ผู้ดูแลระบบหลัก'
+    };
+    // บันทึกขึ้น Firebase และ local
+    await fbSet(`/data/users/${newUser.id}`, newUser);
+    lsWrite(LS.users, [newUser]);
+    
+    // ตั้งค่า Token และเซสชันจำลอง
+    _token = 'ls_' + newUser.id;
+    _currentUser = newUser;
+    _publicMode = false;
+
+    const _shell = document.querySelector('.app-shell');
+    _shell.classList.remove('public-mode');
+    _shell.classList.add('is-superadmin');
+    document.getElementById('publicBadge').style.display = 'none';
+    
+    writeLog('FIRST_ADMIN_CREATED', `สร้างบัญชีแอดมินคนแรกสำเร็จ: ${username}`);
+    showToast('✅ สร้างบัญชีแอดมินสำเร็จและเข้าระบบแล้ว');
+
+    document.getElementById('topbarUser').textContent = newUser.full_name;
+    document.getElementById('loginScreen').classList.add('hidden');
+    
+    // คืนค่าปุ่มเข้าสู่ระบบปกติ
+    btn.textContent = 'เข้าสู่ระบบ';
+    btn.onclick = doLogin;
+
+    await initApp();
+  } catch (e) {
+    errEl.textContent = 'ผิดพลาด: ' + e.message;
+  } finally {
+    btn.disabled  = false;
+  }
+}
 
 function doLogout() {
   _token = '';
@@ -1784,7 +1826,7 @@ function showToast(msg) {
 }
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/\//g,'&#x2F;'); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── ตัวเลขไทย ──────────────────────────────────
 const THAI_DIGITS = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
@@ -3698,7 +3740,7 @@ async function manualSyncToFirebase() {
     const courses  = lsRead(LS.courses)  || [];
     const entries  = lsRead(LS.entries)  || [];
     const settings = lsRead(LS.settings) || {};
-    const users    = getActiveUsers();
+    const users    = lsRead(LS.users)    || _defaultUsers();
     // mark ก่อน push เพื่อให้ SSE ของตัวเองไม่ re-render ซ้ำ
     _markRecentPush('/settings');
     courses.forEach(c => _markRecentPush(`/courses/${c.id}`));
@@ -3736,7 +3778,7 @@ async function syncToGitHub() {
   if (statusEl) statusEl.textContent = '⏳ กำลังอัพเดทเว็บไซท์…';
 
   // ดึง users ล่าสุดจาก Firebase ก่อน export (ให้ครบทุก user ทุกเครื่อง)
-  let usersForBackup = getActiveUsers();
+  let usersForBackup = lsRead(LS.users) || _defaultUsers();
   try {
     const fbUsers = await fbGet('/data/users');
     if (fbUsers) {
@@ -4888,7 +4930,7 @@ async function saveUser() {
 }
 async function deleteUser(id, username) {
   // ป้องกันลบ super admin คนสุดท้าย
-  const users = getActiveUsers();
+  const users = lsRead(LS.users) || _defaultUsers();
   const target = users.find(u => String(u.id) === String(id));
   if (target?.role === 'superadmin') {
     const superAdmins = users.filter(u => u.role === 'superadmin');
@@ -4965,9 +5007,11 @@ async function doResetPassword() {
       } catch {}
     }
 
-    // 3. ถ้ายังไม่มีเลย → ใช้บัญชีแอดมินเริ่มต้นโดยอัตโนมัติ
+    // 3. ถ้ายังไม่มีเลย → นำเข้าสู่ขั้นตอนการสมัครแอดมินคนแรก
     if (!sourceList.length) {
-      sourceList = _defaultUsers();
+      _isFirstTimeSetup = true;
+      showFirstTimeSetupUI();
+      return;
     }
 
     // merge: local เป็นฐาน + source อัพเดตทับ
