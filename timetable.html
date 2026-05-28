@@ -453,7 +453,7 @@ let pendingCell   = null;
 //  HELPERS
 // ─────────────────────────────────────────────
 const uid      = () => Math.random().toString(36).slice(2,9);
-const escHtml  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const escHtml  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/\//g,'&#x2F;');
 const findSec  = id => sysSettings.sections.find(s=>s.id===id);
 const findItem = (sec,id) => sec.items.find(i=>i.id===id);
 const findSub  = (sec,id) => (sec.subsections||[]).find(s=>s.id===id);
