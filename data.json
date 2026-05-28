@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "syncedAt": "2026-05-28T13:06:25.742Z",
+  "syncedAt": "2026-05-28T14:08:26.357Z",
   "syncedBy": "admin1",
   "settings": {
     "courseTypeList": "[\"นนส.\",\"นนร.\",\"ช.ต้น\",\"ช.ต้นE\",\"อาวุโส\",\"อาวุโสE\",\"ช.ร้อย\",\"ช.พัน\",\"ช่างซ่อมฯทั่วไป\",\"ช่างซ่อม น.\"]",
@@ -2963,11 +2963,25 @@
   ],
   "users": [
     {
-      "id": "admin_1779973565056",
-      "username": "admin1",
+      "full_name": "ผู้ดูแลระบบ",
+      "id": "admin1",
       "password": "ac9689e2272427085e35b9d3e3e8bed88cb3434828b43b86fc0596cad4c6e270",
       "role": "superadmin",
-      "full_name": "ผู้ดูแลระบบหลัก"
+      "username": "admin1"
+    },
+    {
+      "full_name": "ผตก.รร.ขส.ขส.ทบ.",
+      "id": "admin2",
+      "password": "123456",
+      "role": "admin",
+      "username": "admin2"
+    },
+    {
+      "full_name": "กศ.รร.ขส.ขส.ทบ.",
+      "id": "admin3",
+      "password": "123456",
+      "role": "superadmin",
+      "username": "admin3"
     }
   ]
 }
