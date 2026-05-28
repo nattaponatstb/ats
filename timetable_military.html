@@ -1234,9 +1234,11 @@ async function localApi(method, path, body) {
   }
   // ── /auth/users ────────────────────────────────
   if (path === '/auth/users' && method === 'GET') {
+    if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
     return lsRead(LS.users) || _defaultUsers();
   }
   if (path === '/auth/users' && method === 'POST') {
+    if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
     const users = lsRead(LS.users) || _defaultUsers();
     if (users.find(u => u.username === body.username)) throw new Error('username นี้มีอยู่แล้ว');
     const hashedPassword = await hashPassword(body.password);
@@ -1246,6 +1248,7 @@ async function localApi(method, path, body) {
   }
   const uim = path.match(/^\/auth\/users\/([^\/]+)\/reset-password$/);
   if (uim && method === 'PUT') {
+    if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
     const users = lsRead(LS.users) || _defaultUsers();
     const i = users.findIndex(u => String(u.id) === String(uim[1]));
     if (i >= 0) { 
@@ -1257,6 +1260,7 @@ async function localApi(method, path, body) {
   }
   const uem = path.match(/^\/auth\/users\/([^\/]+)$/);
   if (uem) {
+    if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
     const users = lsRead(LS.users) || _defaultUsers();
     const i = users.findIndex(u => String(u.id) === String(uem[1]));
     if (method === 'PUT') {

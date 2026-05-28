@@ -22,15 +22,15 @@ function requireWrite(req, res, next) {
 }
 
 function adminOnly(req, res, next) {
-  if (req.user?.role !== 'admin')
-    return res.status(403).json({ error: 'สิทธิ์ไม่เพียงพอ (ต้องการ admin)' });
+  if (req.user?.role !== 'admin' && req.user?.role !== 'superadmin')
+    return res.status(403).json({ error: 'สิทธิ์ไม่เพียงพอ (ต้องการสิทธิ์ Admin)' });
   next();
 }
 
-// เฉพาะ admin1 เท่านั้น (super admin)
+// เฉพาะ Super Admin เท่านั้น
 function superAdminOnly(req, res, next) {
-  if (req.user?.username !== 'admin1')
-    return res.status(403).json({ error: 'สิทธิ์นี้สำหรับ admin1 เท่านั้น' });
+  if (req.user?.role !== 'superadmin' && req.user?.username !== 'admin1')
+    return res.status(403).json({ error: 'สิทธิ์นี้สำหรับ Super Admin เท่านั้น' });
   next();
 }
 
