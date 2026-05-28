@@ -1121,6 +1121,11 @@ function _defaultUsers() {
   ];
 }
 
+function getActiveUsers() {
+  const u = lsRead(LS.users);
+  return (u && u.length) ? u : _defaultUsers();
+}
+
 // ── Migration: อัพเกรด role ของ users เดิมใน localStorage ──────────────────
 (function migrateUserRoles() {
   const users = lsRead(LS.users);
@@ -1205,7 +1210,7 @@ async function localApi(method, path, body) {
   }
   // ── /auth/login ────────────────────────────────
   if (path === '/auth/login' && method === 'POST') {
-    const users = lsRead(LS.users) || _defaultUsers();
+    const users = getActiveUsers();
     const u = users.find(x => x.username === body.username);
     if (!u) throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     
@@ -1239,11 +1244,11 @@ async function localApi(method, path, body) {
   // ── /auth/users ────────────────────────────────
   if (path === '/auth/users' && method === 'GET') {
     if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
-    return lsRead(LS.users) || _defaultUsers();
+    return getActiveUsers();
   }
   if (path === '/auth/users' && method === 'POST') {
     if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
-    const users = lsRead(LS.users) || _defaultUsers();
+    const users = getActiveUsers();
     if (users.find(u => u.username === body.username)) throw new Error('username นี้มีอยู่แล้ว');
     const hashedPassword = await hashPassword(body.password);
     const newUser = { ...body, password: hashedPassword, id: Date.now(), created_at: new Date().toISOString() };
@@ -1253,7 +1258,7 @@ async function localApi(method, path, body) {
   const uim = path.match(/^\/auth\/users\/([^\/]+)\/reset-password$/);
   if (uim && method === 'PUT') {
     if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
-    const users = lsRead(LS.users) || _defaultUsers();
+    const users = getActiveUsers();
     const i = users.findIndex(u => String(u.id) === String(uim[1]));
     if (i >= 0) { 
       const hashedPassword = await hashPassword(body.newPassword);
@@ -1265,7 +1270,7 @@ async function localApi(method, path, body) {
   const uem = path.match(/^\/auth\/users\/([^\/]+)$/);
   if (uem) {
     if (!isSuperAdmin()) throw new Error('สิทธิ์ไม่เพียงพอ (ต้องการ Super Admin)');
-    const users = lsRead(LS.users) || _defaultUsers();
+    const users = getActiveUsers();
     const i = users.findIndex(u => String(u.id) === String(uem[1]));
     if (method === 'PUT') {
       if (i >= 0) { users[i] = { ...users[i], ...body }; lsWrite(LS.users, users); }
@@ -1278,7 +1283,7 @@ async function localApi(method, path, body) {
   }
   // ── /auth/password ─────────────────────────────
   if (path === '/auth/password' && method === 'PUT') {
-    const users = lsRead(LS.users) || _defaultUsers();
+    const users = getActiveUsers();
     const u = users.find(x => x.username === (_currentUser?.username));
     if (!u) throw new Error('ไม่พบผู้ใช้');
     const oldInputHash = await hashPassword(body.oldPassword);
@@ -3693,7 +3698,7 @@ async function manualSyncToFirebase() {
     const courses  = lsRead(LS.courses)  || [];
     const entries  = lsRead(LS.entries)  || [];
     const settings = lsRead(LS.settings) || {};
-    const users    = lsRead(LS.users)    || _defaultUsers();
+    const users    = getActiveUsers();
     // mark ก่อน push เพื่อให้ SSE ของตัวเองไม่ re-render ซ้ำ
     _markRecentPush('/settings');
     courses.forEach(c => _markRecentPush(`/courses/${c.id}`));
@@ -3731,7 +3736,7 @@ async function syncToGitHub() {
   if (statusEl) statusEl.textContent = '⏳ กำลังอัพเดทเว็บไซท์…';
 
   // ดึง users ล่าสุดจาก Firebase ก่อน export (ให้ครบทุก user ทุกเครื่อง)
-  let usersForBackup = lsRead(LS.users) || _defaultUsers();
+  let usersForBackup = getActiveUsers();
   try {
     const fbUsers = await fbGet('/data/users');
     if (fbUsers) {
@@ -4883,7 +4888,7 @@ async function saveUser() {
 }
 async function deleteUser(id, username) {
   // ป้องกันลบ super admin คนสุดท้าย
-  const users = lsRead(LS.users) || _defaultUsers();
+  const users = getActiveUsers();
   const target = users.find(u => String(u.id) === String(id));
   if (target?.role === 'superadmin') {
     const superAdmins = users.filter(u => u.role === 'superadmin');
