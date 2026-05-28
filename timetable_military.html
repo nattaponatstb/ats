@@ -1427,7 +1427,9 @@ async function doLogin() {
   } catch (e) {
     errEl.textContent = e.message;
   } finally {
-    btn.innerHTML = 'เข้าสู่ระบบ';
+    if (!_isFirstTimeSetup) {
+      btn.innerHTML = 'เข้าสู่ระบบ';
+    }
     btn.disabled  = false;
   }
 }
