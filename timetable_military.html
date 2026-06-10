@@ -1108,8 +1108,9 @@ const LS = {
   courses:  'ttm_courses',
   entries:  'ttm_entries',
   users:    'ttm_users',
-  session:  'ttm_session',
-  logs:     'ttm_logs',
+  session:       'ttm_session',
+  logs:          'ttm_logs',
+  loginAttempts: 'ttm_login_attempts',
 };
 function lsRead(k)    { try { return JSON.parse(localStorage.getItem(k)||'null'); } catch { return null; } }
 function lsWrite(k,v) { localStorage.setItem(k, JSON.stringify(v)); }
@@ -1227,7 +1228,7 @@ function localApi(method, path, body) {
     const users = lsRead(LS.users) || _defaultUsers();
     const u = users.find(x => x.username === body.username && x.password === body.password);
     if (!u) throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-    const sess = { token:'ls_'+u.id, user:{ id:u.id, username:u.username, role:u.role, full_name:u.full_name } };
+    const sess = { token: crypto.randomUUID(), expiresAt: Date.now() + 8*60*60*1000, user:{ id:u.id, username:u.username, role:u.role, full_name:u.full_name } };
     lsWrite(LS.session, sess);
     return sess;
   }
@@ -1235,6 +1236,10 @@ function localApi(method, path, body) {
   if (path === '/auth/me' && method === 'GET') {
     const sess = lsRead(LS.session);
     if (!sess) throw new Error('ไม่ได้เข้าสู่ระบบ');
+    if (sess.expiresAt && Date.now() > sess.expiresAt) {
+      localStorage.removeItem(LS.session);
+      throw new Error('session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    }
     return { user: sess.user };
   }
   // ── /auth/users ────────────────────────────────
@@ -1369,7 +1374,9 @@ async function api(method, path, body) {
   return result;
 }
 
-let _token = lsRead(LS.session)?.token || '';
+const _savedSess = lsRead(LS.session);
+if (_savedSess?.expiresAt && Date.now() > _savedSess.expiresAt) { localStorage.removeItem(LS.session); }
+let _token = (_savedSess && (!_savedSess.expiresAt || Date.now() <= _savedSess.expiresAt)) ? (_savedSess.token || '') : '';
 let _publicMode = false;
 let _currentUser = null;   // { id, username, role, full_name }
 function isSuperAdmin() { return _currentUser?.role === 'superadmin'; }
@@ -1381,6 +1388,12 @@ async function doLogin() {
   const errEl    = document.getElementById('loginErr');
   const btn      = document.getElementById('loginBtn');
   if (!username || !password) { errEl.textContent = 'กรุณากรอก username และ password'; return; }
+  const _att = lsRead(LS.loginAttempts) || { count: 0, lockedUntil: 0 };
+  if (_att.lockedUntil > Date.now()) {
+    const mins = Math.ceil((_att.lockedUntil - Date.now()) / 60000);
+    errEl.textContent = `ระบบล็อคชั่วคราว — กรุณารอ ${mins} นาที`;
+    return;
+  }
   btn.innerHTML  = '<span class="api-spinner"></span>กำลังเข้าสู่ระบบ…';
   btn.disabled   = true;
   errEl.textContent = '';
@@ -1422,12 +1435,30 @@ async function doLogin() {
     _shell.classList.remove('public-mode');
     _shell.classList.toggle('is-superadmin', data.user?.role === 'superadmin');
     document.getElementById('publicBadge').style.display = 'none';
+    localStorage.removeItem(LS.loginAttempts);
     writeLog('LOGIN_OK', `เข้าสู่ระบบสำเร็จ`);
     document.getElementById('topbarUser').textContent = data.user.full_name || data.user.username;
     document.getElementById('loginScreen').classList.add('hidden');
     await initApp();
+    // ข้อ 3: บังคับเปลี่ยนรหัสผ่านถ้ายังใช้ default
+    const _DEFAULT_HASHES = new Set([
+      'ac9689e2272427085e35b9d3e3e8bed88cb3434828b43b86fc0596cad4c6e270',
+      '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92',
+    ]);
+    const _storedU = (lsRead(LS.users)||[]).find(u => u.username === data.user.username);
+    if (_storedU && _DEFAULT_HASHES.has(_storedU.password)) {
+      setTimeout(() => {
+        showToast('⚠️ กรุณาเปลี่ยนรหัสผ่าน default ก่อนใช้งาน', 6000);
+        changePassword();
+      }, 600);
+    }
   } catch (e) {
-    errEl.textContent = e.message;
+    const att = lsRead(LS.loginAttempts) || { count: 0, lockedUntil: 0 };
+    att.count++;
+    if (att.count >= 5) { att.lockedUntil = Date.now() + 15*60*1000; att.count = 0; }
+    lsWrite(LS.loginAttempts, att);
+    const remaining = att.lockedUntil > Date.now() ? ' — ระบบล็อค 15 นาที' : ` (เหลือ ${5 - att.count} ครั้ง)`;
+    errEl.textContent = e.message + remaining;
   } finally {
     btn.innerHTML = 'เข้าสู่ระบบ';
     btn.disabled  = false;
