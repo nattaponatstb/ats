@@ -1113,11 +1113,15 @@ const LS = {
 };
 function lsRead(k)    { try { return JSON.parse(localStorage.getItem(k)||'null'); } catch { return null; } }
 function lsWrite(k,v) { localStorage.setItem(k, JSON.stringify(v)); }
+async function hashPassword(pwd) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
 function _defaultUsers() {
   return [
-    { id:'admin1', username:'admin1', password:'admin1234', role:'superadmin', full_name:'ผู้ดูแลระบบ' },
-    { id:'admin2', username:'admin2', password:'123456',    role:'admin',       full_name:'ผตก.รร.ขส.ขส.ทบ.' },
-    { id:'admin3', username:'admin3', password:'123456',    role:'superadmin',  full_name:'กศ.รร.ขส.ขส.ทบ.' },
+    { id:'admin1', username:'admin1', password:'ac9689e2272427085e35b9d3e3e8bed88cb3434828b43b86fc0596cad4c6e270', role:'superadmin', full_name:'ผู้ดูแลระบบ' },
+    { id:'admin2', username:'admin2', password:'8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role:'admin',       full_name:'ผตก.รร.ขส.ขส.ทบ.' },
+    { id:'admin3', username:'admin3', password:'8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role:'superadmin',  full_name:'กศ.รร.ขส.ขส.ทบ.' },
   ];
 }
 
@@ -1133,6 +1137,21 @@ function _defaultUsers() {
   if (!hasSA) {
     const target = users.find(u => u.username === 'admin1') || users[0];
     if (target) { target.role = 'superadmin'; changed = true; }
+  }
+  if (changed) lsWrite(LS.users, users);
+})();
+
+// Migration: hash plaintext passwords ที่ยังไม่ได้ hash (SHA-256 = 64 hex chars)
+(async function migratePasswordsToHash() {
+  const users = lsRead(LS.users);
+  if (!users || !users.length) return;
+  const hexRe = /^[0-9a-f]{64}$/;
+  let changed = false;
+  for (const u of users) {
+    if (u.password && !hexRe.test(u.password)) {
+      u.password = await hashPassword(u.password);
+      changed = true;
+    }
   }
   if (changed) lsWrite(LS.users, users);
 })();
@@ -1394,7 +1413,7 @@ async function doLogin() {
         merged.forEach(u => fbSet(`/data/users/${String(u.id)}`, u).catch(function(){}));
       }
     } catch {}
-    const data = await api('POST', '/auth/login', { username, password });
+    const data = await api('POST', '/auth/login', { username, password: await hashPassword(password) });
     _token = data.token;
     _currentUser = data.user;
     // รีเซต public mode เสมอเมื่อ login สำเร็จ
@@ -4025,13 +4044,14 @@ function importAllData() {
   inp.click();
 }
 
-function changePassword() {
+async function changePassword() {
   const oldP = prompt('รหัสผ่านเดิม:'); if (oldP === null) return;
   const newP = prompt('รหัสผ่านใหม่ (อย่างน้อย 4 ตัวอักษร):'); if (!newP || newP.length < 4) { showToast('รหัสผ่านสั้นเกินไป'); return; }
   const users = lsRead(LS.users) || _defaultUsers();
   const u = users.find(x => x.username === _currentUser?.username);
-  if (!u || u.password !== oldP) { showToast('รหัสผ่านเดิมไม่ถูกต้อง'); return; }
-  u.password = newP;
+  const hashedOld = await hashPassword(oldP);
+  if (!u || u.password !== hashedOld) { showToast('รหัสผ่านเดิมไม่ถูกต้อง'); return; }
+  u.password = await hashPassword(newP);
   lsWrite(LS.users, users);
   showToast('เปลี่ยนรหัสผ่านแล้ว');
 }
@@ -4793,7 +4813,7 @@ async function saveUser() {
     if (!password) { showToast('กรุณากรอก password'); return; }
     if (password !== password2) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
     try {
-      await api('POST', '/auth/users', { username, password, role, full_name: fullName||null });
+      await api('POST', '/auth/users', { username, password: await hashPassword(password), role, full_name: fullName||null });
       writeLog('CREATE_USER', `สร้างผู้ใช้: ${username} (${role})`);
       closeModal('userModal'); renderAdminView(); showToast(`✅ สร้าง "${username}" สำเร็จ (${role})`);
     } catch (e) { showToast('ผิดพลาด: ' + e.message); }
@@ -4855,7 +4875,7 @@ async function doResetPassword() {
   if (!newPassword) { showToast('กรุณากรอกรหัสผ่านใหม่'); return; }
   if (newPassword !== newPassword2) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
   try {
-    const res = await api('PUT', `/auth/users/${id}/reset-password`, { newPassword });
+    const res = await api('PUT', `/auth/users/${id}/reset-password`, { newPassword: await hashPassword(newPassword) });
     writeLog('RESET_PASSWORD', `รีเซตรหัสผ่าน user id:${id}`);
     closeModal('resetPwModal'); renderAdminView(); showToast('✅ ' + res.message);
   } catch (e) { showToast('ผิดพลาด: ' + e.message); }
