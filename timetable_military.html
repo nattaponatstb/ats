@@ -3777,7 +3777,27 @@ async function syncToGitHub() {
 // ═══════════════════════════════════════════════
 //  FIREBASE REALTIME DATABASE  (multi-device sync)
 // ═══════════════════════════════════════════════
-const FB_DB = 'https://timetable-ats-default-rtdb.firebaseio.com';
+const FB_DB     = 'https://timetable-ats-default-rtdb.firebaseio.com';
+const FB_API_KEY = 'AIzaSyCA_-Y32F5Y_gDGMkJDpCX-Fs_SvlRio5c';
+let _fbAnonToken       = null;
+let _fbAnonTokenExpiry = 0;
+
+async function _fbGetAnonToken() {
+  if (_fbAnonToken && Date.now() < _fbAnonTokenExpiry - 60000) return _fbAnonToken;
+  try {
+    const r = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_API_KEY}`,
+      { method:'POST', headers:{'Content-Type':'application/json'}, body:'{"returnSecureToken":true}' }
+    );
+    if (r.ok) {
+      const d = await r.json();
+      _fbAnonToken       = d.idToken;
+      _fbAnonTokenExpiry = Date.now() + parseInt(d.expiresIn || 3600) * 1000;
+    }
+  } catch {}
+  return _fbAnonToken;
+}
+async function _fbQ() { const t = await _fbGetAnonToken(); return t ? `?auth=${t}` : ''; }
 
 function _fetchWithTimeout(url, opts, ms = 8000) {
   const ctrl = new AbortController();
@@ -3788,14 +3808,16 @@ function _fetchWithTimeout(url, opts, ms = 8000) {
 
 async function fbGet(p) {
   try {
-    const r = await _fetchWithTimeout(`${FB_DB}${p}.json`, { cache: 'no-store' });
+    const q = await _fbQ();
+    const r = await _fetchWithTimeout(`${FB_DB}${p}.json${q}`, { cache: 'no-store' });
     return r.ok ? await r.json() : null;
   } catch { return null; }
 }
 
 async function fbSet(p, d) {
   try {
-    await _fetchWithTimeout(`${FB_DB}${p}.json`, {
+    const q = await _fbQ();
+    await _fetchWithTimeout(`${FB_DB}${p}.json${q}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(d),
@@ -3805,7 +3827,8 @@ async function fbSet(p, d) {
 
 async function fbDelete(p) {
   try {
-    await _fetchWithTimeout(`${FB_DB}${p}.json`, { method: 'DELETE' });
+    const q = await _fbQ();
+    await _fetchWithTimeout(`${FB_DB}${p}.json${q}`, { method: 'DELETE' });
   } catch {}
 }
 
@@ -3871,8 +3894,10 @@ function _markRecentPush(p) {
 function startRealtimeSync() {
   if (typeof EventSource === 'undefined') return;
   if (_fbStream) { _fbStream.close(); _fbStream = null; }
+  _fbGetAnonToken().then(function(tok) {
   try {
-    _fbStream = new EventSource(`${FB_DB}/data.json`);
+    const q = tok ? `?auth=${tok}` : '';
+    _fbStream = new EventSource(`${FB_DB}/data.json${q}`);
 
     _fbStream.addEventListener('put', function(evt) {
       try {
@@ -3966,6 +3991,7 @@ function startRealtimeSync() {
       setTimeout(startRealtimeSync, 10000);
     };
   } catch {}
+  }); // end _fbGetAnonToken().then
 }
 
 function _applyFbToState(settings, courses, entries) {
